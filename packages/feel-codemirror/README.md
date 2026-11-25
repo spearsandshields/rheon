@@ -28,7 +28,8 @@ view.dispatch({ effects: setFeelScope({ dialect: 'unaryTests', outline }) });
 | `templates` | Offer templates of `if`, `for`, `some`, `every`, a function and a context | true |
 | `tree` | Ask for the nodes of the text too (`syntaxOf(state).nodes`) | false |
 | `onSyntax` | Called with every answer the editor takes | none |
-| `signatureHelp` | Inside the parentheses of a built-in function, show its signatures with the parameter of the cursor marked | true |
+| `signatureHelp` | Inside the parentheses of a built-in function or a function of the outline, show its signatures with the parameter of the cursor marked | true |
+| `hover` | When the pointer rests on a name, show its type, or the signatures of a function, and what the outline or the engine says of it. Needs an engine that answers `hover` (a `FeelEngine` and `instanceSource` do) | true |
 
 - `syntaxOf(state)` is the last answer the editor took (tokens, errors, nodes).
 - Colours are CSS custom properties with defaults: `--feel-keyword`, `--feel-number`,
@@ -41,4 +42,7 @@ view.dispatch({ effects: setFeelScope({ dialect: 'unaryTests', outline }) });
   gives. A parameter that can be named is completed with its colon. The hint has the classes
   `cm-feel-signature`, `-line`, `-active`, `-given` and `-summary`; `signatureHint(call)` builds
   its element from the `call` of a `complete` answer.
+- What shows over a name has the classes `cm-feel-hover`, `-line`, `-documentation` and
+  `-deprecated`; `hoverInfo(hover, name)` builds its element from the `hover` of a `hover`
+  answer, and `hoverAt(engine, view, pos)` gives the tooltip for a place.
 - Tests: `npm test` runs the extension in jsdom with the engine in the same thread.

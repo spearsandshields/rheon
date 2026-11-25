@@ -203,7 +203,7 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
   "expects": "expression",               // what the grammar takes at the cursor
   "items": [{ "label": "Monthly Salary", "kind": "name", "from": 4, "type": null, "detail": null }],
   "truncated": false,
-  "call": { … },                         // only inside the parentheses of a built-in function
+  "call": { … },                         // only inside the parentheses of a function that is known
   "elapsedMicros": n }
 ```
 
@@ -243,7 +243,9 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
   after them. With an `outline` in place of the context the types of the names that are no
   contexts and no lists are known when the outline has them (below).
 - `call` stands when the cursor is inside the parentheses of an invocation of a built-in
-  function or of a function of an outline (the innermost one):
+  function or of a function of an outline (the innermost one). The function of an outline is a
+  name of the scope, or an entry at the end of a path (`lib.nz(`); a name after a dot is only
+  ever that entry, not the built-in function of the same name:
 
   ```jsonc
   { "function": "substring",

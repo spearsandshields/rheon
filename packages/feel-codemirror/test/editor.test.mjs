@@ -18,7 +18,7 @@ const { EditorState } = await import('@codemirror/state');
 const { startCompletion, currentCompletions, completionStatus } = await import('@codemirror/autocomplete');
 const { forEachDiagnostic } = await import('@codemirror/lint');
 const { instantiateFeel } = await import('@rheon/feel-runtime');
-const { feelEditor, formatDocument, instanceSource, setFeelScope, signatureHint, syntaxOf } = await import('../dist/index.js');
+const { feelEditor, formatDocument, hoverAt, hoverInfo, instanceSource, setFeelScope, signatureHint, syntaxOf } = await import('../dist/index.js');
 
 const bytes = await readFile(new URL('../../../dist/feel.wasm', import.meta.url));
 const engine = instanceSource(await instantiateFeel(bytes));
@@ -220,4 +220,35 @@ test('the hint shows the signatures that fit the argument', () => {
   const named = signatureHint(engine.complete('substring(string: "a", ', 23, {}).call);
   assert.equal(named.querySelector('.cm-feel-signature-given').textContent, 'string: string');
   assert.equal(named.querySelector('.cm-feel-signature-active'), null);
+});
+
+test('a name shows its type and what the outline says of it', async () => {
+  const outline = {
+    names: {
+      loan: { names: { amount: { type: 'number', description: 'In dollars' }, old: { type: 'string', deprecated: 'use amount' } } },
+      lib: { names: { nz: { function: { parameters: [{ name: 'value', type: 'number' }, { name: 'fallback', type: 'number' }], result: 'number' }, description: 'The value, or the fallback' } } },
+    },
+  };
+  const text = 'loan.amount + lib.nz(loan.old, 1) + floor(2)';
+  const view = editor(text, { outline });
+  const shown = async (word) => {
+    const tooltip = await hoverAt(engine, view, text.indexOf(word) + 1);
+    if (!tooltip) return null;
+    assert.equal(text.slice(tooltip.pos, tooltip.end), word);
+    return [...tooltip.create(view).dom.children].map((line) => `${line.className.replace('cm-feel-hover-', '')}: ${line.textContent}`);
+  };
+  assert.deepEqual(await shown('amount'), ['line: amount: number', 'documentation: In dollars']);
+  assert.deepEqual(await shown('loan'), ['line: loan: context']);
+  assert.deepEqual(await shown('old'), ['line: old: string', 'deprecated: Deprecated: use amount']);
+  assert.deepEqual(await shown('nz'), ['line: nz(value: number, fallback: number): number', 'documentation: The value, or the fallback']);
+  assert.deepEqual(await shown('floor'), ['line: floor(n: number, scale?: number): number', 'documentation: The number rounded towards negative infinity.']);
+  // no name at the place, an engine that does not answer hover, a text that has changed since
+  assert.equal(await hoverAt(engine, view, text.indexOf('+')), null);
+  assert.equal(await hoverAt({ ...engine, hover: undefined }, view, 1), null);
+  const slow = { ...engine, hover: async (...args) => (await settle(), engine.hover(...args)) };
+  const pending = hoverAt(slow, view, 1);
+  type(view, ' ');
+  assert.equal(await pending, null);
+  // the element alone: a name without a type, deprecated without a reason
+  assert.equal(hoverInfo({ from: 0, to: 1, kind: 'name', type: null, deprecated: true }, 'a').textContent, 'aDeprecated.');
 });

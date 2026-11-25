@@ -662,7 +662,7 @@ impl CallSignature {
 
 /// The innermost invocation of a function whose parentheses are open where the text ends, from
 /// the tokens of the text.
-fn call(schema: &Schema, text: &str, syntax: &Syntax) -> Option<Call> {
+fn call(typing: &mut Typing, schema: &Schema, scope: &FeelScope, text: &str, syntax: &Syntax) -> Option<Call> {
   let mut tokens = syntax.tokens.iter().rev().filter(|t| !matches!(t.class, TokenClass::Whitespace | TokenClass::Comment));
   // the arguments from the last to the first: the name of each that has one
   let mut arguments: Vec<Option<String>> = vec![None];
@@ -680,16 +680,32 @@ fn call(schema: &Schema, text: &str, syntax: &Syntax) -> Option<Call> {
       _ => {}
     }
   }
-  let name = tokens.next()?;
-  let name = name_of(&text[name.start..name.end]).to_string();
-  let (summary, signatures) = match (
-    schema.root_meta.get(&name).and_then(|said| said.signature.as_ref().map(|signature| (said, signature))),
-    built_in(&name),
-  ) {
-    // a name of the outline is what the name reads
-    (Some((said, signature)), _) => (said.description.clone(), vec![outline_signature(&name, signature)]),
-    (None, Some(built_in)) => (Some(built_in.summary.to_string()), built_in_signatures(built_in)),
-    (None, None) => return None,
+  let token = tokens.next()?;
+  let name = name_of(&text[token.start..token.end]).to_string();
+  // a name after a dot is an entry of the value before the dot: the function that the outline
+  // says that entry is, and never the function of the scope or the built-in one of that name
+  let dot = tokens.next().filter(|dot| &text[dot.start..dot.end] == "." && dot.class != TokenClass::String);
+  let (summary, signatures) = if let Some(dot) = dot {
+    let path = syntax
+      .nodes
+      .iter()
+      .filter(|node| node.kind == "Path" && node.end == token.end && node.start < dot.start)
+      .min_by_key(|node| node.start)?;
+    let bound = bound_at(typing, scope, text, syntax, path.start);
+    let base = type_of_piece(typing, scope, &text[path.start..dot.start], &bound);
+    let said = schema.entry(typing, base, &name)?;
+    let signature = said.signature.as_ref()?;
+    (said.description.clone(), vec![outline_signature(&name, signature)])
+  } else {
+    match (
+      schema.root_meta.get(&name).and_then(|said| said.signature.as_ref().map(|signature| (said, signature))),
+      built_in(&name),
+    ) {
+      // a name of the outline is what the name reads
+      (Some((said, signature)), _) => (said.description.clone(), vec![outline_signature(&name, signature)]),
+      (None, Some(built_in)) => (Some(built_in.summary.to_string()), built_in_signatures(built_in)),
+      (None, None) => return None,
+    }
   };
   let takes_name = arguments.iter().enumerate().all(|(index, argument)| (index == 0) == argument.is_none());
   Some(Call {
@@ -1430,7 +1446,7 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
     // inside a comment or a string: nothing is offered, but in a string that is compared with
     // a name whose values the outline lists, those values
     _ if inside(before, &syntax).is_some() => {
-      invocation = call(&schema, before, &syntax);
+      invocation = call(&mut typing, &schema, &scope, before, &syntax);
       expects = inside(before, &syntax).unwrap_or_default().to_string();
       if let Some(open) = syntax.diagnostics.iter().find(|d| d.code == "string-open" && d.end == before.len())
         && let Some(said) = compared(&mut typing, &schema, &scope, &before[..open.start], unary_tests)
@@ -1448,7 +1464,7 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
     Some((from, typed)) => {
       let head = &before[..from];
       let head_syntax = parse_tolerant_start(&scope, head, rule);
-      invocation = call(&schema, head, &head_syntax);
+      invocation = call(&mut typing, &schema, &scope, head, &head_syntax);
       let at_start = with_parameters(expected(&mut typing, &schema, &scope, head, &head_syntax, unary_tests), &invocation);
       offer(&mut items, &at_start, typed, from);
       expects = at_start.name;
@@ -1460,7 +1476,7 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
       }
     }
     None => {
-      invocation = call(&schema, before, &syntax);
+      invocation = call(&mut typing, &schema, &scope, before, &syntax);
       let at_cursor = with_parameters(expected(&mut typing, &schema, &scope, before, &syntax, unary_tests), &invocation);
       offer(&mut items, &at_cursor, "", cursor);
       expects = at_cursor.name;
@@ -1604,7 +1620,20 @@ pub(super) fn hover(mut req: Map<String, Json>, unread: Unread, started: Instant
         if let Some((_, member)) = typing.members(base).into_iter().find(|(name, _)| spaced(name) == written) {
           hover["type"] = json!(typing.shown(member));
         }
-        say(&mut hover, schema.entry(&typing, base, &written));
+        let said = schema.entry(&typing, base, &written);
+        say(&mut hover, said);
+        if let Some(signature) = said.and_then(|said| said.signature.as_ref()) {
+          let call = Call {
+            name: written.clone(),
+            summary: None,
+            signatures: vec![],
+            argument: 0,
+            named: vec![],
+            takes_name: false,
+          };
+          hover["kind"] = json!("function");
+          hover["signatures"] = signatures_json(&call, &[outline_signature(&written, signature)], false);
+        }
       }
     }
     "name" => {

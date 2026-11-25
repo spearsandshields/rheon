@@ -3475,3 +3475,64 @@ fn review_of_outline_v2() {
   assert_eq!(hover("a.b", 3)["kind"], "entry");
   assert_eq!(hover("count(a)", 5)["kind"], "function");
 }
+
+/// A function that is an entry of a context of the outline (`lib.nz`): completion hints its
+/// invocation as it does for a name of the scope, hover shows its signature, and a name after
+/// a dot is never taken for the function of the scope or the built-in function of that name.
+#[test]
+fn a_function_that_is_an_entry_is_hinted() {
+  let function = json!({"function": {"parameters": [{"name": "value", "type": "number"}, {"name": "fallback", "type": "number"}], "result": "number"}, "description": "The value, or the fallback"});
+  let outline = json!({
+    "types": {"Lib": {"names": {"nz": function, "inner": {"names": {"nz": function}}}}},
+    "names": {
+      "lib": {"type": "Lib"},
+      "libs": {"type": "list<Lib>"},
+      "x": {"names": {"floor": {"type": "number"}, "plain": {"type": "number"}}},
+      "plain": function}
+  });
+  let complete = |expression: &str| {
+    let response = req(json!({"op": "complete", "expression": expression, "outline": outline}));
+    assert_eq!(response["ok"], true, "{response}");
+    response
+  };
+  let expected = json!({"function": "nz", "documentation": "The value, or the fallback", "argument": 1, "named": [], "activeSignature": 0, "signatures": [{
+    "label": "nz(value, fallback): number",
+    "parameters": [{"name": "value", "type": "number", "optional": false, "rest": false}, {"name": "fallback", "type": "number", "optional": false, "rest": false}],
+    "result": "number", "named": true, "activeParameter": 1}]});
+  for text in [
+    "lib.nz(1, ",
+    "lib . nz (1, ",
+    "1 + lib.inner.nz(1, ",
+    "libs[1].nz(1, ",
+    "for l in libs return l.nz(1, ",
+    "lib.nz(lib.nz(1, 2), ",
+  ] {
+    assert_eq!(complete(text)["call"], expected, "{text}");
+  }
+  // the names of its parameters are offered
+  let offered = |text: &str| -> Vec<String> {
+    complete(text)["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| item["kind"] == "parameter")
+      .map(|item| item["insertText"].as_str().unwrap().to_string())
+      .collect()
+  };
+  assert_eq!(offered("lib.nz("), ["fallback: ", "value: "]);
+  assert_eq!(offered("x.plain("), [""; 0]);
+  assert_eq!(complete("lib.nz(value: 1, ")["items"][0]["insertText"], "fallback: ");
+  // an entry that is no function, also one named as a built-in function or as a function of the scope
+  for text in ["x.floor(1, ", "x.plain(1, ", "x.missing(1, ", "lib.floor(1, ", "(1).floor("] {
+    assert!(complete(text)["call"].is_null(), "{text}");
+  }
+  // without a dot they are what they were
+  assert_eq!(complete("floor(1, ")["call"]["function"], "floor");
+  assert_eq!(complete("plain(1, ")["call"]["function"], "plain");
+  // hover on the entry: a function with its signature
+  let hover = req(json!({"op": "hover", "expression": "lib.nz(1, 2)", "at": 5, "outline": outline}));
+  assert_eq!(hover["hover"]["kind"], "function", "{hover}");
+  assert_eq!(hover["hover"]["documentation"], "The value, or the fallback");
+  assert_eq!(hover["hover"]["signatures"][0]["label"], "nz(value, fallback): number");
+  assert!(hover["hover"]["signatures"][0]["activeParameter"].is_null());
+}

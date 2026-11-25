@@ -1,7 +1,7 @@
 /**
  * CodeMirror 6 support for FEEL from the rheon engine's own parser: the colours, the error
- * marks, the completions and the hint of the invoked function are what the engine answers for
- * the text (`syntax`, `complete`, docs/CONTRACT.md §3), so the editor reads a text as the
+ * marks, the completions, the hint of the invoked function and what shows over a name are what
+ * the engine answers for the text (`syntax`, `complete`, `hover`, docs/CONTRACT.md §3), so the editor reads a text as the
  * engine evaluates it.
  *
  *   const engine = await FeelEngine.create({ wasmUrl });
@@ -14,13 +14,15 @@ import { autocompletion, snippetCompletion, type Completion, type CompletionCont
 import { linter, type Diagnostic } from '@codemirror/lint';
 import { keymap } from '@codemirror/view';
 import { Compartment, Facet, StateEffect, StateField, type EditorState, type Extension } from '@codemirror/state';
-import { Decoration, EditorView, ViewPlugin, showTooltip, type DecorationSet, type Tooltip, type ViewUpdate } from '@codemirror/view';
-import type { CompleteResponse, CompletionCall, CompletionItem, EditorOptions, FormatResponse, FunctionSignature, SyntaxResponse } from '@rheon/feel-runtime';
+import { Decoration, EditorView, ViewPlugin, hoverTooltip, showTooltip, type DecorationSet, type Tooltip, type ViewUpdate } from '@codemirror/view';
+import type { CompleteResponse, CompletionCall, CompletionItem, EditorOptions, FormatResponse, FunctionSignature, Hover, HoverResponse, SyntaxResponse } from '@rheon/feel-runtime';
 
-/** What answers the editor: a `FeelEngine` (a worker), or anything with these two methods; the answers may be promises or values. */
+/** What answers the editor: a `FeelEngine` (a worker), or anything with these methods; the answers may be promises or values. */
 export interface FeelSource {
   syntax(expression: string, opts: EditorOptions & { tree?: boolean }): Promise<SyntaxResponse> | SyntaxResponse;
   complete(expression: string, cursor: number, opts: EditorOptions): Promise<CompleteResponse> | CompleteResponse;
+  /** Needed only for what shows over a name (`hover`). */
+  hover?(expression: string, at: number, opts: EditorOptions): Promise<HoverResponse> | HoverResponse;
   /** Needed only for `formatDocument`. */
   format?(expression: string, opts: EditorOptions & { width?: number }): Promise<FormatResponse> | FormatResponse;
 }
@@ -42,6 +44,8 @@ export interface FeelEditorConfig extends FeelScope {
   formatWidth?: number;
   /** Whether a hint shows the signatures of the built-in function whose parentheses the cursor is in (default true). */
   signatureHelp?: boolean;
+  /** Whether the type of a name, and what the outline or the engine says of it, shows when the pointer rests on it (default true; needs an engine that answers `hover`). */
+  hover?: boolean;
 }
 
 /** A `syntax` answer that succeeded. */
@@ -52,6 +56,7 @@ export function instanceSource(instance: { call(request: object): unknown }): Fe
   return {
     syntax: (expression, opts) => instance.call({ op: 'syntax', expression, ...opts }) as SyntaxResponse,
     complete: (expression, cursor, opts) => instance.call({ op: 'complete', expression, cursor, ...opts }) as CompleteResponse,
+    hover: (expression, at, opts) => instance.call({ op: 'hover', expression, at, ...opts }) as HoverResponse,
     format: (expression, opts) => instance.call({ op: 'format', expression, ...opts }) as FormatResponse,
   };
 }
@@ -107,6 +112,9 @@ const colours = EditorView.baseTheme({
   '.cm-feel-signature-active': { textDecoration: 'underline' },
   '.cm-feel-signature-given': { opacity: '0.6' },
   '.cm-feel-signature-summary': { fontFamily: 'sans-serif', opacity: '0.8', marginTop: '2px' },
+  '.cm-feel-hover': { padding: '4px 8px', fontFamily: 'monospace', fontSize: '0.9em', maxWidth: '40em' },
+  '.cm-feel-hover-documentation, .cm-feel-hover-deprecated': { fontFamily: 'sans-serif', opacity: '0.8', marginTop: '2px' },
+  '.cm-feel-hover-deprecated': { fontStyle: 'italic' },
   '&dark .cm-feel-keyword': { color: 'var(--feel-keyword, #c792ea)' },
   '&dark .cm-feel-number': { color: 'var(--feel-number, #8fb0ff)' },
   '&dark .cm-feel-string': { color: 'var(--feel-string, #a5e07b)' },
@@ -192,11 +200,58 @@ export function signatureHint(call: CompletionCall): HTMLElement {
 }
 
 /**
+ * What shows over a name: the name with its type, or the signatures of a function, then what
+ * the outline or the engine says of it and whether it is deprecated. `name` is the name as the
+ * text has it.
+ */
+export function hoverInfo(hover: Hover, name: string): HTMLElement {
+  const dom = document.createElement('div');
+  dom.className = 'cm-feel-hover';
+  if (hover.signatures?.length) {
+    for (const signature of hover.signatures) {
+      const line = dom.appendChild(document.createElement('div'));
+      line.className = 'cm-feel-hover-line';
+      const parameters = signature.parameters.map((parameter) => `${parameter.name}${parameter.rest ? '...' : parameter.optional ? '?' : ''}: ${parameter.type}`);
+      line.textContent = `${name}(${parameters.join(', ')}): ${signature.result}`;
+    }
+  } else {
+    const line = dom.appendChild(document.createElement('div'));
+    line.className = 'cm-feel-hover-line';
+    line.textContent = hover.type ? `${name}: ${hover.type}` : name;
+  }
+  if (hover.documentation) {
+    const documentation = dom.appendChild(document.createElement('div'));
+    documentation.className = 'cm-feel-hover-documentation';
+    documentation.textContent = hover.documentation;
+  }
+  if (hover.deprecated !== undefined) {
+    const deprecated = dom.appendChild(document.createElement('div'));
+    deprecated.className = 'cm-feel-hover-deprecated';
+    deprecated.textContent = hover.deprecated === true ? 'Deprecated.' : `Deprecated: ${hover.deprecated}`;
+  }
+  return dom;
+}
+
+/**
+ * The tooltip for the place `pos` of the editor: what the engine answers for the name there
+ * (`hover`), or null where no name stands, the engine does not answer `hover`, or the text has
+ * changed since it was asked.
+ */
+export async function hoverAt(engine: FeelSource, view: EditorView, pos: number): Promise<Tooltip | null> {
+  if (!engine.hover) return null;
+  const text = view.state.doc.toString();
+  const answer = await engine.hover(text, pos, view.state.facet(scopeOf));
+  if (!answer.ok || !answer.hover || view.state.doc.toString() !== text) return null;
+  const found = answer.hover;
+  return { pos: found.from, end: found.to, above: true, create: () => ({ dom: hoverInfo(found, text.slice(found.from, found.to)) }) };
+}
+
+/**
  * The extension: highlighting, error marks and completion from the engine. Change the names in
  * scope or the dialect later with `setFeelScope`.
  */
 export function feelEditor(config: FeelEditorConfig): Extension {
-  const { engine, maxDiagnostics = 20, templates = true, tree = false, onSyntax, signatureHelp = true } = config;
+  const { engine, maxDiagnostics = 20, templates = true, tree = false, onSyntax, signatureHelp = true, hover = true } = config;
   const scope: FeelScope = { dialect: config.dialect, context: config.context, contextFormat: config.contextFormat, outline: config.outline };
 
   // asks the engine after every change of the text or of the scope
@@ -304,6 +359,7 @@ export function feelEditor(config: FeelEditorConfig): Extension {
     autocompletion({ override: [complete] }),
     keymap.of([{ key: 'Shift-Alt-f', run: formatDocument }]),
     signatureHelp ? [hint, hinter] : [],
+    hover && engine.hover ? hoverTooltip((view, pos) => hoverAt(engine, view, pos).catch(() => null)) : [],
   ];
 }
 
