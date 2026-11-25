@@ -460,5 +460,21 @@
   {"op": "explain", "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit", "context": {"loans": [{"amount": 100, "rate": 2, "status": "a"}, {"amount": 50, "rate": 4, "status": "b"}, {"amount": 10, "rate": 1, "status": "a"}], "limit": 40}, "expand": [[40, 57]]},
   {"op": "explain", "expression": "for a in [1, 2] return (for b in [10, 20] return a * b)", "expand": [{"at": [24, 54], "within": [{"at": [0, 55], "iteration": 1}]}, {"at": [49, 54], "within": [{"at": [0, 55], "iteration": 1}, {"at": [24, 54], "iteration": 0}]}]},
   {"op": "explain", "expression": "some x in [1, 5, 9] satisfies x > 4", "expand": [[0, 35]]},
-  {"op": "explain", "expression": "for i in 1..1000 return i * 2", "expand": [{"at": [0, 29], "iterations": [0, 1000]}], "maxRecords": 50}
+  {"op": "explain", "expression": "for i in 1..1000 return i * 2", "expand": [{"at": [0, 29], "iterations": [0, 1000]}], "maxRecords": 50},
+  {"op": "explain", "expression": "{fact: function(n) if n <= 1 then 1 else n * fact(n - 1), r: fact(3) + 1}.r", "expand": [[61, 68]]},
+  {"op": "explain", "expression": "{fact: function(n) if n <= 1 then 1 else n * fact(n - 1), r: fact(3) + 1}.r", "expand": [{"at": [19, 56], "within": [{"at": [61, 68], "call": true}]}, {"at": [45, 56], "within": [{"at": [61, 68], "call": true}]}]},
+  {"op": "explain", "expression": "{fact: function(n) if n <= 1 then 1 else n * fact(n - 1), r: fact(3) + 1}.r", "expand": [{"at": [19, 56], "within": [{"at": [61, 68], "call": true}, {"at": [45, 56], "call": true}, {"at": [45, 56], "call": true}]}]},
+  {"op": "explain", "expression": "{f: function(xs) for x in xs return g(x), g: function(a) a * 2, r: f([1, 2])}.r", "expand": [{"at": [36, 40], "within": [{"at": [67, 76], "call": true}, {"at": [17, 40], "iteration": 1}]}]},
+  {"op": "explain", "expression": "{f: function(xs) for x in xs return g(x), g: function(a) a * 2, r: f([1, 2])}.r", "expand": [[36, 40]]},
+  {"op": "explain", "expression": "{f: function(xs) for x in xs return g(x), g: function(a) a * 2, r: f([1, 2])}.r", "expand": [{"at": [57, 62], "within": [{"at": [1, 2], "call": true}]}]},
+  {"op": "explain", "expression": "{make: function(k) function(x) x + k, r: make(2)(3)}.r", "expand": [[41, 51]]},
+  {"op": "explain", "expression": "sort([3, 1, 2], function(a, b) a < b)", "expand": [[0, 37]]},
+  {"op": "explain", "expression": "loan.amount * rate.base + 1", "context": {"loan": {"amount": 100}, "rate": {}}},
+  {"op": "explain", "expression": "loan.amount * rate.base + 1", "context": {"loan": {"amount": 100}, "rate": {}}, "expand": [[0, 23], [14, 23]]},
+  {"op": "explain", "expression": "{base: rate.base, scaled: base * 2, result: scaled + loan.amount}.result", "context": {"loan": {"amount": 100}, "rate": {}}},
+  {"op": "explain", "expression": "{base: rate.base, scaled: base * 2, result: scaled + loan.amount}.result", "context": {"loan": {"amount": 100}, "rate": {}}, "expand": [[36, 64], [44, 50], [18, 34], [26, 30], [1, 16]]},
+  {"op": "explain", "expression": "every x in [1, null, 3] satisfies x > 0", "expand": [{"at": [34, 39], "within": [{"at": [0, 39], "iteration": 1}]}]},
+  {"op": "explain", "expression": "(every x in [1, 2, null] satisfies x > 0) or false", "expand": [{"at": [1, 40], "iterations": [0, 2]}]},
+  {"op": "explain", "expression": "{f: function(x) x.y + 1, r: f(rate)}.r", "context": {"loan": {"amount": 100}, "rate": {}}, "expand": [[25, 35], {"at": [16, 23], "within": [{"at": [28, 35], "call": true}]}]},
+  {"op": "explain", "expression": "{a: 1, a: 2}.a"}
 ]

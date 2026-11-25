@@ -41,6 +41,33 @@ fn collect(value: &Json, found: &mut BTreeMap<String, Json>) {
   }
 }
 
+/// Checks what the null records of `trace` say of where their nulls are from: a record says
+/// that the null is from a part or that it is its own, not both, and only a null record says
+/// either; the record that a null is said to be from, when the trace has it, is null. Returns
+/// how many records say where their null is from.
+fn nulls(trace: &[Json], text: &str) -> usize {
+  let mut said = 0;
+  for record in trace {
+    let (from, own) = (record.get("nullFrom"), record.get("nullOrigin"));
+    if record["value"]["isNull"] != true {
+      assert!(from.is_none() && own.is_none(), "{text}: a record that is not null says where a null is from: {record}");
+      continue;
+    }
+    assert!(from.is_none() || own.is_none(), "{text}: {record}");
+    assert!(own.is_none_or(|own| own == true), "{text}: {record}");
+    if let Some(from) = from {
+      assert!(from["at"].is_array(), "{text}: {record}");
+      for other in trace {
+        if json!([other["from"], other["to"]]) == from["at"] && other.get("within") == from.get("within") {
+          assert_eq!(other["value"]["isNull"], true, "{text}: {record} is from {other}");
+        }
+      }
+    }
+    said += usize::from(from.is_some() || own.is_some());
+  }
+  said
+}
+
 /// Says which request took long, when a run is asked to (`RHEON_SLOW`).
 struct Slow(std::time::Instant, String);
 
@@ -78,7 +105,7 @@ fn an_explained_evaluation_is_the_evaluation() {
         collect(&read, &mut requests);
       }
     }
-    let (mut explained, mut failed, mut records, mut expanded, mut iterations, mut calls) = (0usize, 0usize, 0usize, 0usize, 0usize, 0usize);
+    let (mut explained, mut failed, mut records, mut expanded, mut iterations, mut calls, mut origins) = (0usize, 0usize, 0usize, 0usize, 0usize, 0usize, 0usize);
     for (number, request) in requests.values().enumerate() {
       if std::env::var_os("RHEON_EACH").is_some() {
         eprintln!("{number} {}", request.to_string().chars().take(300).collect::<String>());
@@ -158,6 +185,7 @@ fn an_explained_evaluation_is_the_evaluation() {
         all = with("explain", &[("expand", json!(known)), ("maxRecords", json!(10_000))]);
       }
       same(&all, "with every node expanded");
+      origins += nulls(all["trace"].as_array().unwrap(), text);
       for record in all["trace"].as_array().unwrap() {
         let (from, to) = (record["from"].as_u64().unwrap(), record["to"].as_u64().unwrap());
         assert!(from <= to && to as usize <= text.encode_utf16().count(), "{text}: {record}");
@@ -187,6 +215,7 @@ fn an_explained_evaluation_is_the_evaluation() {
         calls += inside.iter().filter(call).count();
         iterations += inside.len() - inside.iter().filter(call).count();
         records += deeper["trace"].as_array().unwrap().len();
+        origins += nulls(deeper["trace"].as_array().unwrap(), text);
         // a record inside an iteration or a body says which
         for record in deeper["trace"].as_array().unwrap() {
           if let Some(within) = record.get("within") {
@@ -205,11 +234,11 @@ fn an_explained_evaluation_is_the_evaluation() {
       expanded += known.len();
     }
     println!(
-      "{} requests, {explained} explained, {failed} failed as evaluate does, {expanded} nodes expanded, {iterations} in iterations, {calls} in bodies, {records} records",
+      "{} requests, {explained} explained, {failed} failed as evaluate does, {expanded} nodes expanded, {iterations} in iterations, {calls} in bodies, {records} records, {origins} nulls with where they are from",
       requests.len()
     );
     assert!(
-      explained > 5_000 && records > 20_000 && iterations > 500 && calls > 500,
+      explained > 5_000 && records > 20_000 && iterations > 500 && calls > 500 && origins > 1_000,
       "{explained} explained, {records} records, {iterations} in iterations, {calls} in bodies"
     );
   });

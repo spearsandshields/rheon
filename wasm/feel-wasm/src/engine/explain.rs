@@ -7,7 +7,10 @@
 //! predicate) has a record for each of its first iterations, or for those that the request
 //! names; a node inside such a part is named with the iteration it is in. The parts of an
 //! invocation are its arguments and, when it invokes a function of the text, the body of that
-//! function; a node of a body is named with the invocation that runs it. Each request
+//! function; a node of a body is named with the invocation that runs it. A record whose value
+//! is null says where the null is from: the part that is null (`nullFrom`, which is an entry of
+//! `expand`), or the node itself (`nullOrigin`); a node whose parts have no records says neither,
+//! until it is expanded. Each request
 //! evaluates the text again, with a record of the values of those nodes only: the engine keeps
 //! nothing between requests, and an answer is as long as the request asks, whatever the data is.
 
@@ -73,6 +76,9 @@ struct Wanted<'t> {
   /// It is the body of this loop, wanted for each iteration from the first index up to the second.
   each: Option<(&'t AstNode, usize, usize)>,
 }
+
+/// A node, by its address, and where it is evaluated.
+type Evaluated<'s> = (usize, &'s [Step]);
 
 /// A way that a node is wanted: its place, where it is evaluated, and the iterations asked for.
 type Way = (At, Vec<Step>, Option<(usize, usize)>);
@@ -352,6 +358,8 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
         format!("'expand' has \"iterations\" for the node at {}, which is no loop and no filter", shown(at)),
       );
     }
+    // the node itself has a record too, where it is evaluated
+    add(&positioned, node, &within, None, &mut wants);
     open.push((node, within, iterations));
   }
   let bodies = bodies(root);
@@ -438,10 +446,120 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
     .iter()
     .filter_map(|record| Some((&wanted[*ways.get(record.target as usize)?.get(record.way)?], record)))
     .collect();
-  order.sort_by_key(|(wanted, record)| (wanted.at.0, std::cmp::Reverse(wanted.at.1), wanted.within.clone(), record.iteration));
+  // where each is evaluated: the steps to it, and for the body of a loop its iteration
+  let path_of = |wanted: &Wanted, record: &rheon_feel_evaluator::Recorded| -> Vec<Step> {
+    let mut within = wanted.within.clone();
+    if let (Some((repeat, ..)), Some(iteration)) = (wanted.each, record.iteration)
+      && let Some(at) = positioned.place(repeat)
+    {
+      within.push(Step::Iteration(at, iteration));
+    }
+    within
+  };
+  order.sort_by_cached_key(|(wanted, record)| (wanted.at.0, std::cmp::Reverse(wanted.at.1), path_of(wanted, record)));
+  // a node that is wanted in two ways for one evaluation (as a part, and expanded) has one record
+  let mut once: HashSet<(usize, Vec<Step>)> = HashSet::new();
+  order.retain(|(wanted, record)| once.insert((address(valued(wanted.node)), path_of(wanted, record))));
+  let paths: Vec<Vec<Step>> = order.iter().map(|(wanted, record)| path_of(wanted, record)).collect();
+  // the records by their node and where it is evaluated, and those one step inside a place
+  let mut found: HashMap<(usize, &[Step]), usize> = HashMap::new();
+  let mut inside: HashMap<(usize, &[Step]), Vec<usize>> = HashMap::new();
+  for (index, ((wanted, _), path)) in order.iter().zip(&paths).enumerate() {
+    let node = address(valued(wanted.node));
+    found.entry((node, path.as_slice())).or_insert(index);
+    if let Some((_, before)) = path.split_last() {
+      inside.entry((node, before)).or_default().push(index);
+    }
+  }
+  let opened: HashMap<Evaluated, Option<(usize, usize)>> = open
+    .iter()
+    .map(|(node, within, iterations)| ((address(valued(node)), within.as_slice()), *iterations))
+    .collect();
+  // the node that each node is a part of, when a null name is to be led back to its entry
+  let parents = std::cell::OnceCell::new();
+  // where the null of the record `index` came from
+  let origin = |index: usize| -> Origin {
+    let ((wanted, record), path) = (order[index], paths[index].as_slice());
+    let node = valued(wanted.node);
+    let node_parts = parts(node);
+    let invocation = matches!(node, AstNode::FunctionInvocation(..));
+    // the value of a name that an entry of a context literal around it gives is that entry's
+    if let AstNode::Name(name) = node {
+      return match entry_of(parents.get_or_init(|| parents_of(root)), node, name) {
+        Some((entry, loops)) => match (positioned.place(entry), path.len().checked_sub(loops)) {
+          (Some(at), Some(steps)) => Origin::At(at, path[..steps].to_vec()),
+          _ => Origin::Here,
+        },
+        None => Origin::Here,
+      };
+    }
+    // and so is the value of that entry read from the literal itself
+    if let AstNode::Path(base, name) = node
+      && let (AstNode::Context(entries), AstNode::Name(name)) = (base.as_ref(), name.as_ref())
+      && distinct(entries)
+      && let Some(entry) = entries.iter().find(|entry| key_of(entry) == Some(name))
+      && let Some(at) = positioned.place(entry)
+    {
+      return Origin::At(at, path.to_vec());
+    }
+    if node_parts.is_empty() && !invocation {
+      return Origin::Here;
+    }
+    // the parts have records when the node is expanded where this record is evaluated
+    let Some(iterations) = opened.get(&(address(node), path)) else {
+      return Origin::Unknown;
+    };
+    let null = |index: &usize| order[*index].1.value.is_null();
+    let same = |part: &AstNode| found.get(&(address(valued(part)), path)).copied().filter(null);
+    let here = if trace.truncated { Origin::Unknown } else { Origin::Here };
+    if let AstNode::If(_, then, otherwise) = node {
+      // the value is that of the branch taken, whatever the condition is
+      return [then, otherwise].into_iter().find_map(|branch| same(branch)).map_or(here, Origin::From);
+    }
+    // the value of an invocation is that of the body it runs
+    if invocation
+      && let Some(site) = positioned.place(node)
+      && let Some(body) = bodies.iter().find_map(|body| {
+        let records = inside.get(&(address(body), path))?;
+        records.iter().copied().find(|index| paths[*index].last() == Some(&Step::Call(site)) && null(index))
+      })
+    {
+      return Origin::From(body);
+    }
+    if let Some(part) = node_parts.iter().filter(|(_, frame)| *frame == PartFrame::Same).find_map(|(part, _)| same(part)) {
+      return Origin::From(part);
+    }
+    let mut every = true;
+    for (part, _) in node_parts.iter().filter(|(_, frame)| *frame == PartFrame::Iteration) {
+      let of_node = |index: &usize| matches!(paths[*index].last(), Some(Step::Iteration(at, _)) if Some(*at) == positioned.place(node));
+      if let Some(found) = inside
+        .get(&(address(valued(part)), path))
+        .and_then(|records| records.iter().copied().find(|index| of_node(index) && null(index)))
+      {
+        return Origin::From(found);
+      }
+      // an iteration without a record can be where the null is from
+      let (from, to) = iterations.unwrap_or((0, DEFAULT_ITERATIONS));
+      every &= from == 0 && record.iterations.is_none_or(|count| count <= to);
+    }
+    if every { here } else { Origin::Unknown }
+  };
+  let write_steps = |steps: &[Step], records: &mut String| {
+    records.push('[');
+    for (index, step) in steps.iter().enumerate() {
+      if index > 0 {
+        records.push(',');
+      }
+      match step {
+        Step::Iteration(at, iteration) => records.push_str(&format!("{{\"at\":[{},{}],\"iteration\":{iteration}}}", places.of(at.0), places.of(at.1))),
+        Step::Call(at) => records.push_str(&format!("{{\"at\":[{},{}],\"call\":true}}", places.of(at.0), places.of(at.1))),
+      }
+    }
+    records.push(']');
+  };
   // the records as text, the keys of each in alphabetical order as in every response
   let mut records = String::from(",\"trace\":[");
-  for (index, (wanted, record)) in order.into_iter().enumerate() {
+  for (index, (wanted, record)) in order.iter().copied().enumerate() {
     if index > 0 {
       records.push(',');
     }
@@ -459,27 +577,31 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
       records.push_str(",\"name\":");
       crate::output::write_string(&name.to_string(), &mut records);
     }
+    // a null: the part it is from, or that it is of this node
+    if record.value.is_null() {
+      let from = match origin(index) {
+        Origin::From(part) => Some((order[part].0.at, paths[part].clone())),
+        Origin::At(at, steps) => Some((at, steps)),
+        Origin::Here => {
+          records.push_str(",\"nullOrigin\":true");
+          None
+        }
+        Origin::Unknown => None,
+      };
+      if let Some((at, steps)) = from {
+        records.push_str(&format!(",\"nullFrom\":{{\"at\":[{},{}]", places.of(at.0), places.of(at.1)));
+        if !steps.is_empty() {
+          records.push_str(",\"within\":");
+          write_steps(&steps, &mut records);
+        }
+        records.push('}');
+      }
+    }
     records.push_str(&format!(",\"to\":{},\"value\":", places.of(wanted.at.1)));
     write_value(&record.value, &mut records);
-    // where it is evaluated: the steps to it, and for the body of a loop its iteration
-    let mut within: Vec<Step> = wanted.within.clone();
-    if let (Some((repeat, ..)), Some(iteration)) = (wanted.each, record.iteration)
-      && let Some(at) = positioned.place(repeat)
-    {
-      within.push(Step::Iteration(at, iteration));
-    }
-    if !within.is_empty() {
-      records.push_str(",\"within\":[");
-      for (index, step) in within.iter().enumerate() {
-        if index > 0 {
-          records.push(',');
-        }
-        match step {
-          Step::Iteration(at, iteration) => records.push_str(&format!("{{\"at\":[{},{}],\"iteration\":{iteration}}}", places.of(at.0), places.of(at.1))),
-          Step::Call(at) => records.push_str(&format!("{{\"at\":[{},{}],\"call\":true}}", places.of(at.0), places.of(at.1))),
-        }
-      }
-      records.push(']');
+    if !paths[index].is_empty() {
+      records.push_str(",\"within\":");
+      write_steps(&paths[index], &mut records);
     }
     records.push('}');
   }
@@ -490,6 +612,116 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
     None => return fail("internal", "the response of the evaluation has no warnings"),
   }
   Ok(response)
+}
+
+/// The name of an entry of a context literal.
+fn key_of(entry: &AstNode) -> Option<&Name> {
+  match entry {
+    AstNode::ContextEntry(key, _) => match key.as_ref() {
+      AstNode::ContextEntryKey(name) => Some(name),
+      _ => None,
+    },
+    _ => None,
+  }
+}
+
+/// Whether the entries of a context literal have each its own name: such a literal is a context.
+fn distinct(entries: &[AstNode]) -> bool {
+  let mut names = HashSet::new();
+  entries.iter().all(|entry| key_of(entry).is_some_and(|name| names.insert(name)))
+}
+
+/// How a node is a part of the node it is in.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum PartOf {
+  /// Evaluated once where that node is.
+  Same,
+  /// Evaluated once for each item that that node visits.
+  Iteration,
+  /// The body of that function definition.
+  Body,
+}
+
+/// For each node of `tree` that is evaluated for a value, by its address: the node that it is a
+/// part of, and how.
+fn parents_of(tree: &AstNode) -> HashMap<usize, (&AstNode, PartOf)> {
+  let address = |node: &AstNode| node as *const AstNode as usize;
+  let mut parents = HashMap::new();
+  let mut stack = vec![tree];
+  while let Some(node) = stack.pop() {
+    let node = valued(node);
+    if let Some(body) = body(node) {
+      parents.insert(address(body), (node, PartOf::Body));
+      stack.push(body);
+    }
+    for (part, frame) in parts(node) {
+      let how = if frame == PartFrame::Iteration { PartOf::Iteration } else { PartOf::Same };
+      parents.insert(address(valued(part)), (node, how));
+      stack.push(part);
+    }
+  }
+  parents
+}
+
+/// The entry of a context literal that gives the name `name`, read at `node`, its value: the
+/// nearest entry of that name before the entry that `node` is in, of the literals around it,
+/// with the number of loops around `node` that are not around the entry. None when something
+/// nearer can give the name (a variable of a loop, an item of a filter), and inside the body of
+/// a function, which reads the names around it from where the function was made.
+fn entry_of<'t>(parents: &HashMap<usize, (&'t AstNode, PartOf)>, node: &AstNode, name: &Name) -> Option<(&'t AstNode, usize)> {
+  let address = |node: &AstNode| node as *const AstNode as usize;
+  let (mut inner, mut loops) = (address(node), 0);
+  loop {
+    let (outer, how) = *parents.get(&inner)?;
+    match how {
+      PartOf::Body => return None,
+      // the items of a loop or a filter can have the name
+      PartOf::Iteration => {
+        if matches!(outer, AstNode::Filter(..)) || binds(outer, name) {
+          return None;
+        }
+        loops += 1;
+      }
+      PartOf::Same => {}
+    }
+    if let AstNode::Context(entries) = outer {
+      let at = entries.iter().position(|entry| address(valued(entry)) == inner)?;
+      if let Some(entry) = entries[..at].iter().find(|entry| key_of(entry) == Some(name)) {
+        // a literal that has a name twice has no entries
+        return distinct(entries).then_some((entry, loops));
+      }
+    }
+    inner = address(outer);
+  }
+}
+
+/// Whether the loop `node` has a variable of the name `name`.
+fn binds(node: &AstNode, name: &Name) -> bool {
+  let (AstNode::For(contexts, _) | AstNode::Some(contexts, _) | AstNode::Every(contexts, _)) = node else {
+    return false;
+  };
+  let (AstNode::IterationContexts(items) | AstNode::QuantifiedContexts(items)) = contexts.as_ref() else {
+    return true;
+  };
+  items.iter().any(|item| match item {
+    AstNode::IterationContextSingle(variable, _) | AstNode::IterationContextInterval(variable, ..) | AstNode::QuantifiedContext(variable, _) => {
+      !matches!(variable.as_ref(), AstNode::Name(variable) if variable != name)
+    }
+    _ => true,
+  })
+}
+
+/// Where the null of a record is from.
+enum Origin {
+  /// A part of the node, whose value is null: the record at this index.
+  From(usize),
+  /// An entry of a context literal, whose value the node reads: its place and where it is
+  /// evaluated.
+  At(At, Vec<Step>),
+  /// The node itself: its parts are not null, or it has none.
+  Here,
+  /// Not said by the records: the parts of the node have none (it is not expanded), or not all.
+  Unknown,
 }
 
 /// Adds `node` to the nodes that are wanted, evaluated at `within` and for each iteration of

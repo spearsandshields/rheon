@@ -3972,8 +3972,10 @@ fn explain_answers_the_evaluation_and_the_values_of_the_nodes_asked_for() {
     [
       "Path 0..72 = 2",
       "Context 0..67 = {\"noi\": 300, \"debt\": 150, \"dscr\": 2}",
+      "Entry 1..20 noi = 300",
       "Name 6..13 = 500",
       "Name 16..20 = 200",
+      "Entry 50..66 dscr = 2",
       "Name 56..59 = 300",
       "Name 62..66 = 150"
     ]
@@ -4066,22 +4068,30 @@ fn explain_steps_into_one_iteration_of_a_loop() {
   // expanded: its domain, and its body for each iteration
   let iterations = explain(json!([[4, 57]]));
   assert_eq!(
-    shown(&iterations)[2..5],
+    shown(&iterations)[3..6],
     [
       "Filter 13..32 = [ {\"amount\": 100, \"rate\": 2, \"status\": \"a\"}, {\"amount\": 10, \"rate\": 1, \"status\": \"a\"} ] (3 iterations)",
       "Multiplication 40..57 = 200 in 4..57#0",
       "Multiplication 40..57 = 10 in 4..57#1"
     ]
   );
-  assert_eq!(iterations["trace"][3]["iteration"], 0);
+  assert_eq!(iterations["trace"][4]["iteration"], 0);
   // a node inside an iteration, asked for with what its record says it is in
-  let within = iterations["trace"][4]["within"].clone();
+  let within = iterations["trace"][5]["within"].clone();
   assert_eq!(within, json!([{"at": [4, 57], "iteration": 1}]));
   let inside = explain(json!([{"at": [40, 57], "within": within}]));
-  assert_eq!(shown(&inside)[2..], ["Path 40..48 = 10 in 4..57#1", "Path 51..57 = 1 in 4..57#1", "Name 61..66 = 40"]);
+  assert_eq!(
+    shown(&inside)[2..],
+    [
+      "Multiplication 40..57 = 10 in 4..57#1",
+      "Path 40..48 = 10 in 4..57#1",
+      "Path 51..57 = 1 in 4..57#1",
+      "Name 61..66 = 40"
+    ]
+  );
   // the predicate of a filter, for each item; iterations asked for by their indexes
   assert_eq!(
-    shown(&explain(json!([[13, 32]])))[3..6],
+    shown(&explain(json!([[13, 32]])))[4..7],
     [
       "Comparison 19..31 = true in 13..32#0",
       "Comparison 19..31 = false in 13..32#1",
@@ -4089,7 +4099,7 @@ fn explain_steps_into_one_iteration_of_a_loop() {
     ]
   );
   assert_eq!(
-    shown(&explain(json!([{"at": [13, 32], "iterations": [1, 2]}])))[3..5],
+    shown(&explain(json!([{"at": [13, 32], "iterations": [1, 2]}])))[4..6],
     ["Comparison 19..31 = false in 13..32#1", "Name 61..66 = 40"]
   );
   // some and every, and a loop in a loop: the iterations of both
@@ -4170,13 +4180,14 @@ fn explain_steps_into_the_body_that_an_invocation_runs() {
   // a function that invokes itself: each invocation is a step, and the body it runs a part of it
   let text = "{fact: function(n) if n <= 1 then 1 else n * fact(n - 1), r: fact(3) + 1}.r";
   let first = explain(text, json!([[61, 68]]));
-  assert_eq!(shown(&first)[2..], ["If 19..56 = 6 in 61..68()", "Number 66..67 = 3"]);
+  assert_eq!(shown(&first)[2..], ["If 19..56 = 6 in 61..68()", "Invocation 61..68 = 6", "Number 66..67 = 3"]);
   // a node of the body, asked for with what the record of the body says it is in
   let within = first["trace"][2]["within"].clone();
   assert_eq!(within, json!([{"at": [61, 68], "call": true}]));
   assert_eq!(
     shown(&explain(text, json!([{"at": [19, 56], "within": within}, {"at": [41, 56], "within": within}])))[2..],
     [
+      "If 19..56 = 6 in 61..68()",
       "Comparison 22..28 = false in 61..68()",
       "Multiplication 41..56 = 6 in 61..68()",
       "Name 41..42 = 3 in 61..68()",
@@ -4185,17 +4196,25 @@ fn explain_steps_into_the_body_that_an_invocation_runs() {
   );
   // the invocation in the body, in the body it runs, and so on down
   let second = explain(text, json!([{"at": [45, 56], "within": within}]));
-  assert_eq!(shown(&second)[2..], ["If 19..56 = 2 in 61..68() 45..56()", "Addition 50..55 = 2 in 61..68()"]);
+  assert_eq!(
+    shown(&second)[2..],
+    ["If 19..56 = 2 in 61..68() 45..56()", "Invocation 45..56 = 2 in 61..68()", "Addition 50..55 = 2 in 61..68()"]
+  );
   let twice = json!([{"at": [61, 68], "call": true}, {"at": [45, 56], "call": true}, {"at": [45, 56], "call": true}]);
   assert_eq!(
     shown(&explain(text, json!([{"at": [19, 56], "within": twice}])))[2..],
-    ["Comparison 22..28 = true in 61..68() 45..56() 45..56()", "Number 34..35 = 1 in 61..68() 45..56() 45..56()"]
+    [
+      "If 19..56 = 1 in 61..68() 45..56() 45..56()",
+      "Comparison 22..28 = true in 61..68() 45..56() 45..56()",
+      "Number 34..35 = 1 in 61..68() 45..56() 45..56()"
+    ]
   );
   // an invocation in a loop of a body: the steps are the invocation, the iteration, the invocation
   let text = "{f: function(xs) for x in xs return g(x), g: function(a) a * 2, r: f([1, 2])}.r";
   assert_eq!(
     shown(&explain(text, json!([{"at": [17, 40], "within": [{"at": [67, 76], "call": true}]}])))[2..],
     [
+      "For 17..40 = [2, 4] in 67..76()",
       "Name 26..28 = [1, 2] in 67..76()",
       "Invocation 36..40 = 2 in 67..76() 17..40#0",
       "Invocation 36..40 = 4 in 67..76() 17..40#1"
@@ -4204,7 +4223,11 @@ fn explain_steps_into_the_body_that_an_invocation_runs() {
   let inner = json!([{"at": [67, 76], "call": true}, {"at": [17, 40], "iteration": 1}]);
   assert_eq!(
     shown(&explain(text, json!([{"at": [36, 40], "within": inner}])))[2..],
-    ["Name 38..39 = 2 in 67..76() 17..40#1", "Multiplication 57..62 = 4 in 67..76() 17..40#1 36..40()"]
+    [
+      "Invocation 36..40 = 4 in 67..76() 17..40#1",
+      "Name 38..39 = 2 in 67..76() 17..40#1",
+      "Multiplication 57..62 = 4 in 67..76() 17..40#1 36..40()"
+    ]
   );
   // a node of a body without the invocation that runs it, or with steps that do not lead to it
   let refused = |expand: Json| {
@@ -4228,16 +4251,162 @@ fn explain_steps_into_the_body_that_an_invocation_runs() {
   let text = "{make: function(k) function(x) x + k, r: make(2)(3)}.r";
   assert_eq!(
     shown(&explain(text, json!([[41, 51]])))[2..],
-    ["Addition 31..36 = 5 in 41..51()", "Invocation 41..48 = \"function<Any>->Any\"", "Number 49..50 = 3"]
+    [
+      "Addition 31..36 = 5 in 41..51()",
+      "Invocation 41..51 = 5",
+      "Invocation 41..48 = \"function<Any>->Any\"",
+      "Number 49..50 = 3"
+    ]
   );
   // no body is run: by an invocation whose arguments are not the parameters, and by a built-in
   // function (the function it is given is invoked by it, not by an invocation of the text)
   assert_eq!(
     shown(&explain("{f: function(a) a, r: f(1, 2)}.r", json!([[22, 29]])))[2..],
-    ["Number 24..25 = 1", "Number 27..28 = 2"]
+    ["Invocation 22..29 = null", "Number 24..25 = 1", "Number 27..28 = 2"]
   );
   assert_eq!(
     shown(&explain("sort([3, 1, 2], function(a, b) a < b)", json!([[0, 37]])))[1..],
     ["List 5..14 = [3, 1, 2]", "Function 16..36 = \"function<Any, Any>->Any\""]
   );
+}
+
+#[test]
+fn explain_says_where_a_null_is_from() {
+  // the null records as `from..to <- where`
+  let nulls = |response: &Json| -> Vec<String> {
+    assert_eq!(response["ok"], true, "{response}");
+    let steps = |within: &Json| -> String {
+      within.as_array().map_or(String::new(), |steps| {
+        steps
+          .iter()
+          .map(|step| match step.get("iteration") {
+            Some(iteration) => format!(" {}..{}#{iteration}", step["at"][0], step["at"][1]),
+            None => format!(" {}..{}()", step["at"][0], step["at"][1]),
+          })
+          .collect()
+      })
+    };
+    response["trace"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|record| record["value"]["isNull"] == true)
+      .map(|record| {
+        let from = match (record.get("nullFrom"), record.get("nullOrigin")) {
+          (Some(from), None) => format!("from {}..{}{}", from["at"][0], from["at"][1], steps(&from["within"])),
+          (None, Some(Json::Bool(true))) => "here".to_string(),
+          (None, None) => "?".to_string(),
+          other => panic!("{other:?}"),
+        };
+        format!("{}..{}{} <- {from}", record["from"], record["to"], steps(&record["within"]))
+      })
+      .collect()
+  };
+  let _ = nulls;
+  // the way of a null from the root: each record's `nullFrom` is expanded, to the record that
+  // says the null is its own
+  let chain = |text: &str, context: Json| -> Vec<String> {
+    let mut expand: Vec<Json> = vec![];
+    let mut target: Option<Json> = None;
+    let mut way = vec![];
+    for _ in 0..20 {
+      let response = req(json!({"op": "explain", "expression": text, "context": context, "expand": expand}));
+      assert_eq!(response["ok"], true, "{response}");
+      let trace = response["trace"].as_array().unwrap();
+      let record = match &target {
+        None => &trace[0],
+        Some(target) => trace
+          .iter()
+          .find(|record| json!([record["from"], record["to"]]) == target["at"] && record.get("within") == target.get("within"))
+          .unwrap_or_else(|| panic!("no record of {target} in {response}")),
+      };
+      assert_eq!(record["value"]["isNull"], true, "{record}");
+      let text: String = text
+        .encode_utf16()
+        .skip(record["from"].as_u64().unwrap() as usize)
+        .take((record["to"].as_u64().unwrap() - record["from"].as_u64().unwrap()) as usize)
+        .map(|unit| char::from_u32(unit as u32).unwrap())
+        .collect();
+      let steps = record.get("within").map_or(String::new(), |within| format!(" in {within}"));
+      match (record.get("nullFrom"), record.get("nullOrigin")) {
+        (Some(from), None) => {
+          way.push(format!("{text}{steps}"));
+          expand.push(from.clone());
+          target = Some(from.clone());
+        }
+        (None, Some(Json::Bool(true))) => {
+          way.push(format!("{text}{steps}: here"));
+          return way;
+        }
+        (None, None) => {
+          way.push(format!("{text}{steps}: ?"));
+          return way;
+        }
+        other => panic!("{other:?}"),
+      }
+    }
+    way
+  };
+  let context = json!({"loan": {"amount": 100}, "rate": {}});
+  // through operators to the entry that the context does not have
+  assert_eq!(
+    chain("loan.amount * rate.base + 1", context.clone()),
+    ["loan.amount * rate.base + 1", "loan.amount * rate.base", "rate.base: here"]
+  );
+  // the branch taken, whatever the condition is
+  assert_eq!(
+    chain("if loan.amount > 1 then rate.base else 2", context.clone()),
+    ["if loan.amount > 1 then rate.base else 2", "rate.base: here"]
+  );
+  // the steps of a calculation: a name leads to the entry that gives it its value
+  assert_eq!(
+    chain("{base: rate.base, scaled: base * 2, result: scaled + loan.amount}.result", context.clone()),
+    [
+      "{base: rate.base, scaled: base * 2, result: scaled + loan.amount}.result",
+      "result: scaled + loan.amount",
+      "scaled",
+      "scaled: base * 2",
+      "base",
+      "base: rate.base: here"
+    ]
+  );
+  // into the body that an invocation runs, and into the iteration of a loop
+  assert_eq!(
+    chain("{f: function(x) x.y + 1, r: f(rate)}.r", context.clone()),
+    [
+      "{f: function(x) x.y + 1, r: f(rate)}.r",
+      "r: f(rate)",
+      "x.y + 1 in [{\"at\":[28,35],\"call\":true}]",
+      "x.y in [{\"at\":[28,35],\"call\":true}]: here"
+    ]
+  );
+  assert_eq!(
+    chain("every x in [1, null, 3] satisfies x > 0", json!({})),
+    [
+      "every x in [1, null, 3] satisfies x > 0",
+      "x > 0 in [{\"at\":[0,39],\"iteration\":1}]",
+      "x in [{\"at\":[0,39],\"iteration\":1}]: here"
+    ]
+  );
+  // where the way ends: a function that gives null for values that are not null, a null written
+  assert_eq!(chain("date(\"x\") + missing", json!({})), ["date(\"x\") + missing", "date(\"x\"): here"]);
+  assert_eq!(chain("null", json!({})), ["null: here"]);
+  // and where it is not followed: an item of a list, a name that a loop or a filter can give, a
+  // name read in the body of a function from around it
+  assert_eq!(
+    chain("{a: null, r: for x in [1, 2] return {b: a, c: x + b}.c}.r[2]", json!({})),
+    ["{a: null, r: for x in [1, 2] return {b: a, c: x + b}.c}.r[2]: here"]
+  );
+  assert_eq!(
+    chain("{k: null, f: function(a) a + k, r: f(1)}.r", json!({}))[2..],
+    ["a + k in [{\"at\":[35,39],\"call\":true}]", "k in [{\"at\":[35,39],\"call\":true}]: here"]
+  );
+  // a node that is not expanded does not say: its parts have no records
+  let closed = req(json!({"op": "explain", "expression": "loan.amount * rate.base + 1", "context": context}));
+  assert_eq!(closed["trace"][0]["nullFrom"], json!({"at": [0, 23]}));
+  assert!(closed["trace"][1].get("nullFrom").is_none() && closed["trace"][1].get("nullOrigin").is_none(), "{closed}");
+  // a null in an iteration that has no record: not said to be the node's own
+  let later = req(json!({"op": "explain", "expression": "(every x in [1, 2, null] satisfies x > 0) or false", "expand": [{"at": [1, 40], "iterations": [0, 2]}]}));
+  assert_eq!(later["trace"][1]["iterations"], 3, "{later}");
+  assert!(later["trace"][1].get("nullFrom").is_none() && later["trace"][1].get("nullOrigin").is_none(), "{later}");
 }
