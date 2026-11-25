@@ -179,7 +179,7 @@ pub(crate) enum Op {
   /// `dst` is null with the error `messages[msg]`, recorded at every evaluation.
   Fail { dst: Slot, msg: Ix },
   /// Records the warning `messages[msg]`.
-  Warn { msg: Ix },
+  Warn { msg: Ix, code: u8 },
   /// `dst` is the value of the free name `names[name]` below the scopes of the body (in the
   /// scope of the host for the root expression), else the built-in function of that name, else
   /// null with an error; in a body, the value is kept in the activation's cell `cell` once read.
@@ -537,7 +537,7 @@ impl Program {
           check.slot(dst)?;
           check.index(msg, self.messages.len(), "message out of range")?;
         }
-        Op::Warn { msg } => check.index(msg, self.messages.len(), "message out of range")?,
+        Op::Warn { msg, .. } => check.index(msg, self.messages.len(), "message out of range")?,
         Op::LoadName { dst, name, cell } => {
           check.slot(dst)?;
           check.index(name, self.names.len(), "name out of range")?;

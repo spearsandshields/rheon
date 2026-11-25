@@ -1,5 +1,6 @@
 //! Literals: numbers, `@` literals, lists, ranges and the entries of context literals.
 
+use rheon_feel::diagnostics::WarningCode;
 use rheon_feel::message::arg;
 use rheon_feel::values::{Value, truncated_fraction_warning};
 use rheon_feel::{FeelNumber, Name, diagnostics, value_null};
@@ -38,13 +39,16 @@ pub(crate) fn number_literal(before: &str, after: &str, sign: char, exponent: &s
 
 /// The value of the `@` literal `text` and the warning that its evaluation records when fraction
 /// digits beyond nanoseconds were truncated, or the error text of a literal that has no value.
-pub(crate) fn at_literal(text: &str) -> Result<(Value, Option<String>), String> {
-  let truncated = |value: Value, dropped: Option<&str>| (value, dropped.map(|dropped| truncated_fraction_warning(text, dropped)));
+pub(crate) fn at_literal(text: &str) -> Result<(Value, Option<(WarningCode, String)>), String> {
+  let truncated = |value: Value, dropped: Option<&str>| (value, dropped.map(|dropped| (WarningCode::FractionTruncated, truncated_fraction_warning(text, dropped))));
   if let Ok(date) = FeelDate::from_str(text) {
     Ok((Value::Date(date), None))
   } else if let Ok((date, Some(zone))) = FeelDate::parse_reporting_zone(text) {
     // the xs:date lexical space allows a zone, which a date does not hold (10.3.2.3.5)
-    Ok((Value::Date(date), Some(rheon_feel::values::dropped_date_zone_warning(text, zone))))
+    Ok((
+      Value::Date(date),
+      Some((WarningCode::DateZoneDropped, rheon_feel::values::dropped_date_zone_warning(text, zone))),
+    ))
   } else if let Ok((date_time, dropped)) = FeelDateTime::parse_reporting_truncation(text) {
     Ok(truncated(Value::DateTime(date_time), dropped))
   } else if let Ok((time, dropped)) = FeelTime::parse_reporting_truncation(text) {

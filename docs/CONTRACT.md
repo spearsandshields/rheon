@@ -86,7 +86,7 @@ Success:
     "isNull": false,
     "nullReason": "string?" // when the null carries a reason, that text: an error, or a note on a null the specification defines for its input (a missing context entry), which is no error
   },
-  "warnings": [ { "message": "string" } ],
+  "warnings": [ { "code": "string", "message": "string" } ],  // the codes: below
   "diagnostics": { "count": 1, "messages": ["string"] },  // errors recorded during evaluate (null values created with an error reason; a note is not an error), first 64, consecutive repeats once
   "elapsedMicros": 123
 }
@@ -443,8 +443,47 @@ optional field `"width"` (the most characters of a line, 1 to 1000; default 80).
 Failure (the instance stays healthy):
 
 ```jsonc
-{ "ok": false, "error": { "kind": "request" | "syntax" | "context" | "evaluation" | "internal", "message": "string" } }
+{ "ok": false, "error": { "kind": "request" | "syntax" | "context" | "evaluation" | "internal", "code": "string", "message": "string" } }
 ```
+
+`kind` says which part failed, `code` which failure of that kind it is. A code is for a program:
+it is one of the list below and stays what it is; a message is for people and can change. A new
+code is a change of this contract.
+
+| kind | code | when |
+|---|---|---|
+| `request` | `malformed-json` | the request is no JSON |
+| | `not-utf8` | the request is no UTF-8 |
+| | `missing-field` | a field that the op needs is not there (`op`, `expression`, `evaluations`, `entries`) |
+| | `invalid-field` | a field has a value that is not allowed (also: the request, or an entry of it, is no object) |
+| | `conflicting-fields` | two fields that exclude each other (`context` and `outline`) |
+| | `unknown-op` | `op` is none of the ops |
+| `syntax` | `syntax-error` | the text does not parse (with `diagnostics`) |
+| | `expression-too-deep` | the text is nested too deeply |
+| `context` | `invalid-context` | the context or the input is not what its format takes, or holds a value that has no FEEL value |
+| | `context-too-deep` | the JSON of the context or the input is nested too deeply |
+| | `invalid-outline` | an outline has a field it has not, or a type that is none |
+| | `outline-too-deep` | an outline is nested too deeply |
+| `evaluation` | `limit-steps` | more steps than `maxSteps` |
+| | `limit-calls` | more than 200 nested function invocations |
+| | `limit-depth` | a value nested more than 500 levels deep |
+| | `limit-engine` | a limit of an engine below FEEL (a regular expression) |
+| | `strict-error` | `errorMode: "strict"`, and the evaluation had an error |
+| `internal` | `panic`, `serialization`, `internal` | a caught panic, a response that could not be written, another failure of the engine |
+
+The codes of the warnings (`warnings[].code`, `contextWarnings[].code`):
+
+| code | when |
+|---|---|
+| `unknown-field` | a field that the request, or an entry of it, does not have: it is not read |
+| `number-rounded` | a number of more than 34 significant digits, or too small, was rounded (in the context, the input or the text) |
+| `fraction-truncated` | fraction digits of seconds beyond nanoseconds were dropped |
+| `date-zone-dropped` | a date string had a zone, which a date does not hold |
+| `months-truncated` | a fraction of a month was dropped in the arithmetic of a years and months duration |
+| `bfeel-default` | B-FEEL gave its default where FEEL has an error: the error is the message |
+| `no-input` | unary tests without an input value: null is tested |
+
+A null result has no code: `nullReason` is its text.
 
 - `request`: malformed request JSON (including invalid UTF-8 and JSON strings with unpaired `\uD800`-style surrogate escapes, which the core can not represent) or unknown op. A request value quoted in the message is a preview when its JSON text is longer than 120 characters (`invalid 'dialect' "xxx…… (200 characters) (expected …)`).
 - `syntax`: the FEEL expression or unary tests failed to parse, or are nested too deeply (§2). When they failed to parse, the error also holds `diagnostics`: where and what the errors of the text are, as `op: "syntax"` answers them (`[{"code", "message", "from", "to"}, …]`, places in UTF-16 code units). The message is dsntk's, without its `<ParserError>` prefix; dsntk gives no position. It quotes the input whole when it is at most 120 characters, otherwise as its first 120 characters, `…` and its length (`syntax error: 1+1+…+1+… (40002 characters)`).
@@ -462,12 +501,12 @@ export interface RequestOptions { signal?: AbortSignal; }
 export interface EvaluateRequest { dialect?: Dialect; expression: string; context?: Record<string, unknown> | string | RawJson; contextFormat?: 'json' | 'feel'; input?: unknown | RawJson; tzOffsetMinutes?: number; now?: string; language?: 'feel' | 'b-feel'; errorMode?: 'lenient' | 'strict'; maxSteps?: number; }
 export interface FeelResult { display: string; feel: string; type: string; typed: unknown; isNull: boolean; nullReason?: string | null; }
 export type EvaluateResponse =
-  | { ok: true; result: FeelResult; warnings: { message: string }[]; diagnostics?: { count: number; messages: string[] }; elapsedMicros: number }
+  | { ok: true; result: FeelResult; warnings: { code: string; message: string }[]; diagnostics?: { count: number; messages: string[] }; elapsedMicros: number }
   | { ok: false; error: { kind: 'request'|'syntax'|'context'|'evaluation'|'internal'|'timeout'|'crash'|'cancelled'; message: string } };
 export interface Evaluation { id?: string | number; dialect?: Dialect; expression: string; input?: unknown | RawJson; errorMode?: 'lenient' | 'strict'; maxSteps?: number; }
 export interface EvaluateAllRequest { context?: Record<string, unknown> | string | RawJson; contextFormat?: 'json' | 'feel'; tzOffsetMinutes?: number; now?: string; language?: 'feel' | 'b-feel'; evaluations: Evaluation[]; }
 export type EvaluateAllResponse =
-  | { ok: true; results: (EvaluateResponse & { id?: string | number })[]; contextWarnings: { message: string }[]; elapsedMicros: number }
+  | { ok: true; results: (EvaluateResponse & { id?: string | number })[]; contextWarnings: { code: string; message: string }[]; elapsedMicros: number }
   | { ok: false; error: { kind: string; message: string } };
 export type ParseResponse = { ok: true; tree: string; elapsedMicros: number } | { ok: false; error: { kind: string; message: string } };
 export interface ParseOptions { context?: Record<string, unknown> | string | RawJson; contextFormat?: 'json' | 'feel'; }

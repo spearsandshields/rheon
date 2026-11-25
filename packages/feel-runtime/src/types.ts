@@ -135,15 +135,27 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
+/** A warning of a response: what it is about, for a program (a code of the list in docs/CONTRACT.md §2), and the message. */
+export interface Warning {
+  code: string;
+  message: string;
+}
+
 export interface FeelError {
   kind: ErrorKind;
+  /**
+   * What failed, for a program: a code of the list in docs/CONTRACT.md §3 (`missing-field`,
+   * `syntax-error`, `limit-steps`, …), or for an error that this runtime makes `invalid-context`,
+   * `invalid-field`, `conflicting-fields`, `timeout`, `crash` or `cancelled`. Stable; the message can change.
+   */
+  code: string;
   message: string;
   /** For a syntax error of the expression: where and what its errors are, as `syntax` answers them. */
   diagnostics?: SyntaxDiagnostic[];
 }
 
 export type EvaluateResponse =
-  | { ok: true; result: FeelResult; warnings: { message: string }[]; diagnostics?: Diagnostics; elapsedMicros: number }
+  | { ok: true; result: FeelResult; warnings: Warning[]; diagnostics?: Diagnostics; elapsedMicros: number }
   | { ok: false; error: FeelError };
 
 /** The answer of one entry of `evaluateAll`: what `evaluate` answers for it, with its `id`. */
@@ -155,7 +167,7 @@ export type EvaluationAnswer = EvaluateResponse & { id?: string | number };
  * failure of the request itself (the context, a timeout, a crash) has no results.
  */
 export type EvaluateAllResponse =
-  | { ok: true; results: EvaluationAnswer[]; contextWarnings: { message: string }[]; elapsedMicros: number }
+  | { ok: true; results: EvaluationAnswer[]; contextWarnings: Warning[]; elapsedMicros: number }
   | { ok: false; error: FeelError };
 
 /**

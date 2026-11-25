@@ -413,7 +413,10 @@ impl<'p> Vm<'p> {
           let value = value_null!(&*program.messages[msg as usize]);
           self.set(dst, value);
         }
-        Op::Warn { msg } => diagnostics::warn(&program.messages[msg as usize]),
+        Op::Warn { msg, code } => diagnostics::warn(
+          diagnostics::WarningCode::from_number(code).unwrap_or(diagnostics::WarningCode::NumberRounded),
+          &program.messages[msg as usize],
+        ),
         Op::LoadName { dst, name, cell } => {
           let value = self.load_name(program, name, cell);
           self.set(dst, value);
@@ -740,7 +743,7 @@ impl<'p> Vm<'p> {
               // never null, 11.2), so its reason is a warning
               walk.value = Some(if info.defaulted {
                 let reason = rheon_feel::message::compose(format_args!("{reason}"));
-                diagnostics::warn(&reason);
+                diagnostics::warn(diagnostics::WarningCode::BfeelDefault, &reason);
                 Value::Null(Some(reason))
               } else {
                 value_null!(reason)

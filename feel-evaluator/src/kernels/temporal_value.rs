@@ -36,12 +36,15 @@ pub(super) fn ym_duration(months: FeelNumber, left: &Value, operator: char, righ
 #[cold]
 #[inline(never)]
 fn warn_dropped_months(dropped: FeelNumber, left: &Value, operator: char, right: &Value) {
-  diagnostics::warn(&compose(format_args!(
-    "fractional months of '{} {operator} {}' truncated to whole months; dropped fraction: '{}'",
-    arg(left),
-    arg(right),
-    arg(&dropped)
-  )));
+  diagnostics::warn(
+    diagnostics::WarningCode::MonthsTruncated,
+    &compose(format_args!(
+      "fractional months of '{} {operator} {}' truncated to whole months; dropped fraction: '{}'",
+      arg(left),
+      arg(right),
+      arg(&dropped)
+    )),
+  );
 }
 
 /// The second of a minute with its fraction, from the whole seconds and the nanoseconds:

@@ -938,7 +938,7 @@ pub fn truncated_fraction_warning(source: &(impl MessageArg + ?Sized), dropped: 
 /// Records [truncated_fraction_warning] in the active collection when digits were `dropped`.
 pub fn warn_truncated_fraction(source: &(impl MessageArg + ?Sized), dropped: Option<&str>) {
   if let Some(dropped) = dropped {
-    diagnostics::warn(&truncated_fraction_warning(source, dropped));
+    diagnostics::warn(diagnostics::WarningCode::FractionTruncated, &truncated_fraction_warning(source, dropped));
   }
 }
 
@@ -955,7 +955,7 @@ pub fn dropped_date_zone_warning(source: &(impl MessageArg + ?Sized), zone: &str
 /// Records [dropped_date_zone_warning] in the active collection when a `zone` was dropped.
 pub fn warn_dropped_date_zone(source: &(impl MessageArg + ?Sized), zone: Option<&str>) {
   if let Some(zone) = zone {
-    diagnostics::warn(&dropped_date_zone_warning(source, zone));
+    diagnostics::warn(diagnostics::WarningCode::DateZoneDropped, &dropped_date_zone_warning(source, zone));
   }
 }
 

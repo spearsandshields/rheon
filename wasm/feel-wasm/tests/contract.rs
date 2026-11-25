@@ -1442,7 +1442,11 @@ fn b_feel_language() {
   let response = ok(json!({"op": "evaluate", "expression": "\"The result is: \" + 1", "language": "b-feel"}));
   assert_eq!(response["result"]["display"], "\"The result is: 1\"", "{response}");
   assert_eq!(response["diagnostics"]["count"], 0, "{response}");
-  assert_eq!(response["warnings"], json!([{"message": "expected string as a second argument in addition"}]), "{response}");
+  assert_eq!(
+    response["warnings"],
+    json!([{"code": "bfeel-default", "message": "expected string as a second argument in addition"}]),
+    "{response}"
+  );
   let strict = ok(json!({"op": "evaluate", "expression": "\"a\" = 1", "language": "b-feel", "errorMode": "strict"}));
   assert_eq!(strict["result"]["display"], "false", "{strict}");
   let response = ok(json!({"op": "evaluate", "expression": "\"a\" = 1", "language": "b-feel"}));
@@ -1536,7 +1540,7 @@ fn not_equal_reports_like_equal() {
   assert_eq!(b_feel["result"]["display"], "true", "{b_feel}");
   // the error behind B-FEEL's answer is a warning (11.1)
   assert_eq!(b_feel["diagnostics"]["messages"], json!([]), "{b_feel}");
-  assert_eq!(b_feel["warnings"], json!([{"message": message}]), "{b_feel}");
+  assert_eq!(b_feel["warnings"], json!([{"code": "bfeel-default", "message": message}]), "{b_feel}");
 }
 
 #[test]
@@ -1580,7 +1584,7 @@ fn a_null_operand_of_an_arithmetic_operator_is_an_error() {
     let b_feel = ok(json!({"op": "evaluate", "expression": expression, "language": "b-feel"}));
     assert_eq!(b_feel["result"]["display"], display, "{b_feel}");
     assert_eq!(b_feel["diagnostics"]["messages"], json!([]), "{b_feel}");
-    assert_eq!(b_feel["warnings"], json!([{"message": message}]), "{b_feel}");
+    assert_eq!(b_feel["warnings"], json!([{"code": "bfeel-default", "message": message}]), "{b_feel}");
   }
 }
 
@@ -2706,11 +2710,15 @@ fn a_field_that_a_request_does_not_have_is_named_in_a_warning() {
   let response = req(json!({"op": "evaluateAll", "contxt": {"a": 1}, "evaluations": [{"expression": "1", "errormode": "strict"}, {"expression": "2"}]}));
   let of_all =
     |name: &str| format!("expected a field of an evaluateAll request (op, context, contextFormat, tzOffsetMinutes, now, language, evaluations), found '{name}', which is not read");
-  assert_eq!(response["contextWarnings"], json!([{"message": of_all("contxt")}]), "{response}");
+  assert_eq!(response["contextWarnings"], json!([{"code": "unknown-field", "message": of_all("contxt")}]), "{response}");
   // an entry is read for the fields an entry has
   let in_evaluations =
     |name: &str| format!("expected a field of an entry of 'evaluations' (id, dialect, expression, input, errorMode, maxSteps), found '{name}', which is not read");
-  assert_eq!(response["results"][0]["warnings"], json!([{"message": in_evaluations("errormode")}]), "{response}");
+  assert_eq!(
+    response["results"][0]["warnings"],
+    json!([{"code": "unknown-field", "message": in_evaluations("errormode")}]),
+    "{response}"
+  );
   assert_eq!(response["results"][1]["warnings"], json!([]), "{response}");
   // evaluateEach has no warnings of the request: each answer has them
   let response = req(json!({"op": "evaluateEach", "expression": "a", "langauge": "feel", "entries": [{"context": {"a": 1}}, {"context": {"a": 2}, "Input": 3}]}));
@@ -2719,11 +2727,15 @@ fn a_field_that_a_request_does_not_have_is_named_in_a_warning() {
       "expected a field of an evaluateEach request (op, dialect, expression, contextFormat, tzOffsetMinutes, now, language, errorMode, maxSteps, entries), found '{name}', which is not read"
     )
   };
-  assert_eq!(response["results"][0]["warnings"], json!([{"message": of_each("langauge")}]), "{response}");
+  assert_eq!(
+    response["results"][0]["warnings"],
+    json!([{"code": "unknown-field", "message": of_each("langauge")}]),
+    "{response}"
+  );
   let in_entries = |name: &str| format!("expected a field of an entry of 'entries' (id, context, input), found '{name}', which is not read");
   assert_eq!(
     response["results"][1]["warnings"],
-    json!([{"message": of_each("langauge")}, {"message": in_entries("Input")}]),
+    json!([{"code": "unknown-field", "message": of_each("langauge")}, {"code": "unknown-field", "message": in_entries("Input")}]),
     "{response}"
   );
   // a long name is shown in part, as every text of a message is
@@ -3652,4 +3664,99 @@ fn paths_are_what_an_expression_reads() {
     });
     assert_eq!(answers[0], answers[1], "{expression}");
   }
+}
+
+/// Every failure and every warning has a code, for a program: a short word of the list in
+/// docs/CONTRACT.md, stable while the messages can change. The kind of a failure is what it
+/// was; the code says which failure of that kind.
+#[test]
+fn failures_and_warnings_have_codes() {
+  let code = |request: Json| -> (String, String) {
+    let response = req(request);
+    assert_eq!(response["ok"], false, "{response}");
+    (
+      response["error"]["kind"].as_str().unwrap().to_string(),
+      response["error"]["code"].as_str().unwrap().to_string(),
+    )
+  };
+  let is = |kind: &str, code: &str| (kind.to_string(), code.to_string());
+  // the request
+  assert_eq!(code(json!({"expression": "1"})), is("request", "missing-field"));
+  assert_eq!(code(json!({"op": "evaluate"})), is("request", "missing-field"));
+  assert_eq!(code(json!({"op": "nope", "expression": "1"})), is("request", "unknown-op"));
+  assert_eq!(code(json!({"op": 1})), is("request", "invalid-field"));
+  assert_eq!(code(json!({"op": "evaluate", "expression": "1", "language": "x"})), is("request", "invalid-field"));
+  assert_eq!(code(json!({"op": "evaluate", "expression": "1", "maxSteps": 0})), is("request", "invalid-field"));
+  assert_eq!(code(json!({"op": "hover", "expression": "a"})), is("request", "invalid-field"));
+  assert_eq!(
+    code(json!({"op": "complete", "expression": "a", "context": {}, "outline": {}})),
+    is("request", "conflicting-fields")
+  );
+  let malformed: Json = serde_json::from_str(&feel_wasm::call("{")).unwrap();
+  assert_eq!(
+    (malformed["error"]["kind"].as_str(), malformed["error"]["code"].as_str()),
+    (Some("request"), Some("malformed-json"))
+  );
+  let not_utf8: Json = serde_json::from_str(&feel_wasm::call_bytes(&[0xff, 0xfe])).unwrap();
+  assert_eq!(
+    (not_utf8["error"]["kind"].as_str(), not_utf8["error"]["code"].as_str()),
+    (Some("request"), Some("not-utf8"))
+  );
+  // the expression
+  assert_eq!(code(json!({"op": "evaluate", "expression": "1 +"})), is("syntax", "syntax-error"));
+  assert_eq!(code(json!({"op": "paths", "expression": "1 +"})), is("syntax", "syntax-error"));
+  assert_eq!(
+    code(json!({"op": "evaluate", "expression": format!("{}1{}", "(".repeat(2000), ")".repeat(2000))})).0,
+    "syntax"
+  );
+  // the names in scope
+  assert_eq!(code(json!({"op": "evaluate", "expression": "1", "context": []})), is("context", "invalid-context"));
+  assert_eq!(
+    code(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "1"})),
+    is("context", "invalid-context")
+  );
+  assert_eq!(
+    code(json!({"op": "complete", "expression": "a", "outline": {"names": {"a": {"type": "nope"}}}})),
+    is("context", "invalid-outline")
+  );
+  // the evaluation
+  assert_eq!(
+    code(json!({"op": "evaluate", "expression": "for i in 1..1000 return i", "maxSteps": 10})),
+    is("evaluation", "limit-steps")
+  );
+  assert_eq!(
+    code(json!({"op": "evaluate", "expression": "{f: function(n) f(n + 1), r: f(1)}.r"})),
+    is("evaluation", "limit-calls")
+  );
+  assert_eq!(
+    code(json!({"op": "evaluate", "expression": "1 + \"a\"", "errorMode": "strict"})),
+    is("evaluation", "strict-error")
+  );
+  // an entry of evaluateAll that fails has its code too
+  let all = req(json!({"op": "evaluateAll", "evaluations": [{"expression": "1 +"}, {"expression": "1"}]}));
+  assert_eq!(all["results"][0]["error"]["code"], "syntax-error", "{all}");
+  // the warnings
+  let warned = |request: Json| -> Vec<String> {
+    let response = ok(request);
+    response["warnings"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|warning| warning["code"].as_str().unwrap().to_string())
+      .collect()
+  };
+  assert_eq!(warned(json!({"op": "evaluate", "expression": "1", "errormode": "strict"})), ["unknown-field"]);
+  assert_eq!(
+    warned(json!({"op": "evaluate", "expression": "a", "context": {"a": 1.00000000000000000000000000000000000001}})),
+    [""; 0]
+  );
+  assert_eq!(
+    warned(json!({"op": "evaluate", "expression": "12345678901234567890123456789012345678"})),
+    ["number-rounded"]
+  );
+  assert_eq!(warned(json!({"op": "evaluate", "expression": "@\"10:00:00.1234567891\""})), ["fraction-truncated"]);
+  assert_eq!(warned(json!({"op": "evaluate", "expression": "@\"2020-01-01Z\""})), ["date-zone-dropped"]);
+  assert_eq!(warned(json!({"op": "evaluate", "expression": "@\"P1Y\" * 0.3"})), ["months-truncated"]);
+  assert_eq!(warned(json!({"op": "evaluate", "expression": "\"a\" = 1", "language": "b-feel"})), ["bfeel-default"]);
+  assert_eq!(warned(json!({"op": "evaluate", "dialect": "unaryTests", "expression": "> 1"})), ["no-input"]);
 }

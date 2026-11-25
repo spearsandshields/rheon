@@ -1,5 +1,6 @@
 //! Request handling: `docs/CONTRACT.md` §2 (request) and §3 (response).
 
+use crate::input::Warning;
 use crate::input::{Path, feel_context, json_into_value, json_object_into_context};
 use crate::json::{self, Field, Order};
 use crate::output::write_result;
@@ -62,10 +63,55 @@ impl Kind {
 
 /// A failure of a request: its kind, its message, and for a syntax error of an expression the
 /// errors of the text with their places (as `syntax` answers them).
-struct Failure(Kind, String, Option<Json>);
+struct Failure {
+  /// What failed, for a program: a code of [CODES].
+  code: &'static str,
+  message: String,
+  diagnostics: Option<Json>,
+}
 
-fn fail<T>(kind: Kind, message: impl Into<String>) -> Result<T, Failure> {
-  Err(Failure(kind, message.into(), None))
+/// The codes of the failures, each with its kind: the list of docs/CONTRACT.md. A code is
+/// stable; a message is for people and can change.
+const CODES: [(&str, Kind); 20] = [
+  ("malformed-json", Kind::Request),
+  ("missing-field", Kind::Request),
+  ("invalid-field", Kind::Request),
+  ("conflicting-fields", Kind::Request),
+  ("unknown-op", Kind::Request),
+  ("syntax-error", Kind::Syntax),
+  ("expression-too-deep", Kind::Syntax),
+  ("invalid-context", Kind::Context),
+  ("context-too-deep", Kind::Context),
+  ("invalid-outline", Kind::Context),
+  ("outline-too-deep", Kind::Context),
+  ("limit-steps", Kind::Evaluation),
+  ("limit-calls", Kind::Evaluation),
+  ("limit-depth", Kind::Evaluation),
+  ("limit-engine", Kind::Evaluation),
+  ("strict-error", Kind::Evaluation),
+  ("internal", Kind::Internal),
+  ("serialization", Kind::Internal),
+  ("panic", Kind::Internal),
+  ("not-utf8", Kind::Request),
+];
+
+/// The kind of the failure `code`: internal for a code that is not of the list.
+fn kind_of(code: &str) -> Kind {
+  CODES.iter().find(|(known, _)| *known == code).map_or(Kind::Internal, |(_, kind)| *kind)
+}
+
+impl Failure {
+  fn new(code: &'static str, message: impl Into<String>, diagnostics: Option<Json>) -> Self {
+    Self {
+      code,
+      message: message.into(),
+      diagnostics,
+    }
+  }
+}
+
+fn fail<T>(code: &'static str, message: impl Into<String>) -> Result<T, Failure> {
+  Err(Failure::new(code, message, None))
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -110,19 +156,19 @@ pub fn call(request: &str) -> String {
     // the response of an evaluation is written as text already
     Ok(Ok(Response::Text(text))) => return text,
     Ok(Ok(Response::Tree(response))) => response,
-    Ok(Err(Failure(kind, message, diagnostics))) => error_response(kind, &message, diagnostics),
+    Ok(Err(Failure { code, message, diagnostics })) => error_response(code, &message, diagnostics),
     Err(panic) => {
       let message = panic
         .downcast_ref::<&str>()
         .map(|s| s.to_string())
         .or_else(|| panic.downcast_ref::<String>().cloned())
         .unwrap_or_else(|| "unknown panic".to_string());
-      error_response(Kind::Internal, &format!("engine panicked: {message}"), None)
+      error_response("panic", &format!("engine panicked: {message}"), None)
     }
   };
   serde_json::to_string(&response).unwrap_or_else(|e| {
     format!(
-      r#"{{"ok":false,"error":{{"kind":"internal","message":"failed to serialize response: {}"}}}}"#,
+      r#"{{"ok":false,"error":{{"kind":"internal","code":"serialization","message":"failed to serialize response: {}"}}}}"#,
       e.to_string().replace(['"', '\\'], "'")
     )
   })
@@ -132,13 +178,13 @@ pub fn call(request: &str) -> String {
 pub fn call_bytes(request: &[u8]) -> String {
   match std::str::from_utf8(request) {
     Ok(text) => call(text),
-    Err(e) => serde_json::to_string(&error_response(Kind::Request, &format!("request is not valid UTF-8: {e}"), None)).unwrap_or_default(),
+    Err(e) => serde_json::to_string(&error_response("not-utf8", &format!("request is not valid UTF-8: {e}"), None)).unwrap_or_default(),
   }
 }
 
 /// The failure response; its message holds at most 1,000 characters, as every message does.
-fn error_response(kind: Kind, message: &str, diagnostics: Option<Json>) -> Json {
-  let mut response = json!({ "ok": false, "error": { "kind": kind.as_str(), "message": compose(format_args!("{message}")) } });
+fn error_response(code: &str, message: &str, diagnostics: Option<Json>) -> Json {
+  let mut response = json!({ "ok": false, "error": { "kind": kind_of(code).as_str(), "code": code, "message": compose(format_args!("{message}")) } });
   if let Some(diagnostics) = diagnostics {
     response["error"]["diagnostics"] = diagnostics;
   }
@@ -184,9 +230,9 @@ fn request_fields(request: &str) -> Result<(Map<String, Json>, Unread<'_>), Fail
     Ok(json) => json,
     // Only `context` / `input` can hold nested JSON values, so a nesting limit is a context problem.
     Err(e) if e.to_string().starts_with("recursion limit exceeded") => {
-      return fail(Kind::Context, format!("context or input JSON is nested too deeply (at most about 125 levels): {e}"));
+      return fail("context-too-deep", format!("context or input JSON is nested too deeply (at most about 125 levels): {e}"));
     }
-    Err(e) => return fail(Kind::Request, format!("malformed request JSON: {e}")),
+    Err(e) => return fail("malformed-json", format!("malformed request JSON: {e}")),
   };
   match request {
     Json::Object(req) => {
@@ -203,7 +249,7 @@ fn request_fields(request: &str) -> Result<(Map<String, Json>, Unread<'_>), Fail
       };
       Ok((req, unread))
     }
-    _ => fail(Kind::Request, "request must be a JSON object"),
+    _ => fail("invalid-field", "request must be a JSON object"),
   }
 }
 
@@ -215,7 +261,7 @@ fn into_tree(req: &mut Map<String, Json>, field: &str, text: &str) -> Result<(),
       req.insert(field.to_string(), tree);
       Ok(())
     }
-    Err(e) => fail(Kind::Request, format!("malformed request JSON: {e}")),
+    Err(e) => fail("malformed-json", format!("malformed request JSON: {e}")),
   }
 }
 
@@ -256,7 +302,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
       "format" => Op::Format,
       other => {
         return fail(
-          Kind::Request,
+          "unknown-op",
           format!(
             "unknown op '{}' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
             arg(other)
@@ -264,8 +310,8 @@ fn handle(request: &str) -> Result<Response, Failure> {
         );
       }
     },
-    None => return fail(Kind::Request, "missing 'op'"),
-    Some(_) => return fail(Kind::Request, "'op' must be a string"),
+    None => return fail("missing-field", "missing 'op'"),
+    Some(_) => return fail("invalid-field", "'op' must be a string"),
   };
   // the request is handed over: its context and input are converted by value
   match op {
@@ -307,7 +353,7 @@ fn dialect(req: &Map<String, Json>) -> Result<Dialect, Failure> {
     Some(Json::String(d)) if d == "simpleExpressions" => Ok(Dialect::SimpleExpressions),
     Some(Json::String(d)) if d == "textualExpressions" => Ok(Dialect::TextualExpressions),
     Some(other) => fail(
-      Kind::Request,
+      "invalid-field",
       format!(
         "invalid 'dialect' {} (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")",
         arg(other)
@@ -322,7 +368,7 @@ fn language(req: &Map<String, Json>) -> Result<rheon_feel_evaluator::Dialect, Fa
     None | Some(Json::Null) => Ok(rheon_feel_evaluator::Dialect::Feel),
     Some(Json::String(l)) if l == "feel" => Ok(rheon_feel_evaluator::Dialect::Feel),
     Some(Json::String(l)) if l == "b-feel" => Ok(rheon_feel_evaluator::Dialect::BFeel),
-    Some(other) => fail(Kind::Request, format!("invalid 'language' {} (expected \"feel\" or \"b-feel\")", arg(other))),
+    Some(other) => fail("invalid-field", format!("invalid 'language' {} (expected \"feel\" or \"b-feel\")", arg(other))),
   }
 }
 
@@ -332,7 +378,7 @@ fn error_mode(req: &Map<String, Json>) -> Result<ErrorMode, Failure> {
     None | Some(Json::Null) => Ok(ErrorMode::Lenient),
     Some(Json::String(m)) if m == "lenient" => Ok(ErrorMode::Lenient),
     Some(Json::String(m)) if m == "strict" => Ok(ErrorMode::Strict),
-    Some(other) => fail(Kind::Request, format!("invalid 'errorMode' {} (expected \"lenient\" or \"strict\")", arg(other))),
+    Some(other) => fail("invalid-field", format!("invalid 'errorMode' {} (expected \"lenient\" or \"strict\")", arg(other))),
   }
 }
 
@@ -341,7 +387,7 @@ fn max_steps(req: &Map<String, Json>) -> Result<Option<u64>, Failure> {
   match req.get("maxSteps") {
     None | Some(Json::Null) => Ok(None),
     Some(Json::Number(steps)) if steps.as_u64().is_some_and(|steps| steps > 0) => Ok(steps.as_u64()),
-    Some(other) => fail(Kind::Request, format!("invalid 'maxSteps' {} (expected a positive integer)", arg(other))),
+    Some(other) => fail("invalid-field", format!("invalid 'maxSteps' {} (expected a positive integer)", arg(other))),
   }
 }
 
@@ -349,20 +395,20 @@ fn max_steps(req: &Map<String, Json>) -> Result<Option<u64>, Failure> {
 fn expression(req: &mut Map<String, Json>) -> Result<String, Failure> {
   match req.remove("expression") {
     Some(Json::String(e)) => Ok(e),
-    None => fail(Kind::Request, "missing 'expression'"),
-    Some(_) => fail(Kind::Request, "'expression' must be a string"),
+    None => fail("missing-field", "missing 'expression'"),
+    Some(_) => fail("invalid-field", "'expression' must be a string"),
   }
 }
 
 /// Builds the input context from `context` / `contextFormat`, taking the context out of the request.
-fn context(req: &mut Map<String, Json>, unread: Option<Field<FeelContext>>, mut order: Option<Order>, warnings: &mut Vec<String>) -> Result<FeelContext, Failure> {
+fn context(req: &mut Map<String, Json>, unread: Option<Field<FeelContext>>, mut order: Option<Order>, warnings: &mut Vec<Warning>) -> Result<FeelContext, Failure> {
   const FEEL_FORMAT: &str = "with contextFormat \"feel\", 'context' must be a string holding a FEEL context literal";
   // a &'static str, so that the context can be taken out of the request below
   let format = match req.get("contextFormat") {
     None | Some(Json::Null) => "json",
     Some(Json::String(f)) if f == "json" => "json",
     Some(Json::String(f)) if f == "feel" => "feel",
-    Some(other) => return fail(Kind::Request, format!("invalid 'contextFormat' {} (expected \"json\" or \"feel\")", arg(other))),
+    Some(other) => return fail("invalid-field", format!("invalid 'contextFormat' {} (expected \"json\" or \"feel\")", arg(other))),
   };
   match unread {
     Some(Field::Read(context, read_warnings)) if format == "json" => {
@@ -370,7 +416,7 @@ fn context(req: &mut Map<String, Json>, unread: Option<Field<FeelContext>>, mut 
       return Ok(context);
     }
     // an object where the text of a FEEL context is expected
-    Some(Field::Read(..)) => return fail(Kind::Context, FEEL_FORMAT),
+    Some(Field::Read(..)) => return fail("invalid-context", FEEL_FORMAT),
     Some(Field::Text(text)) => {
       into_tree(req, "context", text)?;
       order = Order::read(text);
@@ -380,16 +426,16 @@ fn context(req: &mut Map<String, Json>, unread: Option<Field<FeelContext>>, mut 
   match (format, req.remove("context")) {
     (_, None | Some(Json::Null)) => Ok(FeelContext::default()),
     ("json", Some(Json::Object(map))) => {
-      let context = json_object_into_context(map, &Path::Root(""), warnings).map_err(|e| Failure(Kind::Context, e, None))?;
+      let context = json_object_into_context(map, &Path::Root(""), warnings).map_err(|e| Failure::new("invalid-context", e, None))?;
       // the tree keeps the keys of an object in their own order: the context is told the written one
       Ok(match order {
         Some(order) => order.of_context(context),
         None => context,
       })
     }
-    ("json", Some(_)) => fail(Kind::Context, "with contextFormat \"json\", 'context' must be a JSON object"),
-    (_, Some(Json::String(text))) => feel_context(&text, warnings).map_err(|e| Failure(Kind::Context, e, None)),
-    (_, Some(_)) => fail(Kind::Context, FEEL_FORMAT),
+    ("json", Some(_)) => fail("invalid-context", "with contextFormat \"json\", 'context' must be a JSON object"),
+    (_, Some(Json::String(text))) => feel_context(&text, warnings).map_err(|e| Failure::new("invalid-context", e, None)),
+    (_, Some(_)) => fail("invalid-context", FEEL_FORMAT),
   }
 }
 
@@ -405,7 +451,7 @@ fn apply_tz_offset(req: &Map<String, Json>) -> Result<(), Failure> {
       Some(m) if (-MAX_TZ_OFFSET_MINUTES..=MAX_TZ_OFFSET_MINUTES).contains(&m) => Some((m * 60) as i32),
       _ => {
         return fail(
-          Kind::Request,
+          "invalid-field",
           format!(
             "'tzOffsetMinutes' must be an integer in -{MAX_TZ_OFFSET_MINUTES}..={MAX_TZ_OFFSET_MINUTES}, got {}",
             arg(n.as_str())
@@ -413,7 +459,7 @@ fn apply_tz_offset(req: &Map<String, Json>) -> Result<(), Failure> {
         );
       }
     },
-    Some(other) => return fail(Kind::Request, format!("'tzOffsetMinutes' must be a number, got {}", arg(other))),
+    Some(other) => return fail("invalid-field", format!("'tzOffsetMinutes' must be a number, got {}", arg(other))),
   };
   rheon_feel_temporal::set_local_offset_override(offset);
   // `now`: the instant that now() and today() read for this request (DMN 1.7 Beta 1, 10.3.4.11:
@@ -424,7 +470,7 @@ fn apply_tz_offset(req: &Map<String, Json>) -> Result<(), Failure> {
       Some(instant) => Some(instant),
       None => {
         return fail(
-          Kind::Request,
+          "invalid-field",
           format!(
             "'now' must be an ISO 8601 instant with its offset or Z, like \"2026-01-01T10:00:00Z\", got {}",
             arg(text.as_str())
@@ -432,7 +478,7 @@ fn apply_tz_offset(req: &Map<String, Json>) -> Result<(), Failure> {
         );
       }
     },
-    Some(other) => return fail(Kind::Request, format!("'now' must be a string, got {}", arg(other))),
+    Some(other) => return fail("invalid-field", format!("'now' must be a string, got {}", arg(other))),
   };
   rheon_feel_temporal::set_clock_override(now);
   Ok(())
@@ -445,13 +491,13 @@ fn question_mark() -> Name {
 
 /// Prepares the scope (and for unary tests binds `?`), returning warnings collected so far.
 /// Takes the rest of the request: it is not needed any more.
-fn prepare_scope(req: Map<String, Json>, unread: Unread, dialect: Dialect, warnings: &mut Vec<String>) -> Result<FeelScope, Failure> {
+fn prepare_scope(req: Map<String, Json>, unread: Unread, dialect: Dialect, warnings: &mut Vec<Warning>) -> Result<FeelScope, Failure> {
   prepare_context(req, unread, dialect, warnings).map(FeelScope::from)
 }
 
 /// The context that an expression of `dialect` is evaluated in: the `context` of the request,
 /// for unary tests with the tested value as its entry `?`.
-fn prepare_context(mut req: Map<String, Json>, unread: Unread, dialect: Dialect, warnings: &mut Vec<String>) -> Result<FeelContext, Failure> {
+fn prepare_context(mut req: Map<String, Json>, unread: Unread, dialect: Dialect, warnings: &mut Vec<Warning>) -> Result<FeelContext, Failure> {
   let mut ctx = context(&mut req, unread.context, unread.context_order, warnings)?;
   let mut input_order = unread.input_order;
   if dialect == Dialect::UnaryTests {
@@ -471,7 +517,7 @@ fn prepare_context(mut req: Map<String, Json>, unread: Unread, dialect: Dialect,
       Some(value) => Some(value),
       None => match req.remove("input") {
         Some(input) => {
-          let value = json_into_value(input, &Path::Root("input"), warnings).map_err(|e| Failure(Kind::Context, e, None))?;
+          let value = json_into_value(input, &Path::Root("input"), warnings).map_err(|e| Failure::new("invalid-context", e, None))?;
           Some(match &input_order {
             Some(order) => order.of(value),
             None => value,
@@ -486,7 +532,7 @@ fn prepare_context(mut req: Map<String, Json>, unread: Unread, dialect: Dialect,
       }
       None => {
         if ctx.get_entry(&question_mark()).is_none() {
-          warnings.push("no input value given ('input' or context[\"?\"]); testing null".to_string());
+          warnings.push(Warning::new("no-input", "no input value given ('input' or context[\"?\"]); testing null"));
           ctx.insert(question_mark(), Value::Null(None));
         }
       }
@@ -509,9 +555,9 @@ fn parse_node_sharing(scope: &FeelScope, shared: Option<&rheon_feel_parser::Shar
   // the message is the parser's; where and what the errors are comes from the tolerant parse
   let node = parsed.map_err(|e| {
     let diagnostics = editor::diagnostics(scope, expression, dialect.rule());
-    Failure(Kind::Syntax, syntax_message(&e.to_string()), Some(diagnostics))
+    Failure::new("syntax-error", syntax_message(&e.to_string()), Some(diagnostics))
   })?;
-  check_ast_depth(&node).map_err(|e| Failure(Kind::Syntax, e, None))?;
+  check_ast_depth(&node).map_err(|e| Failure::new("expression-too-deep", e, None))?;
   Ok(node)
 }
 
@@ -571,8 +617,8 @@ fn evaluate_all(mut req: Map<String, Json>, unread: Unread, started: Instant) ->
   apply_tz_offset(&req)?;
   let evaluations = match req.remove("evaluations") {
     Some(Json::Array(evaluations)) => evaluations,
-    None => return fail(Kind::Request, "missing 'evaluations'"),
-    Some(_) => return fail(Kind::Request, "'evaluations' must be an array"),
+    None => return fail("missing-field", "missing 'evaluations'"),
+    Some(_) => return fail("invalid-field", "'evaluations' must be an array"),
   };
   let mut context_warnings = unread_names(req.keys().map(String::as_str).chain(read_aside(&unread)), &EVALUATE_ALL_FIELDS, "an evaluateAll request");
   let context = context(&mut req, unread.context, unread.context_order, &mut context_warnings)?;
@@ -583,7 +629,7 @@ fn evaluate_all(mut req: Map<String, Json>, unread: Unread, started: Instant) ->
   let contexts = [std::sync::Arc::new(context)];
   let scope = FeelScope::new();
   scope.push_shared(contexts[0].clone());
-  let text_of = |tree: Json| serde_json::to_string(&tree).or_else(|e| fail(Kind::Internal, format!("failed to serialize response: {e}")));
+  let text_of = |tree: Json| serde_json::to_string(&tree).or_else(|e| fail("serialization", format!("failed to serialize response: {e}")));
   let results = rheon_feel_parser::sharing(&contexts, |shared| -> Result<String, Failure> {
     let mut results = String::from("[");
     for (index, evaluation) in evaluations.into_iter().enumerate() {
@@ -594,8 +640,8 @@ fn evaluate_all(mut req: Map<String, Json>, unread: Unread, started: Instant) ->
       let id = evaluation.get("id").filter(|id| id.is_string() || id.is_number()).cloned();
       match evaluate_one(evaluation, index, &scope, shared, language, has_question_mark) {
         Ok(response) => results.push_str(&response),
-        Err(Failure(kind, message, diagnostics)) => {
-          let mut error = error_response(kind, &message, diagnostics);
+        Err(Failure { code, message, diagnostics }) => {
+          let mut error = error_response(code, &message, diagnostics);
           if let (Some(id), Some(fields)) = (id, error.as_object_mut()) {
             fields.insert("id".to_string(), id);
           }
@@ -609,7 +655,7 @@ fn evaluate_all(mut req: Map<String, Json>, unread: Unread, started: Instant) ->
   let context_warnings = text_of(Json::Array(
     context_warnings
       .into_iter()
-      .map(|message| json!({ "message": compose(format_args!("{message}")) }))
+      .map(|Warning { code, message }| json!({ "code": code, "message": compose(format_args!("{message}")) }))
       .collect(),
   ))?;
   let mut response = String::with_capacity(results.len() + context_warnings.len() + 80);
@@ -629,8 +675,8 @@ fn id_text(entry: &Map<String, Json>) -> Result<Option<String>, Failure> {
     None | Some(Json::Null) => Ok(None),
     Some(id @ (Json::String(_) | Json::Number(_))) => serde_json::to_string(id)
       .map(Some)
-      .or_else(|e| fail(Kind::Internal, format!("failed to serialize response: {e}"))),
-    Some(other) => fail(Kind::Request, format!("'id' must be a string or a number, got {}", arg(other))),
+      .or_else(|e| fail("serialization", format!("failed to serialize response: {e}"))),
+    Some(other) => fail("invalid-field", format!("'id' must be a string or a number, got {}", arg(other))),
   }
 }
 
@@ -750,16 +796,21 @@ const EVALUATE_EACH_FIELDS: [&str; 10] = [
 /// fields it has: a field written in the wrong place (`maxSteps` in an entry of `entries`,
 /// `errorMode` in an evaluateAll request) is not read there, and the caller would believe it
 /// is.
-fn unread_fields(fields: &Map<String, Json>, read: &[&str], of: &str) -> Vec<String> {
+fn unread_fields(fields: &Map<String, Json>, read: &[&str], of: &str) -> Vec<Warning> {
   unread_names(fields.keys().map(String::as_str), read, of)
 }
 
 /// [unread_fields] of the fields named `names`.
-fn unread_names<'n>(names: impl IntoIterator<Item = &'n str>, read: &[&str], of: &str) -> Vec<String> {
+fn unread_names<'n>(names: impl IntoIterator<Item = &'n str>, read: &[&str], of: &str) -> Vec<Warning> {
   names
     .into_iter()
     .filter(|name| !read.contains(name))
-    .map(|name| compose(format_args!("expected a field of {of} ({}), found '{}', which is not read", read.join(", "), arg(name))))
+    .map(|name| {
+      Warning::new(
+        "unknown-field",
+        compose(format_args!("expected a field of {of} ({}), found '{}', which is not read", read.join(", "), arg(name))),
+      )
+    })
     .collect()
 }
 
@@ -779,16 +830,19 @@ fn read_aside<'n>(unread: &Unread) -> impl Iterator<Item = &'n str> + use<'n> {
 /// A warning for each field of `fields` that a request does not have: it is not read, and a
 /// misspelt `errorMode` or `maxSteps` must not go unseen. An evaluateAll or evaluateEach request
 /// and their entries are read for their own fields ([unread_fields]).
-fn unknown_fields(fields: &Map<String, Json>) -> Vec<String> {
+fn unknown_fields(fields: &Map<String, Json>) -> Vec<Warning> {
   fields
     .keys()
     .filter(|name| !FIELDS.contains(&name.as_str()))
     .map(|name| {
-      compose(format_args!(
-        "expected a field of a request ({}), found '{}', which is not read",
-        FIELDS.join(", "),
-        arg(name.as_str())
-      ))
+      Warning::new(
+        "unknown-field",
+        compose(format_args!(
+          "expected a field of a request ({}), found '{}', which is not read",
+          FIELDS.join(", "),
+          arg(name.as_str())
+        )),
+      )
     })
     .collect()
 }
@@ -812,18 +866,18 @@ fn evaluate_each(mut req: Map<String, Json>, unread: Unread, started: Instant) -
   let format = match req.get("contextFormat") {
     None | Some(Json::Null) => None,
     Some(Json::String(f)) if f == "json" || f == "feel" => Some(Json::String(f.clone())),
-    Some(other) => return fail(Kind::Request, format!("invalid 'contextFormat' {} (expected \"json\" or \"feel\")", arg(other))),
+    Some(other) => return fail("invalid-field", format!("invalid 'contextFormat' {} (expected \"json\" or \"feel\")", arg(other))),
   };
   let entries: Vec<Entry> = match (unread.entries, req.remove("entries")) {
     (Some(text), _) => match json::elements(text) {
       Some(items) => items.into_iter().map(Entry::Text).collect(),
-      None => return fail(Kind::Internal, "the items of 'entries' could not be read"),
+      None => return fail("internal", "the items of 'entries' could not be read"),
     },
     (None, Some(Json::Array(items))) => items.into_iter().map(Entry::Tree).collect(),
-    (None, None) => return fail(Kind::Request, "missing 'entries'"),
-    (None, Some(_)) => return fail(Kind::Request, "'entries' must be an array"),
+    (None, None) => return fail("missing-field", "missing 'entries'"),
+    (None, Some(_)) => return fail("invalid-field", "'entries' must be an array"),
   };
-  let text_of = |tree: Json| serde_json::to_string(&tree).or_else(|e| fail(Kind::Internal, format!("failed to serialize response: {e}")));
+  let text_of = |tree: Json| serde_json::to_string(&tree).or_else(|e| fail("serialization", format!("failed to serialize response: {e}")));
   let mut prepared: Option<Prepared> = None;
   let mut names = vec![];
   let mut results = String::from("[");
@@ -835,7 +889,7 @@ fn evaluate_each(mut req: Map<String, Json>, unread: Unread, started: Instant) -
     let fields = match entry {
       Entry::Text(text) if text.starts_with('{') => request_fields(text),
       Entry::Tree(Json::Object(fields)) => Ok((fields, Unread::default())),
-      _ => fail(Kind::Request, format!("'entries[{index}]' must be an object")),
+      _ => fail("invalid-field", format!("'entries[{index}]' must be an object")),
     };
     // the `id` of an entry stands in its answer, also when the entry fails
     let id = fields
@@ -874,8 +928,8 @@ fn evaluate_each(mut req: Map<String, Json>, unread: Unread, started: Instant) -
     });
     match answer {
       Ok(response) => results.push_str(&response),
-      Err(Failure(kind, message, diagnostics)) => {
-        let mut error = error_response(kind, &message, diagnostics);
+      Err(Failure { code, message, diagnostics }) => {
+        let mut error = error_response(code, &message, diagnostics);
         if let (Some(id), Some(fields)) = (id, error.as_object_mut()) {
           fields.insert("id".to_string(), id);
         }
@@ -907,12 +961,12 @@ fn evaluate_one(
   let shared = Some(shared);
   let started = Instant::now();
   let Json::Object(mut entry) = evaluation else {
-    return fail(Kind::Request, format!("'evaluations[{index}]' must be an object"));
+    return fail("invalid-field", format!("'evaluations[{index}]' must be an object"));
   };
   let id = match entry.get("id") {
     None | Some(Json::Null) => None,
-    Some(id @ (Json::String(_) | Json::Number(_))) => Some(serde_json::to_string(id).or_else(|e| fail(Kind::Internal, format!("failed to serialize response: {e}")))?),
-    Some(other) => return fail(Kind::Request, format!("'id' must be a string or a number, got {}", arg(other))),
+    Some(id @ (Json::String(_) | Json::Number(_))) => Some(serde_json::to_string(id).or_else(|e| fail("serialization", format!("failed to serialize response: {e}")))?),
+    Some(other) => return fail("invalid-field", format!("'id' must be a string or a number, got {}", arg(other))),
   };
   let dialect = dialect(&entry)?;
   let error_mode = error_mode(&entry)?;
@@ -921,10 +975,10 @@ fn evaluate_one(
   let mut warnings = unread_fields(&entry, &EVALUATION_FIELDS, "an entry of 'evaluations'");
   let tested = if dialect == Dialect::UnaryTests {
     match entry.remove("input") {
-      Some(input) => Some(json_into_value(input, &Path::Root("input"), &mut warnings).map_err(|e| Failure(Kind::Context, e, None))?),
+      Some(input) => Some(json_into_value(input, &Path::Root("input"), &mut warnings).map_err(|e| Failure::new("invalid-context", e, None))?),
       None if has_question_mark => None,
       None => {
-        warnings.push("no input value given ('input' or context[\"?\"]); testing null".to_string());
+        warnings.push(Warning::new("no-input", "no input value given ('input' or context[\"?\"]); testing null"));
         Some(Value::Null(None))
       }
     }
@@ -966,7 +1020,7 @@ impl Evaluation {
   /// Parses and evaluates the expression in `scope` and returns the text of the response.
   /// `warnings` are those of the input, which come before the warnings of the evaluation;
   /// `started` is when the time of the response began.
-  fn run(self, scope: &FeelScope, shared: Option<&rheon_feel_parser::Shared>, warnings: Vec<String>, started: Instant) -> Result<String, Failure> {
+  fn run(self, scope: &FeelScope, shared: Option<&rheon_feel_parser::Shared>, warnings: Vec<Warning>, started: Instant) -> Result<String, Failure> {
     let Evaluation {
       id,
       dialect,
@@ -990,7 +1044,7 @@ fn evaluated(
   error_mode: ErrorMode,
   max_steps: Option<u64>,
   node: AstNode,
-  warnings: Vec<String>,
+  warnings: Vec<Warning>,
   started: Instant,
 ) -> Result<String, Failure> {
   let evaluator = program(node, dialect, language);
@@ -1013,7 +1067,7 @@ fn answered(
   evaluator: &rheon_feel::Evaluator,
   error_mode: ErrorMode,
   max_steps: Option<u64>,
-  mut warnings: Vec<String>,
+  mut warnings: Vec<Warning>,
   started: Instant,
 ) -> Result<String, Failure> {
   // an evaluation stopped by an implementation limit has no result, only the abort
@@ -1021,23 +1075,31 @@ fn answered(
     Some(steps) => Session::new().with_step_budget(steps),
     None => Session::new(),
   };
-  let (value, diagnostics) = session
-    .run(|| diagnostics::collect(|| evaluator(scope)))
-    .into_result()
-    .or_else(|abort| fail(Kind::Evaluation, abort.to_string()))?;
+  let (value, diagnostics) = session.run(|| diagnostics::collect(|| evaluator(scope))).into_result().or_else(|abort| {
+    let code = match &abort {
+      diagnostics::Abort::CallDepth { .. } => "limit-calls",
+      diagnostics::Abort::ValueDepth { .. } => "limit-depth",
+      diagnostics::Abort::Steps { .. } => "limit-steps",
+      _ => "limit-engine",
+    };
+    fail(code, abort.to_string())
+  })?;
   // strict mode (DMN 1.6 §7.3.8): the first error stops the evaluation
   if error_mode == ErrorMode::Strict
     && let Some(first) = diagnostics.first()
   {
-    return fail(Kind::Evaluation, compose(format_args!("strict error mode: {first}")));
+    return fail("strict-error", compose(format_args!("strict error mode: {first}")));
   }
   // the warnings of the input and the unary tests come first, then those of the evaluation
-  warnings.extend_from_slice(diagnostics.warnings());
-  let text_of = |tree: Json| serde_json::to_string(&tree).or_else(|e| fail(Kind::Internal, format!("failed to serialize response: {e}")));
+  warnings.extend(diagnostics.warnings().iter().map(Warning::from));
+  let text_of = |tree: Json| serde_json::to_string(&tree).or_else(|e| fail("serialization", format!("failed to serialize response: {e}")));
   let mut result = String::new();
   write_result(&value, &mut result);
   let warnings = text_of(Json::Array(
-    warnings.into_iter().map(|message| json!({ "message": compose(format_args!("{message}")) })).collect(),
+    warnings
+      .into_iter()
+      .map(|Warning { code, message }| json!({ "code": code, "message": compose(format_args!("{message}")) }))
+      .collect(),
   ))?;
   let diagnostics = text_of(json!({ "count": diagnostics.count, "messages": diagnostics.messages }))?;
   // the time includes the writing of the result, as it did when the result was a tree

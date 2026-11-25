@@ -27,6 +27,7 @@
 //! the keys gives the entry), and an object whose keys do not come in ascending order when one
 //! of its values has a warning.
 
+use crate::input::Warning;
 use crate::input::{DIRECT_ENTRIES, Path, number_value};
 use rheon_feel::Name;
 use rheon_feel::context::{DeferredEntries, FeelContext};
@@ -241,7 +242,7 @@ pub(crate) struct Refused;
 /// What the reader made of the JSON of `context` or `input`.
 pub(crate) enum Field<'a, T> {
   /// The value and the warnings of reading it.
-  Read(T, Vec<String>),
+  Read(T, Vec<Warning>),
   /// The text of the JSON, which is an object or an array that the reader refused: for the
   /// conversion through a tree of JSON values.
   Text(&'a str),
@@ -761,7 +762,7 @@ struct Shape {
 pub(crate) struct Reader<'a, 'w> {
   text: &'a str,
   at: usize,
-  warnings: &'w mut Vec<String>,
+  warnings: &'w mut Vec<Warning>,
   /// The entries of the objects that are being read, those of an inner object above those of
   /// the objects around it: one buffer for all objects of the text.
   entries: Vec<(Name, Value)>,
@@ -785,7 +786,7 @@ pub(crate) struct Reader<'a, 'w> {
 
 impl<'a, 'w> Reader<'a, 'w> {
   /// A reader of `text` at the position `at`, inside `depth` arrays and objects.
-  fn new(text: &'a str, at: usize, depth: usize, warnings: &'w mut Vec<String>) -> Self {
+  fn new(text: &'a str, at: usize, depth: usize, warnings: &'w mut Vec<Warning>) -> Self {
     Reader {
       text,
       at,
@@ -804,7 +805,7 @@ impl<'a, 'w> Reader<'a, 'w> {
   /// Reads the JSON object that starts at `at` in the text of a request, a field of its
   /// top-level object, into a context; returns it with the position after the object. It reads
   /// only JSON that `serde_json` accepts there.
-  pub(crate) fn object_at(text: &'a str, at: usize, path: &Path, warnings: &'w mut Vec<String>) -> Result<(FeelContext, usize), Refused> {
+  pub(crate) fn object_at(text: &'a str, at: usize, path: &Path, warnings: &'w mut Vec<Warning>) -> Result<(FeelContext, usize), Refused> {
     let mut reader = Reader::new(text, at, 1, warnings);
     if reader.peek() != Some(b'{') {
       return Err(Refused);
@@ -815,7 +816,7 @@ impl<'a, 'w> Reader<'a, 'w> {
 
   /// Reads the JSON array or object that starts at `at` in the text of a request, a field of
   /// its top-level object, into a value; returns it with the position after it.
-  pub(crate) fn value_at(text: &'a str, at: usize, path: &Path, warnings: &'w mut Vec<String>) -> Result<(Value, usize), Refused> {
+  pub(crate) fn value_at(text: &'a str, at: usize, path: &Path, warnings: &'w mut Vec<Warning>) -> Result<(Value, usize), Refused> {
     let mut reader = Reader::new(text, at, 1, warnings);
     let value = match reader.peek() {
       Some(b'{') => reader.read_object(path)?.into(),
@@ -827,7 +828,7 @@ impl<'a, 'w> Reader<'a, 'w> {
 
   /// Reads `text`, the whole text of a JSON object, into a context.
   #[cfg(test)]
-  pub(crate) fn object(text: &'a str, path: &Path, warnings: &'w mut Vec<String>) -> Result<FeelContext, Refused> {
+  pub(crate) fn object(text: &'a str, path: &Path, warnings: &'w mut Vec<Warning>) -> Result<FeelContext, Refused> {
     let (context, end) = Reader::object_at(text, 0, path, warnings)?;
     if end == text.len() { Ok(context) } else { Err(Refused) }
   }
@@ -1558,7 +1559,7 @@ mod tests {
   }
 
   /// The context and the warnings of the conversion through the tree of JSON values, or its error.
-  fn through_the_tree(text: &str) -> Result<(FeelContext, Vec<String>), String> {
+  fn through_the_tree(text: &str) -> Result<(FeelContext, Vec<Warning>), String> {
     let Json::Object(map) = tree(text).map_err(|e| e.to_string())? else {
       return Err("no object".to_string());
     };
@@ -1595,7 +1596,7 @@ mod tests {
       if damaged {
         text = damage(&mut rng, &text);
       }
-      let mut warnings = vec!["earlier".to_string()];
+      let mut warnings = vec![Warning::new("earlier", "earlier")];
       let fast = Reader::object(&text, &Path::Root(""), &mut warnings);
       match (fast, through_the_tree(&text)) {
         (Ok(context), Ok((expected, expected_warnings))) => {
@@ -1675,7 +1676,7 @@ mod tests {
       let mut warnings = vec![];
       let (value, read_end) = Reader::value_at(&text, 0, &Path::Root(""), &mut warnings).unwrap_or_else(|Refused| panic!("case {case}: {text}"));
       assert_eq!(end, read_end, "case {case}: {text}");
-      assert_eq!(Vec::<String>::new(), warnings, "case {case}: {text}");
+      assert_eq!(Vec::<Warning>::new(), warnings, "case {case}: {text}");
       assert_eq!(depth, nesting(&value), "case {case}: {text}");
       // and it is the value of the tree
       let (expected, expected_warnings) = through_the_tree(&text[..end]).unwrap_or_else(|e| panic!("case {case}: {text}: {e}"));

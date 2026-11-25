@@ -16,6 +16,7 @@ use crate::Dialect;
 use crate::filters::ITEM;
 use crate::kernels::{self, Arithmetic};
 use rheon_feel::Name;
+use rheon_feel::diagnostics::WarningCode;
 use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel_parser::AstNode;
@@ -871,9 +872,9 @@ impl<'a> Lower<'_, 'a> {
       ),
       AstNode::Numeric(..) | AstNode::At(_) => {
         let (value, warning) = literal(ast)?.ok()?;
-        if let Some(warning) = warning {
+        if let Some((code, warning)) = warning {
           let msg = self.builder.message(warning);
-          self.builder.emit(Op::Warn { msg });
+          self.builder.emit(Op::Warn { msg, code: code as u8 });
         }
         value
       }
@@ -964,11 +965,16 @@ fn fixed_scalar(ast: &AstNode) -> Option<Value> {
   }
 }
 
+/// The value of a literal, and the warning its evaluation records: its code and its message.
+type Literal = (Value, Option<(WarningCode, String)>);
+
 /// The value of a number or an `@` literal, with the warning its evaluation records, or the error
 /// of a literal that has no value; `None` for another node.
-fn literal(ast: &AstNode) -> Option<Result<(Value, Option<String>), String>> {
+fn literal(ast: &AstNode) -> Option<Result<Literal, String>> {
   match ast {
-    AstNode::Numeric(before, after, sign, exponent) => Some(kernels::number_literal(before, after, *sign, exponent).map(|(number, warning)| (Value::Number(number), warning))),
+    AstNode::Numeric(before, after, sign, exponent) => {
+      Some(kernels::number_literal(before, after, *sign, exponent).map(|(number, warning)| (Value::Number(number), warning.map(|warning| (WarningCode::NumberRounded, warning)))))
+    }
     AstNode::At(text) => Some(kernels::at_literal(text)),
     _ => None,
   }

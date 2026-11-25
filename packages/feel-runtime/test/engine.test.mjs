@@ -457,6 +457,6 @@ test('real worker: the editor operations (syntax, complete, outline)', async (t)
   assert.deepEqual(typedNames.items.filter((i) => i.kind === 'name').map((i) => [i.label, i.type]), [['Monthly Salary', 'number'], ['order', 'context']]);
   // a context and an outline together are refused before the module is asked
   const both = await engine.syntax('1', { context, outline: outline.outline });
-  assert.deepEqual(both, { ok: false, error: { kind: 'request', message: "give 'context' or 'outline', not both" } });
+  assert.deepEqual(both, { ok: false, error: { kind: 'request', code: 'conflicting-fields', message: "give 'context' or 'outline', not both" } });
   assert.equal(engine.workerStarts, 1);
 });

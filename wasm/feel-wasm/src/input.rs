@@ -89,12 +89,32 @@ impl MessageArg for Path<'_> {
   }
 }
 
+/// A warning of a response: what it is about, for a program (a code of the list in
+/// docs/CONTRACT.md), and the message.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Warning {
+  pub code: &'static str,
+  pub message: String,
+}
+
+impl Warning {
+  pub fn new(code: &'static str, message: impl Into<String>) -> Self {
+    Self { code, message: message.into() }
+  }
+}
+
+impl From<&rheon_feel::diagnostics::Warning> for Warning {
+  fn from(warning: &rheon_feel::diagnostics::Warning) -> Self {
+    Self::new(warning.code.as_str(), warning.message.as_str())
+  }
+}
+
 /// Converts a JSON value into a FEEL value, taking it (strings are moved, not copied).
 ///
 /// Numbers are parsed from their exact JSON source text (serde_json `arbitrary_precision`),
 /// never through `f64`. Numbers with more than 34 significant digits are rounded by the decimal
 /// library; a warning is pushed in that case. `path` is used in error/warning messages.
-pub fn json_into_value(json: Json, path: &Path, warnings: &mut Vec<String>) -> Result<Value, String> {
+pub fn json_into_value(json: Json, path: &Path, warnings: &mut Vec<Warning>) -> Result<Value, String> {
   Ok(match json {
     Json::Null => Value::Null(None),
     Json::Bool(b) => Value::Boolean(b),
@@ -113,17 +133,18 @@ pub fn json_into_value(json: Json, path: &Path, warnings: &mut Vec<String>) -> R
 
 /// Converts the text of a JSON number into a FEEL number, exactly: never through `f64`. A number
 /// with more than 34 significant digits is rounded by the decimal library, with a warning.
-pub(crate) fn number_value(text: &str, path: &Path, warnings: &mut Vec<String>) -> Result<Value, String> {
+pub(crate) fn number_value(text: &str, path: &Path, warnings: &mut Vec<Warning>) -> Result<Value, String> {
   let (number, rounded) = FeelNumber::from_str_reporting_rounding(text).map_err(|e| format!("{}: invalid number '{}': {e}", arg(path), arg(text)))?;
   if rounded {
     let (place, quoted) = (arg(path), arg(text));
-    warnings.push(if number.is_zero() {
+    let message = if number.is_zero() {
       format!("{place}: number {quoted} is too small for a 34-digit decimal (exponent below -6176) and became 0")
     } else if significant_digits(text) > MAX_DIGITS {
       format!("{place}: number {quoted} has more than {MAX_DIGITS} significant digits and was rounded to {}", arg(&number))
     } else {
       format!("{place}: number {quoted} is too small for a 34-digit decimal and was rounded to {}", arg(&number))
-    });
+    };
+    warnings.push(Warning::new("number-rounded", message));
   }
   Ok(Value::Number(number))
 }
@@ -143,7 +164,7 @@ pub(crate) const DIRECT_ENTRIES: usize = 11;
 /// The entries come in the order of the keys, which is the order of the names unless a key was
 /// trimmed, so a context of more than [DIRECT_ENTRIES] entries is built from them in one pass
 /// ([FeelContext]'s `FromIterator`), without a search per entry.
-pub fn json_object_into_context(map: Map<String, Json>, path: &Path, warnings: &mut Vec<String>) -> Result<FeelContext, String> {
+pub fn json_object_into_context(map: Map<String, Json>, path: &Path, warnings: &mut Vec<Warning>) -> Result<FeelContext, String> {
   let direct = map.len() <= DIRECT_ENTRIES;
   let mut ctx = FeelContext::default();
   let mut entries = Vec::with_capacity(if direct { 0 } else { map.len() });
@@ -175,7 +196,7 @@ pub fn json_object_into_context(map: Map<String, Json>, path: &Path, warnings: &
 /// Evaluates a FEEL context literal (e.g. `{a: 1, "Grace's age": 40}`) into a FEEL context,
 /// adding the warnings of its evaluation to `warnings`. An empty / blank string is an empty
 /// context.
-pub fn feel_context(text: &str, warnings: &mut Vec<String>) -> Result<FeelContext, String> {
+pub fn feel_context(text: &str, warnings: &mut Vec<Warning>) -> Result<FeelContext, String> {
   if rheon_feel::names::trim(text).is_empty() {
     return Ok(FeelContext::default());
   }
@@ -185,7 +206,7 @@ pub fn feel_context(text: &str, warnings: &mut Vec<String>) -> Result<FeelContex
   // the context's errors are not counted in the response, only its warnings are reported
   let (outcome, diagnostics) = diagnostics::collect(|| rheon_feel_evaluator::evaluate(&scope, &node));
   let value = outcome.into_result().map_err(|abort| abort.to_string())?;
-  warnings.extend_from_slice(diagnostics.warnings());
+  warnings.extend(diagnostics.warnings().iter().map(Warning::from));
   match value {
     Value::Context(ctx) => Ok(Arc::unwrap_or_clone(ctx)),
     Value::Null(Some(reason)) => Err(format!("FEEL context evaluated to null: {reason}")),

@@ -100,20 +100,20 @@ export function serializeRequest(req: Record<string, unknown>): string {
       try {
         parsed = JSON.parse(value.rawJson);
       } catch (e) {
-        throw new RequestError({ kind: 'context', message: `invalid JSON in ${key}: ${(e as Error).message}` });
+        throw new RequestError({ kind: 'context', code: 'invalid-context', message: `invalid JSON in ${key}: ${(e as Error).message}` });
       }
       if (key === 'context' && (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed))) {
-        throw new RequestError({ kind: 'context', message: 'context JSON must be an object' });
+        throw new RequestError({ kind: 'context', code: 'invalid-context', message: 'context JSON must be an object' });
       }
       if (hasLoneSurrogate(value.rawJson)) {
-        throw new RequestError({ kind: fieldKind(key), message: `${key} JSON ${UNPAIRED}` });
+        throw new RequestError({ kind: fieldKind(key), code: fieldKind(key) === 'context' ? 'invalid-context' : 'invalid-field', message: `${key} JSON ${UNPAIRED}` });
       }
       parts.push(`${JSON.stringify(key)}:${value.rawJson.trim()}`);
     } else {
       const text = JSON.stringify(value);
       if (text === undefined) continue; // functions, symbols
       if (hasLoneSurrogate(text)) {
-        throw new RequestError({ kind: fieldKind(key), message: `${key} ${UNPAIRED}` });
+        throw new RequestError({ kind: fieldKind(key), code: fieldKind(key) === 'context' ? 'invalid-context' : 'invalid-field', message: `${key} ${UNPAIRED}` });
       }
       parts.push(`${JSON.stringify(key)}:${text}`);
     }
@@ -147,7 +147,7 @@ function contextFields(context: ParseOptions['context'], contextFormat: ParseOpt
     return { context, contextFormat: contextFormat ?? 'feel' };
   }
   if (isRawJson(context) && contextFormat === 'feel') {
-    throw new RequestError({ kind: 'context', message: "rawJson context requires contextFormat 'json'" });
+    throw new RequestError({ kind: 'context', code: 'invalid-context', message: "rawJson context requires contextFormat 'json'" });
   }
   return { context, contextFormat: contextFormat ?? 'json' };
 }
@@ -204,7 +204,7 @@ export function buildEvaluateAllJson(req: EvaluateAllRequest, defaultTz: number 
     try {
       if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
         const text = JSON.stringify(entry);
-        if (text === undefined || hasLoneSurrogate(text)) throw new RequestError({ kind: 'request', message: 'an evaluation must be an object' });
+        if (text === undefined || hasLoneSurrogate(text)) throw new RequestError({ kind: 'request', code: 'invalid-field', message: 'an evaluation must be an object' });
         entries.push(text);
       } else {
         // as for `evaluate`, the input is sent for unary tests only
@@ -262,12 +262,12 @@ export function buildEvaluateEachJson(req: EvaluateEachRequest, defaultTz: numbe
     try {
       if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
         const text = JSON.stringify(entry);
-        if (text === undefined || hasLoneSurrogate(text)) throw new RequestError({ kind: 'request', message: 'an entry must be an object' });
+        if (text === undefined || hasLoneSurrogate(text)) throw new RequestError({ kind: 'request', code: 'invalid-field', message: 'an entry must be an object' });
         entries.push(text);
       } else {
         const fields = entry as Record<string, unknown>;
         if (isRawJson(fields.context) && contextFormat === 'feel') {
-          throw new RequestError({ kind: 'context', message: "rawJson context requires contextFormat 'json'" });
+          throw new RequestError({ kind: 'context', code: 'invalid-context', message: "rawJson context requires contextFormat 'json'" });
         }
         // as for `evaluate`, the input is sent for unary tests only
         entries.push(
@@ -309,7 +309,7 @@ export function buildParseJson(dialect: EvaluateRequest['dialect'], expression: 
 /** The fields of an editor request that say which names are in scope. */
 function editorFields(opts: EditorOptions) {
   if (opts.outline !== undefined && opts.context !== undefined) {
-    throw new RequestError({ kind: 'request', message: "give 'context' or 'outline', not both" });
+    throw new RequestError({ kind: 'request', code: 'conflicting-fields', message: "give 'context' or 'outline', not both" });
   }
   return opts.outline !== undefined ? { outline: opts.outline } : contextFields(opts.context, opts.contextFormat);
 }

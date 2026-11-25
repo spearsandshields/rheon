@@ -95,7 +95,7 @@ fn scope(mut req: Map<String, Json>, mut unread: Unread, dialect: Dialect) -> Re
     return Ok((prepare_scope(req, unread, dialect, &mut vec![])?, None));
   };
   if req.contains_key("context") || unread.context.is_some() {
-    return fail(Kind::Request, "give 'context' or 'outline', not both");
+    return fail("conflicting-fields", "give 'context' or 'outline', not both");
   }
   unread.context = None;
   req.remove("contextFormat");
@@ -142,12 +142,12 @@ const FORMS: [&str; 4] = ["names", "items", "type", "function"];
 fn context_of_outline(outline: &Json, depth: usize, place: &At, root: bool) -> Result<Json, Failure> {
   const SHAPE: &str = "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}}, {\"items\": <outline>} or {\"function\": {\"parameters\": […], \"result\": <type>}}, with \"description\" and \"deprecated\" beside it when it has them, and \"values\" beside a type";
   if depth > 100 {
-    return fail(Kind::Context, "the outline is nested too deeply (at most 100 levels)");
+    return fail("outline-too-deep", "the outline is nested too deeply (at most 100 levels)");
   }
   let fields = match outline {
     Json::Null => return Ok(Json::Null),
     Json::Object(fields) => fields,
-    _ => return fail(Kind::Context, SHAPE),
+    _ => return fail("invalid-outline", SHAPE),
   };
   for (field, value) in fields {
     let known = match (field.as_str(), value) {
@@ -157,7 +157,7 @@ fn context_of_outline(outline: &Json, depth: usize, place: &At, root: bool) -> R
       (form, _) => FORMS.contains(&form),
     };
     if !known {
-      return fail(Kind::Context, format!("{place}: {SHAPE}; found the field {field:?} with the value {}", preview(value)));
+      return fail("invalid-outline", format!("{place}: {SHAPE}; found the field {field:?} with the value {}", preview(value)));
     }
   }
   let forms: Vec<&str> = FORMS.into_iter().filter(|form| fields.contains_key(*form)).collect();
@@ -173,9 +173,9 @@ fn context_of_outline(outline: &Json, depth: usize, place: &At, root: bool) -> R
     }
     (["items"], Some(items)) => Ok(Json::Array(vec![context_of_outline(items, depth + 1, &At::Items(place), false)?])),
     (["type"], Some(Json::String(_))) => Ok(Json::Null),
-    (["type"], Some(other)) => fail(Kind::Context, format!("{place}: expected a FEEL type as a string, found {other}")),
+    (["type"], Some(other)) => fail("invalid-outline", format!("{place}: expected a FEEL type as a string, found {other}")),
     (["function"], Some(Json::Object(_))) => Ok(Json::Null),
-    _ => fail(Kind::Context, SHAPE),
+    _ => fail("invalid-outline", SHAPE),
   }
 }
 
@@ -288,7 +288,7 @@ impl Schema {
     if let Some(Json::Object(types)) = fields.get("types") {
       for name in types.keys() {
         if type_of_text(name).is_some() {
-          return fail(Kind::Context, format!("outline.types: expected a name that is no type of FEEL, found {name:?}"));
+          return fail("invalid-outline", format!("outline.types: expected a name that is no type of FEEL, found {name:?}"));
         }
         named.insert(name.clone(), typing.declare(Some(Name::from(name.as_str()))));
       }
@@ -310,7 +310,7 @@ impl Schema {
         }
         if at.get("type").and_then(Json::as_str).is_some_and(|text| types.contains_key(text.trim())) {
           return fail(
-            Kind::Context,
+            "invalid-outline",
             format!("outline.types.{name}: expected a type that is more than the name of another, found types that are only each other"),
           );
         }
@@ -377,7 +377,7 @@ impl Schema {
         {
           parameters
         }
-        Some(other) => return fail(Kind::Context, format!("{place}.function: {FUNCTION}; found the parameters {}", preview(other))),
+        Some(other) => return fail("invalid-outline", format!("{place}.function: {FUNCTION}; found the parameters {}", preview(other))),
       };
       if let Some((field, value)) = function.as_object().and_then(|fields| {
         fields
@@ -385,7 +385,7 @@ impl Schema {
           .find(|(field, value)| !matches!((field.as_str(), *value), ("parameters", _) | ("result", Json::String(_))))
       }) {
         return fail(
-          Kind::Context,
+          "invalid-outline",
           format!("{place}.function: {FUNCTION}; found the field {field:?} with the value {}", preview(value)),
         );
       }
@@ -417,7 +417,7 @@ impl Schema {
           );
           if !fits {
             return fail(
-              Kind::Context,
+              "invalid-outline",
               format!(
                 "{place}.values: expected values of a string, number or boolean type, each a value of the type or {{\"value\": <value>, \"description\": <text>}}; found {} for the type {text:?}",
                 preview(value)
@@ -445,7 +445,7 @@ impl Schema {
       match written {
         Some(written) => Ok(written),
         None => fail(
-          Kind::Context,
+          "invalid-outline",
           format!("{place}: expected a FEEL type (such as number, date, list<string> or range<date>), found {text:?}"),
         ),
       }
@@ -536,7 +536,7 @@ pub(super) fn outline(mut req: Map<String, Json>, unread: Unread, started: Insta
   let types = match req.remove("types") {
     None | Some(Json::Null) => false,
     Some(Json::Bool(types)) => types,
-    Some(other) => return fail(Kind::Request, format!("'types' must be true or false, found {other}")),
+    Some(other) => return fail("invalid-field", format!("'types' must be true or false, found {other}")),
   };
   let scope = prepare_scope(req, unread, Dialect::Expression, &mut vec![])?;
   let outline = scope.frames().last().map_or_else(|| json!({ "names": {} }), |frame| outline_of_context(frame, 0, types));
@@ -566,7 +566,7 @@ pub(super) fn syntax(mut req: Map<String, Json>, unread: Unread, started: Instan
   let tree = match req.remove("tree") {
     None | Some(Json::Null) => false,
     Some(Json::Bool(tree)) => tree,
-    Some(_) => return fail(Kind::Request, "'tree' must be true or false"),
+    Some(_) => return fail("invalid-field", "'tree' must be true or false"),
   };
   let (scope, outline) = scope(req, unread, dialect)?;
   Schema::read(&mut Typing::new(&scope), outline.as_ref())?;
@@ -1418,9 +1418,9 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
     None | Some(Json::Null) => expression.len(),
     Some(Json::Number(cursor)) => match cursor.as_u64() {
       Some(cursor) => places.byte(cursor as usize),
-      None => return fail(Kind::Request, "'cursor' must be a whole number that is not negative"),
+      None => return fail("invalid-field", "'cursor' must be a whole number that is not negative"),
     },
-    Some(_) => return fail(Kind::Request, "'cursor' must be a whole number that is not negative"),
+    Some(_) => return fail("invalid-field", "'cursor' must be a whole number that is not negative"),
   };
   let (scope, outline) = scope(req, unread, dialect)?;
   // the pieces of the text that are typed share one table of types, with those of the outline
@@ -1561,9 +1561,9 @@ pub(super) fn hover(mut req: Map<String, Json>, unread: Unread, started: Instant
   let at = match req.remove("at") {
     Some(Json::Number(at)) => match at.as_u64() {
       Some(at) => places.byte(at as usize),
-      None => return fail(Kind::Request, AT),
+      None => return fail("invalid-field", AT),
     },
-    _ => return fail(Kind::Request, AT),
+    _ => return fail("invalid-field", AT),
   };
   let (scope, outline) = scope(req, unread, dialect)?;
   let mut typing = Typing::new(&scope);
@@ -1682,9 +1682,9 @@ pub(super) fn paths(mut req: Map<String, Json>, unread: Unread, started: Instant
   Schema::read(&mut typing, outline.as_ref())?;
   let positioned = parse_positioned(&scope, dialect.rule(), &expression).map_err(|e| {
     let diagnostics = diagnostics(&scope, &expression, dialect.rule());
-    Failure(Kind::Syntax, syntax_message(&e.to_string()), Some(diagnostics))
+    Failure::new("syntax-error", syntax_message(&e.to_string()), Some(diagnostics))
   })?;
-  check_ast_depth(positioned.tree()).map_err(|e| Failure(Kind::Syntax, e, None))?;
+  check_ast_depth(positioned.tree()).map_err(|e| Failure::new("expression-too-deep", e, None))?;
   let reads = typing.reads(positioned.tree(), &|node| positioned.place(node), known, dialect == Dialect::UnaryTests);
   let places = Places::new(&expression);
   let placed = |at: &[(usize, usize)]| -> Vec<Json> { at.iter().map(|&(start, end)| json!([places.of(start), places.of(end)])).collect() };
@@ -1719,9 +1719,9 @@ pub(super) fn format(mut req: Map<String, Json>, unread: Unread, started: Instan
     None | Some(Json::Null) => DEFAULT_WIDTH,
     Some(Json::Number(width)) => match width.as_u64() {
       Some(width @ 1..=1000) => width as usize,
-      _ => return fail(Kind::Request, WIDTH),
+      _ => return fail("invalid-field", WIDTH),
     },
-    Some(_) => return fail(Kind::Request, WIDTH),
+    Some(_) => return fail("invalid-field", WIDTH),
   };
   let (scope, outline) = scope(req, unread, dialect)?;
   Schema::read(&mut Typing::new(&scope), outline.as_ref())?;

@@ -106,8 +106,9 @@ async function compileFrom(opts: FeelEngineOptions): Promise<WebAssembly.Module>
   return WebAssembly.compile(await response.arrayBuffer());
 }
 
+/** A failure that this runtime makes; its code is its kind, and for a request that could not be built `invalid-field`. */
 function failure(kind: ErrorKind, message: string) {
-  return { ok: false as const, error: { kind, message } };
+  return { ok: false as const, error: { kind, code: kind === 'request' ? 'invalid-field' : kind, message } };
 }
 
 const CANCELLED = () => failure('cancelled', 'request was cancelled');
