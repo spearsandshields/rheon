@@ -195,6 +195,35 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
   the nesting from the places. A missing part is a node `Error` of an empty place. The kinds
   are not a stable list yet.
 
+`op: "syntax"` with `"check": true` also checks a text that parses, and says how grave each
+diagnostic is:
+
+```jsonc
+{ "ok": true, "tokens": [ … ],
+  "diagnostics": [
+    { "code": "not-a-value", "severity": "warning", "from": 15, "to": 21,
+      "message": "Expected one of the values of `loan.purpose` (\"REFI\", \"PURCHASE\"), found \"REFO\"." },
+    { "code": "deprecated", "severity": "hint", "from": 26, "to": 40, "message": "`loan.old score` is deprecated: use score." } ],
+  "checked": true, "truncated": false, "elapsedMicros": n }
+```
+
+- `severity` is `error`, `warning`, `information` or `hint`. A syntax error is an `error`. Without
+  `check` an answer is what it was: its diagnostics are the syntax errors and have no `severity`.
+- `checked`: whether the text was checked. A text with syntax errors is not, nor one whose
+  analysis reached its limit; the answer then has the syntax errors only.
+- What a check finds is certain from the text, the scope and the outline, never a guess, and none
+  of it is an error: FEEL gives null for each.
+
+  | code | severity | when |
+  |---|---|---|
+  | `unknown-name` | warning | a name that no construct of the text binds, the scope has no value of and no built-in function is. Only with a `context` or an `outline`: their names are all the names there are |
+  | `unknown-entry` | warning | an entry after a dot of a context that has no such entry: a context of the scope (its entries are those the `context` or the `outline` has) or one that the text makes |
+  | `deprecated` | hint | a name or an entry that an outline marks as deprecated is read; the reason is in the message |
+  | `not-a-value` | warning | a literal compared (`=`, `!=`, `in`) with a name or an entry whose `values` an outline lists, and that is none of them; in unary tests, a test that is such a literal |
+  | `always-null` | warning | an operator (`+ - * / **`, `< <= > >=`, `= !=`) whose operands are a number, a string or a boolean for certain (a literal, or a value of the scope of that type) of types it gives null for (`"a" + 1`, `1 < "a"`, `true = 1`). FEEL's answer: B-FEEL gives a default there |
+
+- The diagnostics are in the order of their places.
+
 `op: "complete"`, with the optional field `"cursor"` (a UTF-16 offset; default: the end of the text):
 
 ```jsonc

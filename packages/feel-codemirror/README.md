@@ -27,6 +27,7 @@ view.dispatch({ effects: setFeelScope({ dialect: 'unaryTests', outline }) });
 | `maxDiagnostics` | The most syntax errors that are marked; the engine reports up to 100 | 20 |
 | `templates` | Offer templates of `if`, `for`, `some`, `every`, a function and a context | true |
 | `tree` | Ask for the nodes of the text too (`syntaxOf(state).nodes`) | false |
+| `check` | Check a text that parses too: an unknown name or entry, a deprecated name, a value that is none of those listed, an operation that is always null. Marked as warnings and hints | false |
 | `onSyntax` | Called with every answer the editor takes | none |
 | `signatureHelp` | Inside the parentheses of a built-in function or a function of the outline, show its signatures with the parameter of the cursor marked | true |
 | `hover` | When the pointer rests on a name, show its type, or the signatures of a function, and what the outline or the engine says of it. Needs an engine that answers `hover` (a `FeelEngine` and `instanceSource` do) | true |

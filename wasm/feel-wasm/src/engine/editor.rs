@@ -568,12 +568,43 @@ pub(super) fn syntax(mut req: Map<String, Json>, unread: Unread, started: Instan
     Some(Json::Bool(tree)) => tree,
     Some(_) => return fail("invalid-field", "'tree' must be true or false"),
   };
+  let check = match req.remove("check") {
+    None | Some(Json::Null) => false,
+    Some(Json::Bool(check)) => check,
+    Some(_) => return fail("invalid-field", "'check' must be true or false"),
+  };
+  // with names in scope, they are all the names there are: another name is unknown
+  let known = req.contains_key("outline") || req.contains_key("context") || unread.context.is_some();
   let (scope, outline) = scope(req, unread, dialect)?;
-  Schema::read(&mut Typing::new(&scope), outline.as_ref())?;
+  let mut typing = Typing::new(&scope);
+  let schema = Schema::read(&mut typing, outline.as_ref())?;
   let syntax = parse_tolerant_start(&scope, &expression, dialect.rule());
   let places = Places::new(&expression);
   let tokens: Vec<Json> = syntax.tokens.iter().map(|t| json!([t.class.as_str(), places.of(t.start), places.of(t.end)])).collect();
-  let diagnostics = diagnostics_json(&syntax, &places);
+  let mut diagnostics = diagnostics_json(&syntax, &places);
+  let mut checked = None;
+  if check {
+    // every diagnostic says how grave it is; the errors of the text are errors
+    for diagnostic in diagnostics.iter_mut() {
+      diagnostic["severity"] = json!("error");
+    }
+    let found = if syntax.diagnostics.is_empty() {
+      findings(&mut typing, &schema, &scope, &expression, dialect, known)
+    } else {
+      None
+    };
+    checked = Some(found.is_some());
+    for Finding {
+      code,
+      severity,
+      message,
+      start,
+      end,
+    } in found.unwrap_or_default()
+    {
+      diagnostics.push(json!({"code": code, "severity": severity, "message": message, "from": places.of(start), "to": places.of(end)}));
+    }
+  }
   let mut response = json!({
     "ok": true,
     "tokens": tokens,
@@ -585,7 +616,334 @@ pub(super) fn syntax(mut req: Map<String, Json>, unread: Unread, started: Instan
     let nodes: Vec<Json> = syntax.nodes.iter().map(|n| json!([n.kind, places.of(n.start), places.of(n.end)])).collect();
     response["nodes"] = Json::Array(nodes);
   }
+  if let Some(checked) = checked {
+    response["checked"] = json!(checked);
+  }
   Ok(response)
+}
+
+/// What a check of a text finds: a diagnostic that is no error of the syntax.
+struct Finding {
+  code: &'static str,
+  /// `warning` or `hint`.
+  severity: &'static str,
+  message: String,
+  start: usize,
+  end: usize,
+}
+
+/// The findings of a check of `expression`, a text without syntax errors, in the order of
+/// their places: only what is certain from the text, the scope and the outline, never a guess.
+/// None when the text could not be checked (the analysis reached its limit).
+fn findings(typing: &mut Typing, schema: &Schema, scope: &FeelScope, expression: &str, dialect: Dialect, known: bool) -> Option<Vec<Finding>> {
+  let positioned = parse_positioned(scope, dialect.rule(), expression).ok()?;
+  if positioned.tree().depth() > MAX_AST_DEPTH || !positioned.complete() {
+    return None;
+  }
+  let unary_tests = dialect == Dialect::UnaryTests;
+  let reads = typing.reads(positioned.tree(), &|node| positioned.place(node), known, unary_tests);
+  if !reads.complete {
+    return None;
+  }
+  let mut found = vec![];
+  // a name that nothing gives: null in FEEL, and most likely a slip
+  for (name, at) in &reads.unknown {
+    for &(start, end) in at {
+      found.push(Finding {
+        code: "unknown-name",
+        severity: "warning",
+        message: compose(format_args!(
+          "Expected a name in scope (an entry of the context, a variable of the text or a built-in function), found `{}`, which is none: it is null.",
+          arg(name.as_str())
+        )),
+        start,
+        end,
+      });
+    }
+  }
+  // an entry that a context is known not to have
+  for missing in &reads.missing {
+    let of = if missing.of.is_empty() {
+      "the context".to_string()
+    } else {
+      format!("`{}`", missing.of)
+    };
+    for &(start, end) in &missing.places {
+      found.push(Finding {
+        code: "unknown-entry",
+        severity: "warning",
+        message: compose(format_args!(
+          "Expected an entry that {of} has, found `{}`, which it has not: it is null.",
+          arg(missing.name.as_str())
+        )),
+        start,
+        end,
+      });
+    }
+  }
+  // a name or an entry that the outline marks as deprecated
+  for path in &reads.paths {
+    let Some(deprecated) = said_of(typing, schema, &path.segments).and_then(|said| said.deprecated.as_ref()) else {
+      continue;
+    };
+    let reason = match deprecated {
+      Json::String(reason) if !reason.trim().is_empty() => format!(": {}", reason.trim()),
+      _ => String::new(),
+    };
+    for &(start, end) in &path.places {
+      found.push(Finding {
+        code: "deprecated",
+        severity: "hint",
+        message: compose(format_args!("`{}` is deprecated{reason}.", path_text(&path.segments))),
+        start,
+        end,
+      });
+    }
+  }
+  // the path of the scope that the text reads at a place, where its value is that of the path
+  let mut exact: HashMap<(usize, usize), usize> = HashMap::new();
+  for (index, path) in reads.paths.iter().enumerate() {
+    for &at in &path.exact {
+      exact.entry(at).or_insert(index);
+    }
+  }
+  let path_at = |at: (usize, usize)| exact.get(&at).map(|&index| &reads.paths[index]);
+  // a literal compared with a name or an entry whose values the outline lists, and that is none of them
+  let mut stack = vec![positioned.tree()];
+  while let Some(node) = stack.pop() {
+    node.for_each_child(|child| stack.push(child));
+    let (operand, literals): (&AstNode, Vec<&AstNode>) = match node {
+      AstNode::Eq(left, right) | AstNode::Nq(left, right) => match (literal_of(left), literal_of(right)) {
+        (None, Some(_)) => (left, vec![right]),
+        (Some(_), None) => (right, vec![left]),
+        _ => continue,
+      },
+      AstNode::In(left, right) => match right.as_ref() {
+        AstNode::List(items) | AstNode::ExpressionList(items) => (left, items.iter().collect()),
+        other => (left, vec![other]),
+      },
+      _ => continue,
+    };
+    // the operand is a value of the scope: the path that is read at its place
+    let Some(at) = positioned.place(operand) else {
+      continue;
+    };
+    let Some(path) = path_at(at) else {
+      continue;
+    };
+    if let Some(said) = values_of_path(typing, schema, &path.segments) {
+      not_values(said, &path_text(&path.segments), &literals, &positioned, &mut found);
+    }
+  }
+  // in unary tests: a test that is a literal, of an input whose values the outline lists
+  if unary_tests
+    && let Some(said) = values_of_path(typing, schema, &[Segment::Entry(Name::from("?"))])
+    && let AstNode::ExpressionList(tests) | AstNode::NegatedList(tests) = positioned.tree()
+  {
+    not_values(said, "?", &tests.iter().collect::<Vec<_>>(), &positioned, &mut found);
+  }
+  // an operator whose operands are of types that it gives null for: their types are certain
+  // when they are literals or values of the scope of a simple type
+  let certain = |node: &AstNode| -> Option<&'static str> {
+    let simple = |feel_type: &FeelType| match feel_type {
+      FeelType::Number => Some("number"),
+      FeelType::String => Some("string"),
+      FeelType::Boolean => Some("boolean"),
+      _ => None,
+    };
+    match node {
+      AstNode::Numeric(..) => Some("number"),
+      AstNode::Neg(inner) if matches!(inner.as_ref(), AstNode::Numeric(..)) => Some("number"),
+      AstNode::String(_) => Some("string"),
+      AstNode::Boolean(_) => Some("boolean"),
+      AstNode::Name(_) | AstNode::Path(..) | AstNode::QualifiedName(_) => {
+        let at = positioned.place(node)?;
+        path_at(at).and_then(|path| simple(&path.feel_type))
+      }
+      _ => None,
+    }
+  };
+  let mut stack = vec![positioned.tree()];
+  while let Some(node) = stack.pop() {
+    node.for_each_child(|child| stack.push(child));
+    use AstNode as A;
+    let (left, right, operator) = match node {
+      A::Add(left, right) => (left, right, "+"),
+      A::Sub(left, right) => (left, right, "-"),
+      A::Mul(left, right) => (left, right, "*"),
+      A::Div(left, right) => (left, right, "/"),
+      A::Exp(left, right) => (left, right, "**"),
+      A::Lt(left, right) => (left, right, "<"),
+      A::Le(left, right) => (left, right, "<="),
+      A::Gt(left, right) => (left, right, ">"),
+      A::Ge(left, right) => (left, right, ">="),
+      A::Eq(left, right) => (left, right, "="),
+      A::Nq(left, right) => (left, right, "!="),
+      _ => continue,
+    };
+    let (Some(a), Some(b), Some((start, end))) = (certain(left), certain(right), positioned.place(node)) else {
+      continue;
+    };
+    // what the operators take of a number, a string and a boolean (DMN 1.6 Tables 55 to 61)
+    let gives_a_value = match operator {
+      "+" => a == b && a != "boolean",
+      "-" | "*" | "/" | "**" => a == "number" && b == "number",
+      "<" | "<=" | ">" | ">=" => a == b && a != "boolean",
+      _ => a == b,
+    };
+    if !gives_a_value {
+      found.push(Finding {
+        code: "always-null",
+        severity: "warning",
+        message: compose(format_args!(
+          "Expected operands that `{operator}` has a value for, found a {a} and a {b}: `{}` is null.",
+          arg(expression[start..end].trim())
+        )),
+        start,
+        end,
+      });
+    }
+  }
+  found.sort_by_key(|finding| (finding.start, finding.end, finding.code));
+  found.dedup_by(|a, b| a.start == b.start && a.end == b.end && a.code == b.code);
+  Some(found)
+}
+
+/// The values that the outline lists for the path `segments` of the scope: beside it, or of
+/// its type.
+fn values_of_path<'m>(typing: &Typing, schema: &'m Schema, segments: &[Segment]) -> Option<&'m Meta> {
+  let (said, ty) = said_and_type(typing, schema, segments);
+  said.filter(|said| !said.values.is_empty()).or_else(|| ty.and_then(|ty| schema.values_of(typing, ty)))
+}
+
+/// What the outline says of the path `segments` of the scope: of its last segment.
+fn said_of<'m>(typing: &Typing, schema: &'m Schema, segments: &[Segment]) -> Option<&'m Meta> {
+  said_and_type(typing, schema, segments).0
+}
+
+/// What the outline says of the last segment of the path `segments`, and the type it states
+/// for it.
+fn said_and_type<'m>(typing: &Typing, schema: &'m Schema, segments: &[Segment]) -> (Option<&'m Meta>, Option<TypeId>) {
+  match walked(typing, schema, segments) {
+    Some((said, ty)) => (said, ty),
+    None => (None, None),
+  }
+}
+
+fn walked<'m>(typing: &Typing, schema: &'m Schema, segments: &[Segment]) -> Option<(Option<&'m Meta>, Option<TypeId>)> {
+  let (Segment::Entry(root), rest) = segments.split_first()? else {
+    return None;
+  };
+  let mut said = schema.root_meta.get(root.as_str());
+  let Some(mut ty) = schema.roots.get(root.as_str()).copied() else {
+    return Some((said, None));
+  };
+  for (at, segment) in rest.iter().enumerate() {
+    match segment {
+      Segment::Items => {
+        said = None;
+        ty = item_of(typing, ty)?;
+      }
+      Segment::Entry(name) => {
+        said = schema.entry(typing, ty, name.as_str());
+        match entry_of(typing, ty, name.as_str()) {
+          Some(entry) => ty = entry,
+          // the last entry can be one whose type the outline does not state
+          None if at + 1 == rest.len() => return Some((said, None)),
+          None => return None,
+        }
+      }
+    }
+  }
+  Some((said, Some(ty)))
+}
+
+/// The type of the items of the list type `ty`, through the names of types.
+fn item_of(typing: &Typing, ty: TypeId) -> Option<TypeId> {
+  let mut ty = ty;
+  for _ in 0..64 {
+    if let Some(item) = typing.item(ty) {
+      return Some(item);
+    }
+    ty = typing.defined_as(ty)?;
+  }
+  None
+}
+
+/// The type of the entry `name` of the context type `ty`, through the names of types.
+fn entry_of(typing: &Typing, ty: TypeId, name: &str) -> Option<TypeId> {
+  let mut ty = ty;
+  for _ in 0..64 {
+    if let Some(entries) = typing.entries(ty) {
+      return entries.iter().find(|(key, _)| key.as_str() == name).map(|(_, entry)| *entry);
+    }
+    ty = typing.defined_as(ty)?;
+  }
+  None
+}
+
+/// The value of a literal of a simple type as an outline lists values: a string, a number or a
+/// boolean. None for another node.
+fn literal_of(node: &AstNode) -> Option<Json> {
+  match node {
+    AstNode::String(text) => Some(json!(text)),
+    AstNode::Boolean(value) => Some(json!(value)),
+    AstNode::Numeric(before, after, sign, exponent) => {
+      let mut text = before.clone();
+      if !after.is_empty() {
+        text.push('.');
+        text.push_str(after);
+      }
+      if !exponent.is_empty() {
+        text.push('e');
+        text.push(*sign);
+        text.push_str(exponent);
+      }
+      Some(json!(text))
+    }
+    _ => None,
+  }
+}
+
+/// Adds a finding for each of `literals` that is a literal and none of the values that `said`
+/// lists for `operand`.
+fn not_values(said: &Meta, operand: &str, literals: &[&AstNode], positioned: &rheon_feel_parser::Positioned, found: &mut Vec<Finding>) {
+  use std::str::FromStr;
+  let number = |text: &str| rheon_feel_number::FeelNumber::from_str(text).ok();
+  for literal in literals {
+    let (Some(value), Some((start, end))) = (literal_of(literal), positioned.place(literal)) else {
+      continue;
+    };
+    let listed = said.values.iter().any(|(listed, _)| match (literal, listed, &value) {
+      (AstNode::String(text), Json::String(listed), _) => text == listed,
+      (AstNode::Boolean(value), Json::Bool(listed), _) => value == listed,
+      (AstNode::Numeric(..), Json::Number(listed), Json::String(text)) => match (number(text), number(&listed.to_string())) {
+        (Some(written), Some(listed)) => written == listed,
+        // a number that is not read is not said to be wrong
+        _ => true,
+      },
+      _ => false,
+    });
+    if listed {
+      continue;
+    }
+    let all: Vec<String> = values(said, true).into_iter().map(|offered| offered.label).collect();
+    let written = match literal {
+      AstNode::String(text) => format!("\"{}\"", escaped(text)),
+      _ => value.as_str().map_or_else(|| value.to_string(), str::to_string),
+    };
+    found.push(Finding {
+      code: "not-a-value",
+      severity: "warning",
+      message: compose(format_args!(
+        "Expected one of the values of `{}` ({}), found {written}.",
+        arg(operand.trim()),
+        all.join(", ")
+      )),
+      start,
+      end,
+    });
+  }
 }
 
 /// An item of a `complete` answer.

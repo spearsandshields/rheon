@@ -16,7 +16,7 @@ mod types;
 
 use crate::flat::{Info, LayoutKind, NONE, Place, Read, Region, RegionKind, Resolved, Target, resolve_names, variables};
 use crate::infer::{addition, at_literal, signature_type, subtraction, type_written, written_type};
-pub use reads::{ReadPath, Reads, Segment, text as path_text};
+pub use reads::{MissingEntry, ReadPath, Reads, Segment, text as path_text};
 use rheon_feel::signatures::{BuiltIn, built_in};
 use rheon_feel::{FeelScope, FeelType, Name};
 use rheon_feel_parser::AstNode;

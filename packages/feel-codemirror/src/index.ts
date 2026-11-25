@@ -19,7 +19,7 @@ import type { CompleteResponse, CompletionCall, CompletionItem, EditorOptions, F
 
 /** What answers the editor: a `FeelEngine` (a worker), or anything with these methods; the answers may be promises or values. */
 export interface FeelSource {
-  syntax(expression: string, opts: EditorOptions & { tree?: boolean }): Promise<SyntaxResponse> | SyntaxResponse;
+  syntax(expression: string, opts: EditorOptions & { tree?: boolean; check?: boolean }): Promise<SyntaxResponse> | SyntaxResponse;
   complete(expression: string, cursor: number, opts: EditorOptions): Promise<CompleteResponse> | CompleteResponse;
   /** Needed only for what shows over a name (`hover`). */
   hover?(expression: string, at: number, opts: EditorOptions): Promise<HoverResponse> | HoverResponse;
@@ -38,6 +38,12 @@ export interface FeelEditorConfig extends FeelScope {
   templates?: boolean;
   /** Whether the answers hold the nodes of the text (`syntaxOf(state).nodes`; default false). */
   tree?: boolean;
+  /**
+   * Whether a text that parses is checked too (default false): a name that nothing gives, an entry that a context has
+   * not, a deprecated name, a value that is none of those listed, an operation that is always null. They are marked as
+   * warnings and hints beside the errors.
+   */
+  check?: boolean;
   /** Called with every answer that the editor takes. */
   onSyntax?: (syntax: FeelSyntax) => void;
   /** The most characters of a line that `formatDocument` aims at (default 80). */
@@ -251,7 +257,7 @@ export async function hoverAt(engine: FeelSource, view: EditorView, pos: number)
  * scope or the dialect later with `setFeelScope`.
  */
 export function feelEditor(config: FeelEditorConfig): Extension {
-  const { engine, maxDiagnostics = 20, templates = true, tree = false, onSyntax, signatureHelp = true, hover = true } = config;
+  const { engine, maxDiagnostics = 20, templates = true, tree = false, check = false, onSyntax, signatureHelp = true, hover = true } = config;
   const scope: FeelScope = { dialect: config.dialect, context: config.context, contextFormat: config.contextFormat, outline: config.outline };
 
   // asks the engine after every change of the text or of the scope
@@ -276,7 +282,7 @@ export function feelEditor(config: FeelEditorConfig): Extension {
         };
         // a dispatch is not allowed inside an update: the answer is taken afterwards
         Promise.resolve()
-          .then(() => engine.syntax(text, { ...this.view.state.facet(scopeOf), tree }))
+          .then(() => engine.syntax(text, { ...this.view.state.facet(scopeOf), tree, ...(check ? { check } : {}) }))
           .then(take, () => undefined);
       }
     },
@@ -324,7 +330,9 @@ export function feelEditor(config: FeelEditorConfig): Extension {
         } else if (from === to && to < length) {
           to += 1;
         }
-        return { from, to, severity: 'error', source: 'rheon', message: d.message };
+        // what a check finds is a warning or a hint; an error of the text has no severity or `error`
+        const severity = d.severity === 'warning' ? 'warning' : d.severity === 'hint' ? 'hint' : d.severity === 'information' ? 'info' : 'error';
+        return { from, to, severity, source: 'rheon', message: d.message };
       });
     },
     { delay: 0, needsRefresh: (update) => update.transactions.some((tr) => tr.effects.some((effect) => effect.is(setSyntax))) },

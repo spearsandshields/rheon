@@ -65,7 +65,7 @@ pub enum Segment {
 }
 
 /// A part of a value of the scope that an expression reads.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ReadPath {
   pub segments: Vec<Segment>,
   /// Whether the value at the path is read as a value: all of it can be read. Otherwise only
@@ -73,18 +73,39 @@ pub struct ReadPath {
   pub whole: bool,
   /// Where the text reads it, as byte ranges, in the order of the text.
   pub places: Vec<(usize, usize)>,
+  /// Those of `places` where the value of the text is the value at the path itself (a name of
+  /// the scope, a path of names), not a list of such values or one value of several.
+  pub exact: Vec<(usize, usize)>,
+  /// The type of the value at the path when it is known for certain: the type of the value
+  /// that the scope holds, or the type that an outline states. `Any` for the items of a list of
+  /// the scope (they have the type of the first item), and where no type is known.
+  pub feel_type: rheon_feel::FeelType,
 }
 
 /// What an expression reads ([Typing::reads]).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Reads {
   pub paths: Vec<ReadPath>,
   /// The names that the text reads and that nothing gives: no construct of the text binds
   /// them, the scope has no value of them and they are no built-in functions. Only asked for.
   pub unknown: Vec<(Name, Vec<(usize, usize)>)>,
+  /// The entries that the text reads of a context that is known to have no such entry: a
+  /// context of the scope (whose entries the scope or an outline says) or one that the text
+  /// makes. Each with the path of the context as text (empty for a context of the text), the
+  /// name, and the places of the paths that read it.
+  pub missing: Vec<MissingEntry>,
   /// Whether the walk ended: when it did not ([MAX_STEPS], [MAX_DEPTH]), the expression can
   /// read more than `paths` lists.
   pub complete: bool,
+}
+
+/// An entry that a context is known not to have ([Reads::missing]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MissingEntry {
+  /// The path of the context in the scope, as text; empty for a context that the text makes.
+  pub of: String,
+  pub name: Name,
+  pub places: Vec<(usize, usize)>,
 }
 
 /// What the walk knows of a value: its source, and the function definition it is.
@@ -125,6 +146,8 @@ struct PathNode {
   ty: TypeId,
   whole: bool,
   places: Vec<(u32, u32)>,
+  /// Those of `places` where the value of the text is the value at the path itself.
+  exact: Vec<(u32, u32)>,
   /// The source that is this path.
   source: u32,
   has_children: bool,
@@ -188,6 +211,7 @@ struct Walk<'a, 's, 'n> {
   defs: Vec<Def>,
   active: Vec<u32>,
   unknown: Vec<(Name, Vec<(usize, usize)>)>,
+  missing: Vec<MissingEntry>,
   /// The names of the scope read so far, each with the key that the scope writes it as.
   roots: HashMap<Name, Name>,
   /// Whether the items of a list of the scope at a path have an entry of a name: all, none, or
@@ -225,6 +249,7 @@ impl Typing<'_> {
       defs: vec![],
       active: vec![],
       unknown: vec![],
+      missing: vec![],
       roots: HashMap::new(),
       items: HashMap::new(),
       built_in: false,
@@ -300,6 +325,7 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
       ty,
       whole: false,
       places: vec![],
+      exact: vec![],
       source,
       has_children: false,
       in_list,
@@ -332,16 +358,19 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
       }
     };
     let path = self.intern(NONE, Some(key), ty);
-    self.note(path, at);
+    self.note(path, at, true);
     self.of_path(path, 0)
   }
 
-  fn note(&mut self, path: u32, at: Option<(usize, usize)>) {
+  fn note(&mut self, path: u32, at: Option<(usize, usize)>, exact: bool) {
     if let Some((start, end)) = at {
-      let places = &mut self.paths[path as usize].places;
+      let node = &mut self.paths[path as usize];
       let place = (start as u32, end as u32);
-      if places.len() < MAX_PLACES && !places.contains(&place) {
-        places.push(place);
+      if node.places.len() < MAX_PLACES && !node.places.contains(&place) {
+        node.places.push(place);
+      }
+      if exact && node.exact.len() < MAX_PLACES && !node.exact.contains(&place) {
+        node.exact.push(place);
       }
     }
   }
@@ -352,7 +381,7 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
       return;
     }
     match &self.sources[val.source as usize] {
-      Source::Path(path) => self.note(*path, at),
+      Source::Path(path) => self.note(*path, at, val.lift == 0),
       Source::Union(members) => {
         let paths: Vec<u32> = members
           .iter()
@@ -362,7 +391,7 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
           })
           .collect();
         for path in paths {
-          self.note(path, at);
+          self.note(path, at, false);
         }
       }
       Source::Record(_) => {}
@@ -700,6 +729,46 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
     }
   }
 
+  /// Notes that the path at `at` reads the entry `name` of `val` when `val` is known to be a
+  /// context without it: one context of the scope, or one that the text makes.
+  fn lacks(&mut self, val: Val, name: &Name, at: Option<(usize, usize)>) {
+    if val.source == NONE || val.lift > 0 || val.def != NONE {
+      return;
+    }
+    let of = match &self.sources[val.source as usize] {
+      Source::Path(path) => {
+        let path = *path;
+        if !matches!(self.typing.types.kind(self.paths[path as usize].ty), Kind::Context(_)) {
+          return;
+        }
+        let mut segments = vec![];
+        let mut node = self.paths.get(path as usize);
+        while let Some(path) = node {
+          segments.push(match &path.segment {
+            Some(name) => Segment::Entry(name.clone()),
+            None => Segment::Items,
+          });
+          node = self.paths.get(path.parent as usize);
+        }
+        segments.reverse();
+        text(&segments)
+      }
+      Source::Record(_) => String::new(),
+      Source::Union(_) => return,
+    };
+    if !matches!(self.has(val, name), Has::No) {
+      return;
+    }
+    match self.missing.iter_mut().find(|missing| missing.of == of && missing.name == *name) {
+      Some(missing) => missing.places.extend(at.filter(|at| !missing.places.contains(at))),
+      None => self.missing.push(MissingEntry {
+        of,
+        name: name.clone(),
+        places: at.into_iter().collect(),
+      }),
+    }
+  }
+
   /// Whether `val` has an entry `name`, as far as its source says.
   fn has(&mut self, val: Val, name: &Name) -> Has {
     if val.source == NONE || val.lift > 0 {
@@ -806,6 +875,7 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
       (A::Path(_, name), &[base]) => match name.as_ref() {
         A::Name(name) => {
           let base = self.flow(frame, base);
+          self.lacks(base, name, (self.place)(node.ast));
           let val = self.entry(base, name);
           // the place of a path of the scope: an entry of a context that the text makes is
           // read where its value is written
@@ -924,6 +994,7 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
     self.built_in = false;
     let unit = self.unit;
     let mut found = Val::NONE;
+    let mut bound = false;
     if read.name != NONE && !read.probes.is_empty() {
       let name: &Name = &unit.names[read.name as usize];
       let special = name.as_str() == "item";
@@ -933,15 +1004,20 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
       for &record in read.probes.iter() {
         let item = self.frames[frame].items.get(record as usize).copied().unwrap_or(Val::NONE);
         match (self.has(item, name), special) {
-          (Has::No, true) => found = self.union(found, item),
+          (Has::No, true) => {
+            bound = true;
+            found = self.union(found, item);
+          }
           (Has::No, false) => {}
           (_, true) => {
             // the item, or its entry of that name when it is a context that has one
+            bound = true;
             let entry = self.entry(item, name);
             let either = self.union(item, entry);
             found = self.union(found, either);
           }
           (_, false) => {
+            bound = true;
             let entry = self.entry(item, name);
             self.note_val(entry, at);
             found = self.union(found, entry);
@@ -949,7 +1025,8 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
         }
       }
     }
-    let probed = found.source != NONE;
+    // an item can give the name: it is no unknown name when the scope has it not
+    let probed = bound;
     let target = match read.target {
       Target::Place(place) => self.held(frame, place),
       Target::Free(free) => self.outside(frame, unit.frees[free as usize].name, at, probed),
@@ -1411,10 +1488,20 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
       segments.reverse();
       let mut places: Vec<(usize, usize)> = node.places.iter().map(|&(start, end)| (start as usize, end as usize)).collect();
       places.sort_unstable();
+      let mut exact: Vec<(usize, usize)> = node.exact.iter().map(|&(start, end)| (start as usize, end as usize)).collect();
+      exact.sort_unstable();
+      // the items of a list of the scope have the type of its first item: not for certain
+      let feel_type = if node.in_list && !self.typing.outlined() {
+        rheon_feel::FeelType::Any
+      } else {
+        self.typing.types.simple(node.ty)
+      };
       paths.push(ReadPath {
         segments,
         whole: node.whole,
         places,
+        exact,
+        feel_type,
       });
     }
     // in the order of the text, then of the paths
@@ -1426,9 +1513,14 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
     for (_, places) in unknown.iter_mut() {
       places.sort_unstable();
     }
+    let mut missing = self.missing;
+    for entry in missing.iter_mut() {
+      entry.places.sort_unstable();
+    }
     Reads {
       paths,
       unknown,
+      missing,
       complete: self.complete,
     }
   }

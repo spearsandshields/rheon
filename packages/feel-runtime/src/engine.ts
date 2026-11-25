@@ -237,7 +237,7 @@ export class FeelEngine {
    * For an editor: every token of the text with its class and every syntax error, with places
    * as UTF-16 offsets; with `tree` also the nodes. It answers for every text.
    */
-  syntax(expression: string, opts: EditorOptions & { tree?: boolean } & RequestOptions = {}): Promise<SyntaxResponse> {
+  syntax(expression: string, opts: EditorOptions & { tree?: boolean; check?: boolean } & RequestOptions = {}): Promise<SyntaxResponse> {
     return this.built(() => buildSyntaxJson(expression, opts), opts.signal);
   }
 

@@ -249,7 +249,10 @@ export type TokenClass =
 
 /** A syntax error of a text: `code` is for programs and stable, `message` is for people. Places are UTF-16 offsets. */
 export interface SyntaxDiagnostic {
+  /** What it is, for a program: of a syntax error a code of the parser, of a check `unknown-name`, `unknown-entry`, `deprecated`, `not-a-value` or `always-null`. */
   code: string;
+  /** Only in an answer asked with `check`: a syntax error is an `error`, what a check finds a `warning` or a `hint`. Without it, an error. */
+  severity?: 'error' | 'warning' | 'information' | 'hint';
   message: string;
   from: number;
   to: number;
@@ -261,7 +264,7 @@ export interface SyntaxDiagnostic {
  * `tree` the nodes as `[kind, from, to]`, each before the nodes inside it.
  */
 export type SyntaxResponse =
-  | { ok: true; tokens: [TokenClass, number, number][]; diagnostics: SyntaxDiagnostic[]; truncated: boolean; nodes?: [string, number, number][]; elapsedMicros: number }
+  | { ok: true; tokens: [TokenClass, number, number][]; diagnostics: SyntaxDiagnostic[]; truncated: boolean; nodes?: [string, number, number][]; /** Only with `check`: whether the text was checked (it parses, and the analysis ended). */ checked?: boolean; elapsedMicros: number }
   | { ok: false; error: FeelError };
 
 /** An item of `complete`: accepted, its `label` replaces the text from `from` to the answer's `to`. */

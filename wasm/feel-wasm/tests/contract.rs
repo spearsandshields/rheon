@@ -3760,3 +3760,155 @@ fn failures_and_warnings_have_codes() {
   assert_eq!(warned(json!({"op": "evaluate", "expression": "\"a\" = 1", "language": "b-feel"})), ["bfeel-default"]);
   assert_eq!(warned(json!({"op": "evaluate", "dialect": "unaryTests", "expression": "> 1"})), ["no-input"]);
 }
+
+/// `syntax` with `"check": true`: beside the errors of the text, what is certainly wrong with
+/// a text that parses. Each diagnostic has a severity; `checked` says whether the text was
+/// checked.
+#[test]
+fn a_check_finds_what_is_certainly_wrong() {
+  let outline = json!({
+    "types": {"Loan": {"names": {
+      "amount": {"type": "number"},
+      "purpose": {"type": "string", "values": ["REFI", "PURCHASE"]},
+      "old score": {"type": "number", "deprecated": "use score"},
+      "term": {"type": "number", "values": [12, 24]},
+      "customer": {"names": {"name": {"type": "string"}}}}}},
+    "names": {"loan": {"type": "Loan"}, "loans": {"type": "list<Loan>"}, "legacy": {"type": "number", "deprecated": true}}
+  });
+  // the findings as `code severity @text: message`
+  let found = |request: Json| -> Vec<String> {
+    let expression = request["expression"].as_str().unwrap().to_string();
+    let response = ok(request);
+    assert_eq!(response["checked"], true, "{response}");
+    let units: Vec<u16> = expression.encode_utf16().collect();
+    response["diagnostics"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|d| {
+        let at = String::from_utf16(&units[d["from"].as_u64().unwrap() as usize..d["to"].as_u64().unwrap() as usize]).unwrap();
+        format!("{} {} @{at}", d["code"].as_str().unwrap(), d["severity"].as_str().unwrap())
+      })
+      .collect()
+  };
+  let outlined = |expression: &str| found(json!({"op": "syntax", "check": true, "expression": expression, "outline": outline}));
+  // nothing to say of a text that is right
+  assert_eq!(outlined("loan.amount * 2 + count(loans[purpose = \"REFI\"])"), [""; 0]);
+  assert_eq!(outlined("for l in loans return l.customer.name"), [""; 0]);
+  assert_eq!(outlined("{a: 1, b: a + 1}.b"), [""; 0]);
+  // a name that nothing gives, each time it is read; a variable, a parameter, an entry and a built-in function are names
+  assert_eq!(outlined("loan.amount + rate + rate"), ["unknown-name warning @rate", "unknown-name warning @rate"]);
+  assert_eq!(outlined("for x in [1] return x + y"), ["unknown-name warning @y"]);
+  assert_eq!(outlined("sum([1]) + (function(a) a)(1) + {k: 1}.k"), [""; 0]);
+  // an entry that a context is known not to have: of the scope, or of the text
+  assert_eq!(outlined("loan.amout"), ["unknown-entry warning @loan.amout"]);
+  assert_eq!(outlined("loan.customer.nam"), ["unknown-entry warning @loan.customer.nam"]);
+  assert_eq!(outlined("{a: 1}.b"), ["unknown-entry warning @{a: 1}.b"]);
+  // not said of a value whose entries are not known, nor of the property of a value
+  assert_eq!(outlined("(if loan.amount > 1 then loan else {x: 1}).x"), [""; 0]);
+  assert_eq!(
+    outlined("(if loan.amount > 1 then loan else null).x"),
+    ["unknown-entry warning @(if loan.amount > 1 then loan else null).x"]
+  );
+  assert_eq!(outlined("date(\"2020-01-01\").year + loan.purpose.x"), [""; 0]);
+  // a deprecated name or entry is a hint
+  assert_eq!(outlined("loan.old score + legacy"), ["deprecated hint @loan.old score", "deprecated hint @legacy"]);
+  // a literal that is none of the values listed
+  assert_eq!(outlined("loan.purpose = \"REFO\""), ["not-a-value warning @\"REFO\""]);
+  assert_eq!(outlined("\"x\" != loan.purpose"), ["not-a-value warning @\"x\""]);
+  assert_eq!(outlined("loan.purpose in (\"REFI\", \"other\")"), ["not-a-value warning @\"other\""]);
+  assert_eq!(outlined("loan.term = 12.0 or loan.term = 13"), ["not-a-value warning @13"]);
+  assert_eq!(outlined("loan.purpose = \"REFI\" and loan.amount = 5"), [""; 0]);
+  // the messages say what was expected and what was found
+  let response = ok(json!({"op": "syntax", "check": true, "expression": "loan.purpose = \"REFO\" and loan.old score > rate", "outline": outline}));
+  assert_eq!(
+    response["diagnostics"],
+    json!([
+      {"code": "not-a-value", "severity": "warning", "from": 15, "to": 21,
+       "message": "Expected one of the values of `loan.purpose` (\"REFI\", \"PURCHASE\"), found \"REFO\"."},
+      {"code": "deprecated", "severity": "hint", "from": 26, "to": 40, "message": "`loan.old score` is deprecated: use score."},
+      {"code": "unknown-name", "severity": "warning", "from": 43, "to": 47,
+       "message": "Expected a name in scope (an entry of the context, a variable of the text or a built-in function), found `rate`, which is none: it is null."}
+    ])
+  );
+  // with a context: its names are the names there are, and its entries
+  let context = json!({"loan": {"amount": 1}, "n": [1]});
+  let with = |expression: &str| found(json!({"op": "syntax", "check": true, "expression": expression, "context": context}));
+  assert_eq!(with("loan.amount + n[1]"), [""; 0]);
+  assert_eq!(with("loan.amout + m"), ["unknown-entry warning @loan.amout", "unknown-name warning @m"]);
+  // without names in scope no name is unknown; a context of the text still has its entries
+  assert_eq!(
+    found(json!({"op": "syntax", "check": true, "expression": "a.b + {c: 1}.d"})),
+    ["unknown-entry warning @{c: 1}.d"]
+  );
+  // unary tests: the tested value is a name; a test that is none of its values
+  let cell = json!({"names": {"?": {"type": "string", "values": ["A", "B"]}}});
+  assert_eq!(
+    found(json!({"op": "syntax", "check": true, "dialect": "unaryTests", "expression": "\"A\", \"C\", ? != \"B\"", "outline": cell})),
+    ["not-a-value warning @\"C\""]
+  );
+  // a text with errors is not checked: its errors have the severity error
+  let broken = ok(json!({"op": "syntax", "check": true, "expression": "loan.amout +", "outline": outline}));
+  assert_eq!(broken["checked"], false);
+  assert_eq!(broken["diagnostics"].as_array().unwrap().len(), 1);
+  assert_eq!(broken["diagnostics"][0]["severity"], "error");
+  // without `check` the answer is what it was: no severity, no `checked`
+  let plain = ok(json!({"op": "syntax", "expression": "loan.amout +", "outline": outline}));
+  assert!(plain.get("checked").is_none() && plain["diagnostics"][0].get("severity").is_none(), "{plain}");
+  let unchecked = ok(json!({"op": "syntax", "expression": "loan.amout + rate", "outline": outline}));
+  assert_eq!(unchecked["diagnostics"], json!([]));
+  // a value of `check` that is none
+  let failed = req(json!({"op": "syntax", "check": 1, "expression": "a"}));
+  assert_eq!(failed["error"]["code"], "invalid-field");
+}
+
+/// The check says `always-null` of an operator exactly when the evaluation gives null for
+/// operands of those types: for every operator and every pair of a number, a string and a
+/// boolean, as literals and as values of the scope.
+#[test]
+fn a_check_says_always_null_exactly_when_the_evaluation_is_null() {
+  let context = json!({"n": 2, "s": "a", "b": true, "loan": {"amount": 3, "purpose": "x"}});
+  let operands = [
+    ("number", ["1", "n", "loan.amount", "-2"]),
+    ("string", ["\"a\"", "s", "loan.purpose", "\"\""]),
+    ("boolean", ["true", "b", "false", "b"]),
+  ];
+  let (mut said, mut silent) = (0, 0);
+  for operator in ["+", "-", "*", "/", "**", "<", "<=", ">", ">=", "=", "!="] {
+    for (_, lefts) in &operands {
+      for (_, rights) in &operands {
+        for (left, right) in lefts.iter().zip(rights.iter().rev()) {
+          let expression = format!("{left} {operator} {right}");
+          let checked = ok(json!({"op": "syntax", "check": true, "expression": expression, "context": context}));
+          assert_eq!(checked["checked"], true, "{expression}");
+          let codes: Vec<&str> = checked["diagnostics"].as_array().unwrap().iter().map(|d| d["code"].as_str().unwrap()).collect();
+          let evaluated = ok(json!({"op": "evaluate", "expression": expression, "context": context}));
+          let null = evaluated["result"]["isNull"] == true;
+          assert_eq!(codes == ["always-null"], null, "{expression}: {codes:?}, evaluated {}", evaluated["result"]["display"]);
+          assert!(codes.is_empty() || codes == ["always-null"], "{expression}: {codes:?}");
+          if null { said += 1 } else { silent += 1 }
+        }
+      }
+    }
+  }
+  assert!(said > 100 && silent > 50, "{said} said, {silent} not");
+  // the diagnostic is at the operation, and names the types
+  let checked = ok(json!({"op": "syntax", "check": true, "expression": "1 + (s * 2)", "context": context}));
+  assert_eq!(
+    checked["diagnostics"],
+    json!([{"code": "always-null", "severity": "warning", "from": 5, "to": 10,
+            "message": "Expected operands that `*` has a value for, found a string and a number: `s * 2` is null."}])
+  );
+  // not said where a type is not certain: a variable, an item of a list of the context, a computed value
+  let unsure = json!({"list": [1, "a"], "s": "a"});
+  for expression in [
+    "for x in [1] return x + \"a\"",
+    "list[1] + \"a\"",
+    "(if s = \"a\" then 1 else \"b\") + 1",
+    "string(1) + 1",
+    "{k: 1}.k + \"a\"",
+  ] {
+    let checked = ok(json!({"op": "syntax", "check": true, "expression": expression, "context": unsure}));
+    assert_eq!(checked["diagnostics"], json!([]), "{expression}");
+  }
+}

@@ -52,7 +52,7 @@ const marked = (view, cls) => [...view.contentDOM.querySelectorAll(`.${cls}`)].m
 const type = (view, text) => view.dispatch({ changes: { from: view.state.doc.length, insert: text }, selection: { anchor: view.state.doc.length + text.length } });
 const diagnostics = (view) => {
   const found = [];
-  forEachDiagnostic(view.state, (d, from, to) => found.push({ from, to, message: d.message }));
+  forEachDiagnostic(view.state, (d, from, to) => found.push({ from, to, message: d.message, severity: d.severity }));
   return found;
 };
 /** The completions at the cursor, asked for explicitly. */
@@ -251,4 +251,29 @@ test('a name shows its type and what the outline says of it', async () => {
   assert.equal(await pending, null);
   // the element alone: a name without a type, deprecated without a reason
   assert.equal(hoverInfo({ from: 0, to: 1, kind: 'name', type: null, deprecated: true }, 'a').textContent, 'aDeprecated.');
+});
+
+test('with check, what is certainly wrong with a text that parses is marked as a warning or a hint', async () => {
+  const outline = { names: { loan: { names: { amount: { type: 'number' }, old: { type: 'number', deprecated: 'use amount' } } } } };
+  const view = editor('loan.amout + loan.old + rate', { outline, check: true });
+  const found = await until(() => (diagnostics(view).length === 3 ? diagnostics(view) : null), 'the marks of the check');
+  assert.deepEqual(
+    found.map((d) => [d.severity, d.from, d.to]),
+    [
+      ['warning', 0, 10],
+      ['hint', 13, 21],
+      ['warning', 24, 28],
+    ],
+  );
+  assert.match(found[0].message, /^Expected an entry that `loan` has, found `amout`/);
+  assert.match(found[1].message, /^`loan.old` is deprecated: use amount\.$/);
+  // an error of the text is an error, and the text is not checked while it has one
+  type(view, ' +');
+  const broken = await until(() => (diagnostics(view).length === 1 ? diagnostics(view) : null), 'the error mark');
+  assert.equal(broken[0].severity, 'error');
+  // without check nothing but errors is marked
+  const plain = editor('loan.amout + rate', { outline });
+  await until(() => syntaxOf(plain.state));
+  await settle();
+  assert.deepEqual(diagnostics(plain), []);
 });

@@ -315,8 +315,8 @@ function editorFields(opts: EditorOptions) {
 }
 
 /** `syntax` request → JSON text. */
-export function buildSyntaxJson(expression: string, opts: EditorOptions & { tree?: boolean } = {}): string {
-  return serializeRequest({ op: 'syntax', dialect: opts.dialect ?? 'expression', expression, tree: opts.tree, ...editorFields(opts) });
+export function buildSyntaxJson(expression: string, opts: EditorOptions & { tree?: boolean; check?: boolean } = {}): string {
+  return serializeRequest({ op: 'syntax', dialect: opts.dialect ?? 'expression', expression, tree: opts.tree, check: opts.check, ...editorFields(opts) });
 }
 
 /** `complete` request → JSON text; `cursor` is a UTF-16 offset in `expression`. */
