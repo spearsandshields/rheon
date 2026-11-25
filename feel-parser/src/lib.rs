@@ -21,6 +21,7 @@ mod format;
 mod index;
 mod lexer;
 mod parser;
+mod positioned;
 mod scope;
 mod token;
 
@@ -29,6 +30,7 @@ mod tests;
 
 pub use ast::AstNode;
 pub use closure::ClosureBuilder;
+pub use positioned::Positioned;
 use scope::ParsingScope;
 
 use crate::errors::*;
@@ -146,6 +148,15 @@ pub fn parse_longest_name(input: &str) -> Result<Name> {
 
 pub use format::{DEFAULT_WIDTH, Formatted};
 pub use parser::{Diagnostic, MAX_DIAGNOSTICS, StartRule, Syntax, SyntaxNode, SyntaxToken, TextEnd, TokenClass};
+
+/// Parses the start rule `rule` as [parse_start] does (the same tree, the same errors), and
+/// keeps the places of the nodes of the tree.
+pub fn parse_positioned(scope: &FeelScope, rule: StartRule, input: &str) -> Result<Positioned> {
+  let frames = scope.frames();
+  let parsing_scope = ParsingScope::new(frames.iter().map(|frame| &**frame));
+  let (tree, records) = Parser::new(&parsing_scope, rule.token(), input).with_rule(rule).parse_positioned()?;
+  Ok(Positioned::new(tree, records))
+}
 
 /// Parses an `expression` (or `unary tests` with `unary_tests`) for an editor: never fails, and
 /// returns every token, the nodes with their places and every error.

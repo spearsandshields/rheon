@@ -579,6 +579,9 @@ pub struct Parser<'parser, 'scope> {
   last_end: usize,
   /// What a tolerant parse records; a strict parse has none and stops at the first error.
   syntax: Option<Box<Syntax>>,
+  /// The nodes of a positioned parse in the order they are completed ([Parser::parse_positioned]);
+  /// a strict parse that is not positioned has none.
+  places: Option<Vec<SyntaxNode>>,
   /// The token and the part of a name that the parser asks for now (for [TextEnd]).
   expected_token: T,
   expected_role: TokenClass,
@@ -620,6 +623,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       last_start: 0,
       last_end: 0,
       syntax: None,
+      places: None,
       expected_token: T::Other,
       expected_role: TokenClass::Name,
       #[cfg(test)]
@@ -668,6 +672,14 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     // the end of the input
     self.look(At::AfterOperand)?;
     if self.kind == T::Eof { Ok(node) } else { self.error() }
+  }
+
+  /// Parses the input as [Parser::parse] does and records the place of every node that is
+  /// completed, in the order of their completion: the nodes inside a node before it.
+  pub fn parse_positioned(&mut self) -> Result<(AstNode, Vec<SyntaxNode>)> {
+    self.places = Some(vec![]);
+    let node = self.parse()?;
+    Ok((node, self.places.take().unwrap_or_default()))
   }
 
   /// Parses the input and never fails: returns the tokens, the nodes with their places and
@@ -759,8 +771,8 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     self.lexer.set_after_operand(at == At::AfterOperand);
     #[allow(unused_mut)]
     let (mut token_type, mut token_value) = if self.syntax.is_some() { self.next_token_tolerant()? } else { self.lexer.next_token()? };
-    // the places of the token: only a tolerant parse reads them
-    if self.syntax.is_some() {
+    // the places of the token: only a tolerant and a positioned parse read them
+    if self.syntax.is_some() || self.places.is_some() {
       self.token_start = self.lexer.token_start();
       // the lexer passes the white space after a name of one word
       self.token_end = self.token_start + self.input[self.token_start..self.lexer.position()].trim_end_matches(is_space).len();
@@ -930,11 +942,23 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     Ok(self.kind == T::Comma)
   }
 
-  /// Records a node of a tolerant parse: it starts at `start` and ends with the token taken last.
+  /// Records a node of a tolerant or a positioned parse: it starts at `start` and ends with the
+  /// token taken last.
   fn note(&mut self, kind: &'static str, start: usize) {
     if let Some(syntax) = &mut self.syntax {
       let end = self.last_end.max(start);
       syntax.nodes.push(SyntaxNode { kind, start, end });
+    } else {
+      self.place(kind, start);
+    }
+  }
+
+  /// Records a node of a positioned parse that a tolerant parse does not record: a part of a
+  /// construct that is a node of the tree (the name after a dot, the parameters of an invocation).
+  fn place(&mut self, kind: &'static str, start: usize) {
+    if let Some(places) = &mut self.places {
+      let end = self.last_end.max(start);
+      places.push(SyntaxNode { kind, start, end });
     }
   }
 
@@ -1161,11 +1185,14 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       T::LeftBracket => true,
       _ => return self.error(),
     };
+    let from = self.token_start;
     self.bump();
     let (start, has_start) = if self.look(At::Start)? == T::Ellipsis {
       if closed {
         return self.error();
       }
+      // an endpoint that is not written is a null with an empty place
+      self.place("Null", self.token_start);
       (AstNode::IntervalStart(AstNode::Null.into(), IntervalType::OpenedUndef), false)
     } else {
       let endpoint = self.range_literal_endpoint()?;
@@ -1177,6 +1204,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     self.expect(T::Ellipsis, At::Start)?;
     let end = match self.look(At::Start)? {
       T::RightParen | T::LeftBracket if has_start => {
+        self.place("Null", self.token_start);
         self.bump();
         AstNode::IntervalEnd(AstNode::Null.into(), IntervalType::OpenedUndef)
       }
@@ -1191,31 +1219,49 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         AstNode::IntervalEnd(Box::new(endpoint), interval_type)
       }
     };
+    self.place("Interval", from);
     Ok(AstNode::Range(Box::new(start), Box::new(end)))
   }
 
   /// An endpoint of a range literal: a number with an optional sign, a string or a date and
   /// time literal.
   fn range_literal_endpoint(&mut self) -> Result<AstNode> {
-    match self.look(At::Start)? {
-      T::Numeric => self.numeric(),
+    let kind = self.look(At::Start)?;
+    let start = self.token_start;
+    match kind {
+      T::Numeric => {
+        let node = self.numeric();
+        self.place("Number", start);
+        node
+      }
       T::Minus => {
         self.bump();
         if self.look(At::Start)? != T::Numeric {
           return self.error();
         }
-        Ok(AstNode::Neg(Box::new(self.numeric()?)))
+        let number_start = self.token_start;
+        let number = self.numeric()?;
+        self.place("Number", number_start);
+        self.place("Negation", start);
+        Ok(AstNode::Neg(Box::new(number)))
       }
-      T::String => self.string().map(AstNode::String),
+      T::String => {
+        let node = self.string().map(AstNode::String);
+        self.place("String", start);
+        node
+      }
       T::At => {
         self.bump();
         if self.look(At::Start)? != T::String {
           return self.error();
         }
-        self.string().map(AstNode::At)
+        let node = self.string().map(AstNode::At);
+        self.place("Temporal", start);
+        node
       }
       T::NameDateTime => {
         let TokenValue::NameDateTime(name) = self.take() else { return self.error() };
+        self.place("Name", start);
         self.expect(T::LeftParen, At::Start)?;
         let parameters = match self.look(At::Start)? {
           T::Name => {
@@ -1224,13 +1270,21 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
             if self.look(At::Start)? != T::String {
               return self.error();
             }
+            let value_start = self.token_start;
             let value = self.string().map(AstNode::String)?;
+            self.place("String", value_start);
             AstNode::NamedParameters(vec![AstNode::NamedParameter(Box::new(AstNode::ParameterName(parameter_name)), Box::new(value))])
           }
-          T::String => AstNode::PositionalParameters(vec![self.string().map(AstNode::String)?]),
+          T::String => {
+            let value_start = self.token_start;
+            let value = self.string().map(AstNode::String)?;
+            self.place("String", value_start);
+            AstNode::PositionalParameters(vec![value])
+          }
           _ => return self.error(),
         };
         self.expect(T::RightParen, At::Start)?;
+        self.place("Temporal", start);
         Ok(AstNode::FunctionInvocation(Box::new(AstNode::Name(name)), Box::new(parameters)))
       }
       _ => self.error(),
@@ -1431,7 +1485,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let descendant = self.kind == T::Descendant;
     self.bump();
     self.lexer.set_after_dot();
+    self.look(At::Start)?;
+    let name_start = self.token_start;
     let name = Box::new(AstNode::Name(self.name_as(At::Start, TokenClass::Property)?));
+    self.place("Name", name_start);
     wrap(lhs, |lhs| if descendant { AstNode::Descendant(lhs, name) } else { AstNode::Path(lhs, name) });
     self.made = Made::Textual;
     Ok(())
@@ -1658,6 +1715,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let start = self.token_start;
     self.role(TokenClass::Function);
     let TokenValue::NameDateTime(name) = self.take() else { return self.error() };
+    self.place("Name", start);
     self.expect(T::LeftParen, At::Start)?;
     let parameters = self.parameters()?;
     self.made = Made::SimpleLiteral;
@@ -2042,8 +2100,11 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let mut contexts = vec![];
     loop {
       self.lexer.set_till_in();
+      self.look(At::Start)?;
+      let variable_start = self.token_start;
       let name = self.name_as(At::Start, TokenClass::Variable)?;
       let variable = Box::new(AstNode::Name(name.clone()));
+      self.place("Name", variable_start);
       self.lexer.add_name_to_scope(name);
       self.expect(T::In, At::Start)?;
       let start = self.boxed(LOWEST)?;
@@ -2091,8 +2152,11 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let mut contexts = vec![];
     loop {
       self.lexer.set_till_in();
+      self.look(At::Start)?;
+      let variable_start = self.token_start;
       let name = self.name_as(At::Start, TokenClass::Variable)?;
       let variable = Box::new(AstNode::Name(name.clone()));
+      self.place("Name", variable_start);
       self.lexer.add_name_to_scope(name);
       self.expect(T::In, At::Start)?;
       let domain = self.boxed(LOWEST)?;
