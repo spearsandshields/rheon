@@ -329,6 +329,7 @@ fn resolve_as(ast: &AstNode, closures: bool) -> Resolved<'_> {
       frees: vec![],
     },
     interned: HashMap::new(),
+    owned: HashMap::new(),
     partial: NONE,
     closures,
     free_names: vec![],
@@ -373,6 +374,10 @@ struct Resolver<'a> {
   /// The names of the tree, each with its index, once there are more than a few (the standard
   /// map, whose hasher is keyed at random, so no input makes its lookups slow).
   interned: HashMap<&'a Name, u32>,
+  /// The names that are not written in the tree (a key by the form FEEL reads a name in,
+  /// `partial`), each with its index, once there are more than a few: `interned` borrows its
+  /// names from the tree and can not hold them.
+  owned: HashMap<Name, u32>,
   /// The index of `partial`, which a `for` binds without a node of the tree, or [NONE].
   partial: u32,
   /// Whether the names that each function closes over are listed ([resolve_names]).
@@ -383,27 +388,26 @@ struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
+  /// The index of `name` among the names resolved so far: a few names are found by comparing
+  /// them with each, more in the maps ([Resolver::add_name]).
+  fn index_of(&self, name: &Name) -> Option<u32> {
+    if self.interned.is_empty() && self.owned.is_empty() {
+      self.out.names.iter().position(|known| **known == *name).map(|index| index as u32)
+    } else {
+      self.interned.get(name).or_else(|| self.owned.get(name)).copied()
+    }
+  }
+
   /// The index of a name that is not written in the tree.
   fn owned_name(&mut self, name: Name) -> u32 {
-    let known = if self.interned.is_empty() {
-      self.out.names.iter().position(|known| **known == name).map(|index| index as u32)
-    } else {
-      self.interned.get(&name).copied()
-    };
-    known.unwrap_or_else(|| self.add_name(Cow::Owned(name)))
+    self.index_of(&name).unwrap_or_else(|| self.add_name(Cow::Owned(name)))
   }
 
   fn name(&mut self, name: &'a Name) -> u32 {
     if Borrow::<str>::borrow(name) == PARTIAL {
       return self.partial();
     }
-    // a few names are found by comparing them with each, more in a map ([Resolver::add_name])
-    let known = if self.interned.is_empty() {
-      self.out.names.iter().position(|known| **known == *name).map(|index| index as u32)
-    } else {
-      self.interned.get(name).copied()
-    };
-    known.unwrap_or_else(|| self.add_name(Cow::Borrowed(name)))
+    self.index_of(name).unwrap_or_else(|| self.add_name(Cow::Borrowed(name)))
   }
 
   /// The index of `name` when it is a name of the tree resolved so far, [NONE] otherwise.
@@ -411,12 +415,7 @@ impl<'a> Resolver<'a> {
     if Borrow::<str>::borrow(name) == PARTIAL {
       return self.partial;
     }
-    let known = if self.interned.is_empty() {
-      self.out.names.iter().position(|known| **known == *name).map(|index| index as u32)
-    } else {
-      self.interned.get(name).copied()
-    };
-    known.unwrap_or(NONE)
+    self.index_of(name).unwrap_or(NONE)
   }
 
   /// The index of `partial`.
@@ -427,19 +426,23 @@ impl<'a> Resolver<'a> {
     self.partial
   }
 
-  /// Adds a name; beyond a few names, every name of the tree is in the map too (`partial`, which
-  /// is not, is never looked up by [Resolver::name]).
+  /// Adds a name; beyond a few names, every name is in a map too: a name of the tree in
+  /// `interned`, a name that is not written in the tree in `owned`.
   fn add_name(&mut self, name: Cow<'a, Name>) -> u32 {
     let index = self.out.names.len() as u32;
     self.out.names.push(name);
     self.free_names.push([NONE; 2]);
     if self.out.names.len() > FEW_NAMES {
-      let interned = &mut self.interned;
-      let names = &self.out.names;
-      let new = if interned.is_empty() { 0 } else { index as usize };
+      let (names, interned, owned) = (&self.out.names, &mut self.interned, &mut self.owned);
+      let new = if interned.is_empty() && owned.is_empty() { 0 } else { index as usize };
       for (index, known) in names.iter().enumerate().skip(new) {
-        if let Cow::Borrowed(known) = known {
-          interned.insert(known, index as u32);
+        match known {
+          Cow::Borrowed(known) => {
+            interned.insert(known, index as u32);
+          }
+          Cow::Owned(known) => {
+            owned.insert(known.clone(), index as u32);
+          }
         }
       }
     }
