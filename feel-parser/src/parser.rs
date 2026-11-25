@@ -1908,7 +1908,8 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     self.lexer.push_to_scope();
     // an entry can read an entry written after it: the keys of several tokens are names in scope
     // before the entries are parsed
-    for key in crate::lexer::literal_keys(self.input, start) {
+    // the place of the `{` from the lexer: the parser keeps the places of tokens only for a tolerant parse
+    for key in crate::lexer::literal_keys(self.input, self.lexer.token_start()) {
       self.lexer.add_name_to_scope(key);
     }
     let between = std::mem::replace(&mut self.between, false);

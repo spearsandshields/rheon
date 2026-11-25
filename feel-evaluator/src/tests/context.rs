@@ -108,3 +108,32 @@ fn a_context_is_shown_in_the_order_it_is_written_in() {
     assert_eq!(expected, shown(text), "{text}");
   }
 }
+
+/// An entry reads a later entry whose key is a name of several tokens (with a keyword or a
+/// symbol in it) wherever the context literal stands in the text: as the value of an entry of
+/// another literal, after another literal, in a list, in a function. The keys of a literal are
+/// names in scope before its entries are parsed (DMN 1.6 clause 10.3.2.11.1), and they are the
+/// keys of that literal, not of the first literal of the text.
+#[test]
+fn an_entry_reads_a_later_key_of_several_tokens_wherever_the_literal_stands() {
+  let scope = &scope!();
+  let shown = |text: &str| {
+    let node = rheon_feel_parser::parse_expression(scope, text).unwrap_or_else(|reason| panic!("{text}: {reason}"));
+    crate::tests::eval(scope, &node).to_string()
+  };
+  for (text, expected) in [
+    ("{x: Profit and Loss + 1, Profit and Loss: 2}.x", "3"),
+    ("{r: {x: Profit and Loss + 1, Profit and Loss: 2}.x}.r", "3"),
+    ("{r: {x: a + b + 1, a + b: 2}.x}.r", "3"),
+    ("{r: {x: f(), f: function() Profit and Loss, Profit and Loss: 2}.x}.r", "2"),
+    ("[{a: 1}.a, {x: Profit and Loss + 1, Profit and Loss: 2}.x]", "[1, 3]"),
+    ("{a: 1}.a + {x: Profit and Loss + 1, Profit and Loss: 2}.x", "4"),
+    ("{f: function(n) {x: n or more + n, n or more: 5}.x, r: f(1)}.r", "6"),
+    ("{r: {s: {x: a - b, a - b: 7}.x}.s}.r", "7"),
+    // a key of one literal is no name in another: `a + b` is a sum there
+    ("[{a + b: 9}, {a: 1, b: 2, x: a + b}.x][2]", "3"),
+    ("{a + b: 9, r: {a: 1, b: 2, x: a + b}.x}.r", "9"),
+  ] {
+    assert_eq!(expected, shown(text), "{text}");
+  }
+}
