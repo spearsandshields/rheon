@@ -32,11 +32,56 @@
 // steps that build for wasm32. The last lines are the table of steps (kind, seconds, result), the
 // build and run totals, the budget and the verdict. Exit status: 0 the tier passed, 1 a step
 // failed or the run total is over the budget, 2 a usage or environment error.
+//
+// Before its steps a tier looks at the build directories (target/<profile> and
+// target/<target>/<profile>, also of RHEON_WASM_TARGET_DIR): cargo never removes the files of
+// builds that later builds replaced, and a directory with hundreds of thousands of them makes every
+// compile, link and test start slow (70 GB and 831,000 files made the fix tier take 13 minutes
+// instead of 2). A profile directory whose `deps` holds more than BUILD_FILES_LIMIT files is
+// removed, and the tier says so: the next build of that profile is a cold one.
 import { execFileSync, spawn } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+/** The most files in the `deps` of a build directory before a tier removes the directory. */
+export const BUILD_FILES_LIMIT = 60_000;
+
+/**
+ * Removes the profile directories below the target directories `targets` whose `deps` holds
+ * more than `limit` files; returns those removed, each with the number of files it had.
+ */
+export function sweepBuildDirectories(targets, { limit = BUILD_FILES_LIMIT, print = console.log } = {}) {
+  const removed = [];
+  const directories = (dir) => {
+    try {
+      return readdirSync(dir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => path.join(dir, entry.name));
+    } catch {
+      return [];
+    }
+  };
+  for (const target of new Set(targets)) {
+    // target/<profile> and target/<target triple>/<profile>
+    const profiles = directories(target).flatMap((dir) => [dir, ...directories(dir)]);
+    for (const profile of profiles) {
+      const deps = path.join(profile, 'deps');
+      let files;
+      try {
+        files = readdirSync(deps).length;
+      } catch {
+        continue;
+      }
+      if (files <= limit) continue;
+      print(`tier: ${path.relative(root, profile) || profile} holds ${files} files of old builds (more than ${limit}); removing it, the next build there is a cold one`);
+      rmSync(profile, { recursive: true, force: true });
+      removed.push({ profile, files });
+    }
+  }
+  return removed;
+}
 
 /**
  * Budgets of run time in seconds, per tier and host class. On CI (the CI environment variable
@@ -370,6 +415,7 @@ async function main(argv) {
   } else if (options.tier === 'group') steps = groupSteps().filter((step) => options.only === null || step.set === options.only);
   else steps = options.tier === 'release' ? releaseSteps() : speedSteps();
   const budget = BUDGETS[options.tier][env.CI ? 'ci' : 'local'];
+  sweepBuildDirectories([env.CARGO_TARGET_DIR ?? path.join(root, 'target'), env.RHEON_WASM_TARGET_DIR].filter(Boolean));
   return runSteps(options.tier, withWasmTarget(steps, env), { budget, stopAtFailure: options.tier === 'fix', without: options.without, logs: options.logs, env, jobs: options.jobs });
 }
 

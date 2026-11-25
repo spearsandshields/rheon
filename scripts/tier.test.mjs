@@ -4,11 +4,11 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runSteps } from './tier.mjs';
+import { runSteps, sweepBuildDirectories } from './tier.mjs';
 
 let dir;
 let count = 0;
@@ -144,4 +144,32 @@ test('a step waits for the step it needs, also when that one stands later in the
   const r = await run([{ ...ok('use-it'), needs: ['make-it'] }, ok('make-it', 'build')], { jobs: 2 });
   assert.equal(r.status, 0, r.out);
   assert.ok(r.lines.findIndex((l) => l.startsWith('make-it')) < r.lines.findIndex((l) => l.startsWith('use-it')), r.out);
+});
+
+test('a build directory that holds more files of old builds than the limit is removed, another is kept', () => {
+  const target = mkdtempSync(path.join(os.tmpdir(), 'tier-target-'));
+  try {
+    const fill = (profile, files) => {
+      const deps = path.join(target, profile, 'deps');
+      mkdirSync(deps, { recursive: true });
+      for (let i = 0; i < files; i++) writeFileSync(path.join(deps, `f${i}.o`), '');
+    };
+    fill('debug', 12);
+    fill('release', 3);
+    fill(path.join('wasm32-wasip1', 'debug'), 11);
+    fill(path.join('wasm32-wasip1', 'wasm'), 2);
+    mkdirSync(path.join(target, 'doc'));
+    const said = [];
+    const removed = sweepBuildDirectories([target, target, path.join(target, 'missing')], { limit: 10, print: (line) => said.push(line) });
+    assert.deepEqual(removed.map((r) => [path.relative(target, r.profile), r.files]).sort(), [['debug', 12], [path.join('wasm32-wasip1', 'debug'), 11]]);
+    assert.equal(said.length, 2);
+    assert.match(said[0], /holds 1[12] files of old builds \(more than 10\); removing it/);
+    assert.equal(existsSync(path.join(target, 'debug')), false);
+    assert.equal(existsSync(path.join(target, 'wasm32-wasip1', 'debug')), false);
+    assert.equal(existsSync(path.join(target, 'release', 'deps', 'f0.o')), true);
+    assert.equal(existsSync(path.join(target, 'wasm32-wasip1', 'wasm', 'deps', 'f0.o')), true);
+    assert.equal(existsSync(path.join(target, 'doc')), true);
+  } finally {
+    rmSync(target, { recursive: true, force: true });
+  }
 });
