@@ -301,5 +301,17 @@
   {"op": "complete", "expression": "", "outline": {"names": {"a": {"type": 5}}}},
   {"op": "complete", "expression": "", "outline": {"names": {"a": {"type": "number", "names": {}}}}},
   {"op": "complete", "expression": "", "outline": {"names": {"l": {"items": {"type": "list<"}}}}},
-  {"op": "complete", "expression": "", "outline": {"type": "number"}}
+  {"op": "complete", "expression": "", "outline": {"type": "number"}},
+  {"op": "complete", "expression": "{a: b, b: 1}."},
+  {"op": "complete", "expression": "{a: b, b: 1}.", "context": {"b": "text"}},
+  {"op": "complete", "expression": "{total: unit price * 2, unit price: 3}."},
+  {"op": "complete", "expression": "{a: x.y, x: {y: 1}}.a."},
+  {"op": "complete", "expression": "{a: {c: b}, b: {d: 1}}.a.c."},
+  {"op": "complete", "expression": "{f: function() k, k: 10, r: f()}."},
+  {"op": "complete", "expression": "{i: f(), f: function() a, a: {b: 1}}.i."},
+  {"op": "complete", "expression": "{f: function() a, a: 2, r: {a: \"x\", s: f()}.s}."},
+  {"op": "complete", "expression": "{f: function() k, k: 10, r: "},
+  {"op": "complete", "expression": "{partial: 1, r: for i in [1, 2] return partial}."},
+  {"op": "complete", "expression": "{r: abs(-1), abs: 1}."},
+  {"op": "complete", "expression": "{a: 1, b: a + 1, f: function(x) x * 2, r: f(b)}."}
 ]

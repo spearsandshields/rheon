@@ -235,9 +235,38 @@ fn an_invocation_of_a_function_literal_types_its_body_with_the_arguments() {
     ("{loop: function(n) loop(n), r: loop(1)}.r", "Any"),
     // a call whose arguments give null keeps the type of the body
     ("{inc: function(x) x + 1, r: inc(\"a\")}.r", "number"),
-    // an entry written after the literal hides the name outside (review of DT-025)
-    ("{f: function() s, s: 1, r: f()}.r", "Any"),
-    ("{f: function() s, s: 1}.f", "function<>->Any"),
+    // the body reads the entries of the literal it is written in, also those written after it
+    // (DMN 1.6 clause 10.3.2.11.1), and not the name outside (`s` is a string there)
+    ("{f: function() s, s: 1, r: f()}.r", "number"),
+    // the entries that a function reads are evaluated, and typed, before it
+    ("{f: function() s, s: 1}.f", "function<>->number"),
+  ] {
+    assert_eq!(expected, ty(INPUT, text), "{text}");
+  }
+}
+
+/// A name is typed as what evaluation reads for it (the analysis walks the tree as name
+/// resolution leaves it): each of these is the type of the value the expression gives.
+#[test]
+fn names_are_typed_as_evaluation_reads_them() {
+  for (text, expected) in [
+    // an entry reads the entries it needs, wherever they are written
+    ("{a: b, b: 1}.a", "number"),
+    ("{a: b + 1, b: c * 2, c: 3}", "context<a: number, b: number, c: number>"),
+    ("{a: x.y, x: {y: 1}}.a", "number"),
+    ("{total: unit price * 2, unit price: 3}.total", "number"),
+    // a function reads the entries of the literals it is written in, the nearest first
+    ("{i: f(), f: function() a, a: 1}.i", "number"),
+    ("{f: function() a, a: 2, r: {a: 1, s: f()}.s}.r", "number"),
+    ("{x: 1, c: {f: function() x, x: \"a\", r: f()}.r}.c", "string"),
+    ("for i in 1..2 return {f: function() k, k: i}.f()", "list<number>"),
+    // a function that another one of the literal invokes
+    ("{i: g(), g: function() f() + 1, f: function() a, a: 1}.i", "number"),
+    // `partial` in a `for` is the list of its results so far, whatever else has the name
+    ("for partial in [1, 2] return partial", "list<Any>"),
+    ("{partial: 1, r: for i in [1, 2] return partial}.r", "list<Any>"),
+    // an entry named as a built-in function is what the name reads there
+    ("{r: abs(-1), abs: 1}.r", "Any"),
   ] {
     assert_eq!(expected, ty(INPUT, text), "{text}");
   }

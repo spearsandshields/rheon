@@ -16,7 +16,7 @@ mod resolve;
 mod tests;
 mod vm;
 
-pub(crate) use resolve::variables;
+pub(crate) use resolve::{Info, LayoutKind, NONE, Place, Read, Region, RegionKind, Resolved, Target, resolve_names, variables};
 pub(crate) use vm::{code_of, run_function};
 
 use crate::Dialect;

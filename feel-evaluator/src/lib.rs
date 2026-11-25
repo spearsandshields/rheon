@@ -4,6 +4,7 @@
 #[macro_use]
 extern crate dsntk_macros;
 
+mod analysis;
 mod bfeel;
 mod bifs;
 mod equality;
@@ -21,6 +22,7 @@ mod macros;
 mod session;
 mod tests;
 
+pub use crate::analysis::{TypeId, Typing};
 pub use crate::bfeel::Dialect;
 pub use crate::evaluators::*;
 pub use crate::filters::FilterExpressionEvaluator;

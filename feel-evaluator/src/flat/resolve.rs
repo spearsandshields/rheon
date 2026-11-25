@@ -296,6 +296,16 @@ impl<'a> Resolved<'a> {
 
 /// Resolves the names of the expression `ast`.
 pub(crate) fn resolve(ast: &AstNode) -> Resolved<'_> {
+  resolve_as(ast, true)
+}
+
+/// [resolve] without the names that each function closes over ([Proto::closure] and
+/// [Proto::captures] are empty): for a reader that does not make closures, the analysis.
+pub(crate) fn resolve_names(ast: &AstNode) -> Resolved<'_> {
+  resolve_as(ast, false)
+}
+
+fn resolve_as(ast: &AstNode, closures: bool) -> Resolved<'_> {
   // every node of the tree is resolved once, and is the child of at most one
   let size = count(ast);
   let mut resolver = Resolver {
@@ -320,6 +330,7 @@ pub(crate) fn resolve(ast: &AstNode) -> Resolved<'_> {
     },
     interned: HashMap::new(),
     partial: NONE,
+    closures,
     free_names: vec![],
     body: Body {
       proto: NONE,
@@ -364,6 +375,8 @@ struct Resolver<'a> {
   interned: HashMap<&'a Name, u32>,
   /// The index of `partial`, which a `for` binds without a node of the tree, or [NONE].
   partial: u32,
+  /// Whether the names that each function closes over are listed ([resolve_names]).
+  closures: bool,
   /// The free name of each name, read as a name and as a qualified name, or [NONE].
   free_names: Vec<[u32; 2]>,
   body: Body,
@@ -868,7 +881,11 @@ impl<'a> Resolver<'a> {
           params: Box::new([]),
           binders: 0,
           region: NONE,
-          closure: ClosureBuilder::from_function_definition(parameters, body),
+          closure: if self.closures {
+            ClosureBuilder::from_function_definition(parameters, body)
+          } else {
+            Closure::default()
+          },
           captures: Box::new([]),
           body: NONE,
         });

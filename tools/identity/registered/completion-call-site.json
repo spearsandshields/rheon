@@ -1,0 +1,81 @@
+[
+  {
+    "request": {
+      "op": "complete",
+      "expression": "{a: 1, b: a + 1, f: function(x) x * 2, r: f(b)}."
+    },
+    "why": "An invocation of a function literal of the text types its body with the types of the arguments, for the editor operations only (DT-025, 2026-11-22): a request of the editor set added later shows it.",
+    "old": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 48,
+          "kind": "entry",
+          "label": "a",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 48,
+          "kind": "entry",
+          "label": "b",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 48,
+          "kind": "entry",
+          "label": "f",
+          "type": "function"
+        },
+        {
+          "detail": null,
+          "from": 48,
+          "kind": "entry",
+          "label": "r",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 48,
+      "truncated": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 48,
+          "kind": "entry",
+          "label": "a",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 48,
+          "kind": "entry",
+          "label": "b",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 48,
+          "kind": "entry",
+          "label": "f",
+          "type": "function"
+        },
+        {
+          "detail": null,
+          "from": 48,
+          "kind": "entry",
+          "label": "r",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 48,
+      "truncated": false
+    }
+  }
+]
