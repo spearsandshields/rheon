@@ -236,7 +236,7 @@ impl Rng {
   }
 }
 
-const ROOTS: [&str; 7] = ["loan", "loans", "rate", "n", "flag", "label", "book"];
+const ROOTS: [&str; 8] = ["loan", "loans", "rate", "n", "flag", "label", "book", "mixed"];
 const FIELDS: [&str; 10] = ["amount", "customer", "name", "age", "tags", "payments", "paid", "on", "y", "loans"];
 
 /// A random expression over the names of [context] and the variables `bound`, at most `depth`
@@ -260,7 +260,7 @@ fn expression(rng: &mut Rng, bound: &mut Vec<String>, depth: usize) -> String {
     bound.pop();
     body
   };
-  match rng.below(34) {
+  match rng.below(40) {
     0..=4 => format!("{}.{}", e(rng, bound), rng.pick(&FIELDS)),
     5 | 6 => format!("{}[{}]", e(rng, bound), rng.below(3) + 1),
     7 | 8 => format!("{}[{} > {}]", e(rng, bound), rng.pick(&FIELDS), e(rng, bound)),
@@ -291,7 +291,31 @@ fn expression(rng: &mut Rng, bound: &mut Vec<String>, depth: usize) -> String {
     30 => format!("{{f: function(p, q) {}, r: f(q: {}, p: {})}}.r", scoped(rng, bound, "p"), e(rng, bound), e(rng, bound)),
     31 => format!("(for {variable} in {} return {{k: {}, t: partial}}.k)", e(rng, bound), scoped(rng, bound, &variable)),
     32 => format!("{{x: {}, r: {}}}.r", e(rng, bound), scoped(rng, bound, "x")),
-    _ => format!("{}.{}.{}", rng.pick(&ROOTS), rng.pick(&FIELDS), rng.pick(&FIELDS)),
+    33 => format!("{}.{}.{}", rng.pick(&ROOTS), rng.pick(&FIELDS), rng.pick(&FIELDS)),
+    // a function that invokes itself
+    34 => format!(
+      "{{f: function(k) if k = 0 then {} else f(k - 1).{}, r: f({})}}.r",
+      e(rng, bound),
+      rng.pick(&FIELDS),
+      rng.below(3)
+    ),
+    // functions in the contexts of a list
+    35 => format!("(for h in [{{f: function() {}}}, {{f: function() {}}}].f return h())", e(rng, bound), e(rng, bound)),
+    // a function of a context literal, invoked after another literal used its binders again
+    36 => format!("{{a: {{x: {}, f: function() x}}, b: {{y: {}}}, r: a.f()}}.r", e(rng, bound), e(rng, bound)),
+    37 => format!(
+      "{{a: (for x in {} return {{f: function() x}})[1], r: (for y in {} return a.f())[1]}}.r",
+      e(rng, bound),
+      e(rng, bound)
+    ),
+    // the results so far of a loop around another loop
+    38 => format!(
+      "(for {variable} in {} return if {variable}.amount = 3 then {variable} else {{amount: partial[1].{}, z: (for w in [1] return w)}})",
+      e(rng, bound),
+      rng.pick(&FIELDS)
+    ),
+    // a key in another form than the name that reads it
+    _ => format!("get value({{\"a  b\": {}}}, \"a b\")", e(rng, bound)),
   }
 }
 
@@ -309,6 +333,8 @@ fn context() -> Json {
     "loan": loan(1, "ann"),
     "loans": [loan(3, "bob"), loan(1, "cy"), loan(2, "di")],
     "rate": 2, "n": [3, 1, 2], "flag": true, "label": "amount", "amount": 2, "name": "bob",
+    // a list whose items are not alike: the later ones have entries that the first has not
+    "mixed": [{"amount": 1}, {"amount": 2, "paid": true, "customer": {"name": "gil", "age": 5}, "on": {"y": 4}}, 3, loan(3, "hal")],
     "book": {"loans": [loan(2, "ed")], "customer": {"name": "fay", "age": 1}, "amount": 1, "y": 2}})
 }
 
@@ -317,7 +343,7 @@ fn context() -> Json {
 #[test]
 fn a_random_evaluation_reads_no_more_than_its_paths() {
   big_stack::with_big_stack(|| {
-    let count = if std::env::var_os("RHEON_FULL_TESTS").is_some() { 200_000 } else { 20_000 };
+    let count = if std::env::var_os("RHEON_FULL_TESTS").is_some() { 200_000 } else { 5_000 };
     let context = context();
     let mut rng = Rng(0x2545_F491_4F6C_DD1D);
     let mut tally = Tally::default();
@@ -400,5 +426,63 @@ fn an_evaluation_reads_no_more_than_its_paths() {
     }
     assert!(wrong.is_empty(), "{} evaluations read more than their paths", wrong.len());
     assert!(compared > 400 && cut_down > 100, "{compared} compared, {cut_down} cut down");
+  });
+}
+
+/// The cases that a review of the analysis found (2026-11-25), each of which the paths did not
+/// cover: with the context of the random expressions, or their own.
+#[test]
+fn the_cases_of_the_review_read_no_more_than_their_paths() {
+  big_stack::with_big_stack(|| {
+    let context = context();
+    let unlike = json!({"loans": [{"payment": 1}, {"payment": 2, "status": "active"}, {"payment": 4, "item": 7}]});
+    let cases = [
+      // a list of contexts has the type of its first item: another item has the entry
+      ("loans[status = \"active\"].payment", &unlike),
+      ("loans[item = 7].payment", &unlike),
+      ("for l in loans return l.status", &unlike),
+      // a function reads a binder whose slot a later construct used again
+      ("{a: {x: loan, f: function() x}, b: {y: n}, r: a.f().amount}.r", &context),
+      ("{a: (for x in loans return {f: function() x})[1], r: (for y in n return a.f().amount)[1]}.r", &context),
+      ("{a: loans[(function() item)().amount = 3], b: n[item > 1], r: a[1].customer.name}.r", &context),
+      // a function that invokes itself
+      ("{f: function(k) if k = 0 then loan else f(k - 1).customer, r: f(1).name}.r", &context),
+      ("{f: function(k) if k = 0 then loan else f(k - 1), a: f(1), r: f(0).amount}.r", &context),
+      ("{f: function(k) if k = 0 then loan else count(f(k - 1).tags), r: f(1)}.r", &context),
+      // a function in the contexts of a list
+      ("for h in [{f: function() loan.amount}].f return h()", &context),
+      // the results so far of a loop around another loop
+      (
+        "(for x in loans return if x.amount = 3 then x else {amount: partial[1].customer.name, z: (for y in [1] return y)})[2].amount",
+        &context,
+      ),
+      // found by the random expressions: a function that invokes itself by a name that is
+      // bound further out too, and a function that reads a name whose entry has no value yet
+      ("{f: function(p) {f: function(k) if k = 0 then book else f(k - 1).loans, r: f(1)}.r, r: f(1)}.r", &context),
+      (
+        "{a: loans, b: {a: {x: {f: function(v) function() a, g: f(flag), r: g()}.r, f: function() x}, r: a.f()}.r}.b",
+        &context,
+      ),
+      // a key of a context of the text in another form than the name that reads it
+      ("get value({\"a  b\": loan}, \"a b\").amount", &context),
+    ];
+    let mut tally = Tally::default();
+    let mut untyped = Tally::default();
+    for (text, context) in cases {
+      let request = json!({"expression": text, "context": context});
+      tally.check(&request, true);
+      untyped.check(&request, false);
+    }
+    for case in tally.wrong.iter().chain(&untyped.wrong) {
+      println!("{}", case.chars().take(1500).collect::<String>());
+    }
+    assert!(
+      tally.wrong.is_empty() && untyped.wrong.is_empty(),
+      "{} with the context, {} without",
+      tally.wrong.len(),
+      untyped.wrong.len()
+    );
+    // each case gives a value, so the comparison says something
+    assert_eq!((tally.compared, tally.values), (cases.len(), cases.len()));
   });
 }

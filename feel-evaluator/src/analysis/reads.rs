@@ -30,6 +30,7 @@ use super::{TypeId, Typing};
 use crate::flat::{Info, LayoutKind, NONE, Place, Read, Region, RegionKind, Resolved, Target, resolve_names, variables};
 use rheon_feel::Name;
 use rheon_feel::signatures::built_in;
+use rheon_feel::values::Value;
 use rheon_feel_parser::AstNode;
 use std::collections::HashMap;
 
@@ -42,6 +43,10 @@ const MAX_DEPTH: usize = 300;
 
 /// The most sources that one value can be before it is read whole.
 const MAX_UNION: usize = 32;
+
+/// The most values of the scope that are looked at to say whether the items of a list have an
+/// entry: beyond it, they may have it.
+const MAX_ITEMS: usize = 20_000;
 
 /// The most places that are kept for one path.
 const MAX_PLACES: usize = 64;
@@ -95,6 +100,13 @@ struct Val {
 
 impl Val {
   const NONE: Val = Val { source: NONE, lift: 0, def: NONE };
+  /// What the binder of an entry of a context literal holds before the entry has its value:
+  /// a function written in the literal does not read the entry then, but the name further out.
+  const UNSET: Val = Val {
+    source: NONE,
+    lift: u8::MAX,
+    def: NONE,
+  };
 }
 
 enum Source {
@@ -116,6 +128,9 @@ struct PathNode {
   /// The source that is this path.
   source: u32,
   has_children: bool,
+  /// Whether the path is of the items of a list, or below them: the type of the items of a
+  /// list of the scope is that of its first item, and another item can have other entries.
+  in_list: bool,
 }
 
 /// A function definition of the text.
@@ -126,14 +141,23 @@ struct Def {
   /// Whether it left the place where the walk can follow it (it was read whole): its body was
   /// walked with parameters of no source, and an invocation of it reads its arguments whole.
   escaped: bool,
+  /// Whether its body invoked it while it was walked: what that invocation gives is not
+  /// followed, so what the walk of the body gives is read whole.
+  recursive: bool,
+  /// The binders around it as they were when their constructs ended, by their slots: a slot
+  /// is used again by a construct after its own, and the function reads what was there.
+  kept: HashMap<u32, Val>,
+  /// The same for the items of the filters it is written in, by their records.
+  kept_items: HashMap<u32, Val>,
 }
 
 #[derive(Clone, Copy)]
 enum Outer {
   /// The names of the scope.
   Root,
-  /// Where a function definition is written.
-  Site { frame: u32, region: u32 },
+  /// Where a function definition is written: the frame and the region, and the definition
+  /// (an index of [Walk::defs]).
+  Site { frame: u32, region: u32, def: u32 },
 }
 
 struct Frame {
@@ -166,10 +190,16 @@ struct Walk<'a, 's, 'n> {
   unknown: Vec<(Name, Vec<(usize, usize)>)>,
   /// The names of the scope read so far, each with the key that the scope writes it as.
   roots: HashMap<Name, Name>,
+  /// Whether the items of a list of the scope at a path have an entry of a name: all, none, or
+  /// (None) some ([Walk::items_have]).
+  items: HashMap<(u32, Name), Option<bool>>,
   /// Whether the name read last is a built-in function: no value of the scope and no binder.
   built_in: bool,
-  /// Whether the results so far of a `for` were read.
-  partial: bool,
+  /// The `for` expressions whose results so far were read: the frame and the record of each.
+  partials: Vec<(u32, u32)>,
+  /// Whether a function that the scope holds was read: its body is not in the text, and it
+  /// reads the names of the context it was written in.
+  everything: bool,
   depth: usize,
   steps: usize,
   complete: bool,
@@ -196,8 +226,10 @@ impl Typing<'_> {
       active: vec![],
       unknown: vec![],
       roots: HashMap::new(),
+      items: HashMap::new(),
       built_in: false,
-      partial: false,
+      partials: vec![],
+      everything: false,
       depth: 0,
       steps: 0,
       complete: true,
@@ -261,6 +293,7 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
     }
     let path = self.paths.len() as u32;
     let source = self.source(Source::Path(path));
+    let in_list = segment.is_none() || self.paths.get(parent as usize).is_some_and(|parent| parent.in_list);
     self.paths.push(PathNode {
       parent,
       segment: segment.clone(),
@@ -269,6 +302,7 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
       places: vec![],
       source,
       has_children: false,
+      in_list,
     });
     if let Some(parent) = self.paths.get_mut(parent as usize) {
       parent.has_children = true;
@@ -347,7 +381,14 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
         continue;
       }
       match &self.sources[val.source as usize] {
-        Source::Path(path) => self.paths[*path as usize].whole = true,
+        Source::Path(path) => {
+          let path = *path as usize;
+          self.paths[path].whole = true;
+          // a function that a context of the scope holds (not one that an outline states)
+          if !self.typing.outlined() && matches!(self.typing.types.kind(self.paths[path].ty), Kind::Function(..)) {
+            self.everything = true;
+          }
+        }
         Source::Record(entries) => stack.extend(entries.iter().map(|(_, entry)| *entry)),
         Source::Union(members) => stack.extend(members.iter().copied()),
       }
@@ -357,12 +398,17 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
   /// A function definition that the walk can not follow further: its body is walked with
   /// parameters of no source, for the names it reads from where it is written.
   fn escape(&mut self, def: u32) {
-    let Def { node, frame, escaped } = self.defs[def as usize];
+    let Def { node, frame, escaped, .. } = self.defs[def as usize];
     if escaped {
       return;
     }
     self.defs[def as usize].escaped = true;
-    if let Some(result) = self.call(node, frame, &[], None) {
+    if self.active.contains(&node) {
+      // its body is being walked: what that walk gives is read whole when it ends
+      self.defs[def as usize].recursive = true;
+      return;
+    }
+    if let Some(result) = self.call(def, node, frame, &[], None) {
       self.whole(result);
     }
   }
@@ -523,20 +569,33 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
               let entry = self.intern(path, Some(key), member);
               return self.of_path(entry, lift);
             }
-            // a property of a value that has no entries (the year of a date): of the value
-            _ => return self.of_path(path, lift),
+            // a property of a value that has no entries (the year of a date): of the value;
+            // of an item of a list of the scope also the entry, which another item can have
+            _ => {
+              let value = self.of_path(path, lift);
+              if self.paths[path as usize].in_list && !self.typing.outlined() && !matches!(self.items_have(path, name), Has::No) {
+                let entry = self.intern(path, Some(name.clone()), ANY);
+                let entry = self.of_path(entry, lift);
+                return self.union(value, entry);
+              }
+              return value;
+            }
           }
         }
         let val = self.of_path(path, 0);
         self.whole(val);
         Val::NONE
       }
-      Source::Record(entries) => match entries.iter().rev().find(|(key, _)| key == name) {
-        Some((_, entry)) => Val {
-          lift: entry.lift.saturating_add(val.lift),
-          def: if val.lift == 0 { entry.def } else { NONE },
-          ..*entry
-        },
+      Source::Record(entries) => match entries.iter().rev().find(|(key, _)| is_key(key, name)).map(|(_, entry)| *entry) {
+        Some(entry) if val.lift == 0 => entry,
+        // the entries of the contexts of a list: a function among them is followed no further
+        Some(entry) => {
+          let entry = self.plain(entry);
+          Val {
+            lift: entry.lift.saturating_add(val.lift),
+            ..entry
+          }
+        }
         None => Val::NONE,
       },
       Source::Union(members) => {
@@ -566,6 +625,81 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
       .cloned()
   }
 
+  /// Whether the values of the scope at `path`, a path below the items of a list, have an entry
+  /// `name`: all of them, none of them, or some (also when there are more than [MAX_ITEMS]).
+  fn items_have(&mut self, path: u32, name: &Name) -> Has {
+    if let Some(known) = self.items.get(&(path, name.clone())) {
+      return match known {
+        Some(true) => Has::Yes,
+        Some(false) => Has::No,
+        None => Has::Maybe,
+      };
+    }
+    // the segments from the name of the scope down
+    let mut segments = vec![];
+    let mut at = self.paths.get(path as usize);
+    while let Some(node) = at {
+      segments.push(node.segment.clone());
+      at = self.paths.get(node.parent as usize);
+    }
+    segments.reverse();
+    let answer = {
+      let frames = self.typing.scope.frames();
+      let root = match segments.first() {
+        Some(Some(root)) => frames.iter().rev().find_map(|frame| frame.get_entry(root)),
+        _ => None,
+      };
+      let mut values: Vec<&Value> = root.into_iter().collect();
+      let mut known = root.is_some();
+      for segment in segments.iter().skip(1) {
+        let mut next = vec![];
+        for value in values {
+          match (segment, value) {
+            // an entry of a context, or of each context of a list
+            (Some(entry), Value::Context(context)) => next.extend(context.get_entry(entry)),
+            (Some(entry), Value::List(items)) => next.extend(items.iter().filter_map(|item| match item {
+              Value::Context(context) => context.get_entry(entry),
+              _ => None,
+            })),
+            (Some(_), _) => {}
+            // the items of a list; a value that is no list is the list of itself
+            (None, Value::List(items)) => next.extend(items.iter()),
+            (None, other) => next.push(other),
+          }
+          if next.len() > MAX_ITEMS {
+            known = false;
+            break;
+          }
+        }
+        values = next;
+        if !known {
+          break;
+        }
+      }
+      if known {
+        let with = values
+          .iter()
+          .filter(|value| matches!(value, Value::Context(context) if context.get_entry(name).is_some()))
+          .count();
+        if with == 0 {
+          Some(false)
+        } else if with == values.len() {
+          Some(true)
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    };
+    self.items.insert((path, name.clone()), answer);
+    match answer {
+      Some(true) => Has::Yes,
+      Some(false) => Has::No,
+      None => Has::Maybe,
+    }
+  }
+
   /// Whether `val` has an entry `name`, as far as its source says.
   fn has(&mut self, val: Val, name: &Name) -> Has {
     if val.source == NONE || val.lift > 0 {
@@ -573,7 +707,12 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
     }
     match &self.sources[val.source as usize] {
       Source::Path(path) => {
-        let ty = self.paths[*path as usize].ty;
+        let (ty, in_list) = (self.paths[*path as usize].ty, self.paths[*path as usize].in_list);
+        // an item of a list of the scope has the type of the first item, and another item
+        // can be unlike it: the items themselves say (an outline states the type of them all)
+        if in_list && !self.typing.outlined() {
+          return self.items_have(*path, name);
+        }
         match self.typing.types.kind(ty) {
           Kind::Context(_) => match self.key(ty, name) {
             Some(_) => Has::Yes,
@@ -584,7 +723,7 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
         }
       }
       Source::Record(entries) => {
-        if entries.iter().any(|(key, _)| key == name) {
+        if entries.iter().any(|(key, _)| is_key(key, name)) {
           Has::Yes
         } else {
           Has::No
@@ -693,7 +832,9 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
           items.resize(record as usize + 1, Val::NONE);
         }
         items[record as usize] = item;
+        let from = self.defs.len();
         self.read(frame, predicate);
+        self.keep(frame, id, from);
         self.note_val(item, (self.place)(node.ast));
         match selects(predicate_ast) {
           Some(true) => item,
@@ -722,18 +863,27 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
       }
       (A::For(contexts, _), _) => match self.iteration(frame, id, contexts, false) {
         Some(body) => {
+          let from = self.defs.len();
           let body = self.flow(frame, body);
-          if std::mem::take(&mut self.partial) {
-            self.whole(body);
+          // the results so far were read in the body: they are what the body gives
+          if let Info::Iteration { record, .. } = node.info {
+            let own = (frame as u32, record);
+            if self.partials.contains(&own) {
+              self.partials.retain(|read| *read != own);
+              self.whole(body);
+            }
           }
+          self.keep(frame, id, from);
           self.listed(body)
         }
         None => Val::NONE,
       },
       (A::Some(contexts, _) | A::Every(contexts, _), _) => {
+        let from = self.defs.len();
         if let Some(body) = self.iteration(frame, id, contexts, true) {
           self.read(frame, body);
         }
+        self.keep(frame, id, from);
         Val::NONE
       }
       (A::EvaluatedExpression(_) | A::Satisfies(_), &[inner]) => self.flow(frame, inner),
@@ -744,6 +894,9 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
             node: id,
             frame: frame as u32,
             escaped: false,
+            recursive: false,
+            kept: HashMap::new(),
+            kept_items: HashMap::new(),
           });
           Val {
             source: NONE,
@@ -824,32 +977,79 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
 
   fn held(&mut self, frame: usize, place: Place) -> Val {
     match place {
-      Place::Slot(slot) => self.slot(frame, slot).map_or(Val::NONE, |held| *held),
-      Place::Partial(_) => {
-        self.partial = true;
+      Place::Slot(slot) => self.slot(frame, slot).map_or(Val::NONE, |held| if *held == Val::UNSET { Val::NONE } else { *held }),
+      Place::Partial(record) => {
+        let read = (frame as u32, record);
+        if !self.partials.contains(&read) {
+          self.partials.push(read);
+        }
         Val::NONE
       }
     }
   }
 
-  /// What the name `name` reads that the body of the frame `frame` does not bind: the binders
-  /// where the function is written, and the name of the scope. Every binder of the name on the
-  /// way out is read, not only the nearest: a function keeps the paths it reads of the names
-  /// around it, and a path that the nearest binder has not is read of one further out. With
-  /// `optional`, a name that the scope has not is no unknown name (an entry of an item is read).
+  /// What the binder `place` of the frame `frame` holds for the function definition `def`
+  /// that is written there: what it held when its construct ended, when it has ended.
+  /// None for an entry of a context literal that has not its value yet.
+  fn held_for(&mut self, def: u32, frame: usize, place: Place) -> Option<Val> {
+    if let Place::Slot(slot) = place {
+      let held = match self.defs.get(def as usize).and_then(|def| def.kept.get(&slot)) {
+        Some(kept) => *kept,
+        None => self.slot(frame, slot).map_or(Val::NONE, |held| *held),
+      };
+      return (held != Val::UNSET).then_some(held);
+    }
+    Some(self.held(frame, place))
+  }
+
+  /// The construct `id` of the frame `frame` ends: the function definitions written in it
+  /// (those from `from` on) keep what its binders hold, and the item of a filter.
+  fn keep(&mut self, frame: usize, id: u32, from: usize) {
+    if self.defs.len() == from {
+      return;
+    }
+    let unit = self.unit;
+    let mut slots: Vec<(u32, Val)> = vec![];
+    let mut item: Option<(u32, Val)> = None;
+    match &unit.nodes[id as usize].info {
+      Info::Context { layout, .. } | Info::Iteration { layout, .. } => {
+        for &(_, place) in unit.layouts[*layout as usize].entries.iter() {
+          if let Place::Slot(slot) = place {
+            let held = self.slot(frame, slot).map_or(Val::NONE, |held| *held);
+            slots.push((slot, held));
+          }
+        }
+      }
+      Info::Filter { record } => {
+        let held = self.frames[frame].items.get(*record as usize).copied().unwrap_or(Val::NONE);
+        item = Some((*record, held));
+      }
+      _ => return,
+    }
+    for def in self.defs[from..].iter_mut().filter(|def| def.frame as usize == frame) {
+      for &(slot, held) in &slots {
+        def.kept.entry(slot).or_insert(held);
+      }
+      if let Some((record, held)) = item {
+        def.kept_items.entry(record).or_insert(held);
+      }
+    }
+  }
+
+  /// What the name `name` reads that the body of the frame `frame` does not bind: the nearest
+  /// binder where the function is written, else the name of the scope; on the way out, an
+  /// entry of the item of a filter that the function is written in, which the item can have.
+  /// With `optional`, a name that the scope has not is no unknown name (an entry of an item is
+  /// read).
   fn outside(&mut self, mut frame: usize, name: u32, at: Option<(usize, usize)>, optional: bool) -> Val {
     let unit = self.unit;
     let mut found = Val::NONE;
-    // whether a construct of the text binds the name on the way out
-    let mut bound = false;
     loop {
       match self.frames[frame].outer {
         Outer::Root => {
           let name: &Name = &unit.names[name as usize];
           let read = if name.as_str() == "?" || self.typing.value(name).is_some() {
             self.root(name, at)
-          } else if bound {
-            Val::NONE
           } else if built_in(name.as_str()).is_some() {
             self.built_in = true;
             Val::NONE
@@ -873,7 +1073,7 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
             self.union(found, read)
           };
         }
-        Outer::Site { frame: site, region } => {
+        Outer::Site { frame: site, region, def } => {
           let site = site as usize;
           let mut region = region;
           while region != NONE {
@@ -882,15 +1082,19 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
               RegionKind::Layout { layout, visible } => {
                 let layout = &unit.layouts[layout as usize];
                 let visible = if layout.kind == LayoutKind::Context { layout.entries.len() as u32 } else { visible };
-                if let Some(place) = layout.find(name, visible) {
-                  let held = self.held(site, place);
-                  found = if found == Val::NONE { held } else { self.union(found, held) };
-                  bound = true;
+                // the nearest binder of the name that has its value is what the body reads
+                if let Some(place) = layout.find(name, visible)
+                  && let Some(held) = self.held_for(def, site, place)
+                {
+                  return if found == Val::NONE { held } else { self.union(found, held) };
                 }
               }
               // written in the predicate of a filter: an entry of its item can be read
               RegionKind::Item { record } => {
-                let item = self.frames[site].items.get(record as usize).copied().unwrap_or(Val::NONE);
+                let item = match self.defs.get(def as usize).and_then(|def| def.kept_items.get(&record)) {
+                  Some(kept) => *kept,
+                  None => self.frames[site].items.get(record as usize).copied().unwrap_or(Val::NONE),
+                };
                 let name: &Name = &unit.names[name as usize];
                 let either = if name.as_str() == "item" {
                   let entry = self.entry(item, name);
@@ -919,9 +1123,10 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
       _ => return self.operands(frame, kids),
     };
     for &(_, place) in layout.entries.iter() {
-      self.set(frame, place, Val::NONE);
+      self.set(frame, place, Val::UNSET);
     }
     let mut entries = vec![];
+    let from = self.defs.len();
     for (position, &entry) in kids.iter().enumerate() {
       let (AstNode::ContextEntry(key, _), &[_, value]) = (unit.nodes[entry as usize].ast, unit.kids(entry)) else {
         self.read(frame, entry);
@@ -937,6 +1142,7 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
         self.set(frame, place, val);
       }
     }
+    self.keep(frame, id, from);
     Val {
       source: self.source(Source::Record(entries)),
       lift: 0,
@@ -1007,7 +1213,16 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
     // a function definition of the text: its body with the sources of the arguments
     if function.def != NONE && !self.defs[function.def as usize].escaped {
       let Def { node, frame: site, .. } = self.defs[function.def as usize];
-      if let Some(result) = self.call(node, site, &arguments, Some(written)) {
+      if self.active.contains(&node) {
+        // it invokes itself: what this invocation gives is what its body gives, which the
+        // walk of the body that is open reads whole when it ends
+        self.defs[function.def as usize].recursive = true;
+        for argument in arguments {
+          self.whole(argument);
+        }
+        return Val::NONE;
+      }
+      if let Some(result) = self.call(function.def, node, site, &arguments, Some(written)) {
         return result;
       }
     }
@@ -1087,7 +1302,7 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
   /// The body of the function definition `id`, reached in the frame `site`, with `arguments`
   /// (`written` as the text writes them; without, the parameters have no source). None when
   /// the definition is being walked already (it invokes itself).
-  fn call(&mut self, id: u32, site: u32, arguments: &[Val], written: Option<&AstNode>) -> Option<Val> {
+  fn call(&mut self, def: u32, id: u32, site: u32, arguments: &[Val], written: Option<&AstNode>) -> Option<Val> {
     let unit = self.unit;
     let node = &unit.nodes[id as usize];
     let (AstNode::FunctionDefinition(parameters, _), Info::Function { proto }) = (node.ast, &node.info) else {
@@ -1146,7 +1361,14 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
         self.whole(argument);
       }
     }
-    let body = self.enter(proto.binders, Outer::Site { frame: site, region: node.region });
+    let body = self.enter(
+      proto.binders,
+      Outer::Site {
+        frame: site,
+        region: node.region,
+        def,
+      },
+    );
     for (slot, argument) in bound {
       if let Some(held) = self.slot(body, slot) {
         *held = argument;
@@ -1154,13 +1376,23 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
     }
     self.active.push(id);
     let result = self.flow(body, proto.body);
+    if std::mem::take(&mut self.defs[def as usize].recursive) {
+      self.whole(result);
+    }
     self.settle(result, body);
     self.active.pop();
     self.leave();
     Some(result)
   }
 
-  fn finish(self) -> Reads {
+  fn finish(mut self) -> Reads {
+    // a function of the scope was read: it reads the names of the context it was written in
+    if self.everything {
+      for name in self.typing.names() {
+        let read = self.root(&name, None);
+        self.whole(read);
+      }
+    }
     let mut paths = vec![];
     for node in &self.paths {
       // the items of a list that are only passed through are said by the paths below them
@@ -1200,6 +1432,12 @@ impl<'a, 'n> Walk<'a, '_, 'n> {
       complete: self.complete,
     }
   }
+}
+
+/// Whether `key`, a key of a context that the text makes, is the entry that `name` reads: the
+/// key of this text, or a key written in another form that is the same name.
+fn is_key(key: &Name, name: &Name) -> bool {
+  key == name || rheon_feel::names::is_name(key.as_str(), name.as_str())
 }
 
 /// Whether the predicate of a filter selects one item (a number) or the items it is true for

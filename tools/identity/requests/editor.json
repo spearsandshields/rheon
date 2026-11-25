@@ -415,5 +415,13 @@
   {"op": "paths", "expression": "net operating income / sum(loans[status = \"active\"].payment)", "outline": {"types": {"Loan": {"names": {"amount": {"type": "number"}, "status": {"type": "string"}, "payment": {"type": "number"}}}}, "names": {"loans": {"type": "list<Loan>"}, "loan": {"type": "Loan"}, "net operating income": {"type": "number"}}}},
   {"op": "paths", "dialect": "unaryTests", "expression": "> rate, 5", "context": {"loan": {"amount": 1, "purpose": "x", "customer": {"name": "n", "age": 3}}, "loans": [{"amount": 1, "payment": 2, "status": "a", "customer": {"name": "n"}}], "rate": 2, "Net - Price": 5}},
   {"op": "paths"},
-  {"op": "nope", "expression": "1"}
+  {"op": "nope", "expression": "1"},
+  {"op": "paths", "expression": "loans[status = \"a\"].amount", "context": {"loan": {"amount": 1, "customer": {"name": "n"}, "tags": [1]}, "loans": [{"amount": 3, "customer": {"name": "b"}}, {"amount": 1, "status": "a", "customer": {"name": "c"}}], "n": [3, 1, 2]}},
+  {"op": "paths", "expression": "{a: {x: loan, f: function() x}, b: {y: n}, r: a.f().amount}.r", "context": {"loan": {"amount": 1, "customer": {"name": "n"}, "tags": [1]}, "loans": [{"amount": 3, "customer": {"name": "b"}}, {"amount": 1, "status": "a", "customer": {"name": "c"}}], "n": [3, 1, 2]}},
+  {"op": "paths", "expression": "{f: function(k) if k = 0 then loan else f(k - 1).customer, r: f(1).name}.r", "context": {"loan": {"amount": 1, "customer": {"name": "n"}, "tags": [1]}, "loans": [{"amount": 3, "customer": {"name": "b"}}, {"amount": 1, "status": "a", "customer": {"name": "c"}}], "n": [3, 1, 2]}},
+  {"op": "paths", "expression": "for h in [{f: function() loan.amount}].f return h()", "context": {"loan": {"amount": 1, "customer": {"name": "n"}, "tags": [1]}, "loans": [{"amount": 3, "customer": {"name": "b"}}, {"amount": 1, "status": "a", "customer": {"name": "c"}}], "n": [3, 1, 2]}},
+  {"op": "paths", "expression": "(for x in loans return if x.amount = 3 then x else {amount: partial[1].customer.name, z: (for y in [1] return y)})[2].amount", "context": {"loan": {"amount": 1, "customer": {"name": "n"}, "tags": [1]}, "loans": [{"amount": 3, "customer": {"name": "b"}}, {"amount": 1, "status": "a", "customer": {"name": "c"}}], "n": [3, 1, 2]}},
+  {"op": "paths", "expression": "get value({\"a  b\": loan}, \"a b\").amount", "context": {"loan": {"amount": 1, "customer": {"name": "n"}, "tags": [1]}, "loans": [{"amount": 3, "customer": {"name": "b"}}, {"amount": 1, "status": "a", "customer": {"name": "c"}}], "n": [3, 1, 2]}},
+  {"op": "paths", "expression": "f() + 1", "contextFormat": "feel", "context": "{k: 5, m: {n: 1}, f: function() k}"},
+  {"op": "paths", "expression": "k + 1", "contextFormat": "feel", "context": "{k: 5, m: {n: 1}, f: function() k}"}
 ]

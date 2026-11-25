@@ -3621,6 +3621,18 @@ fn paths_are_what_an_expression_reads() {
   let outlined = |expression: &str| shown(&req(json!({"op": "paths", "expression": expression, "outline": outline})));
   assert_eq!(outlined("loans.amount"), ["loans", "loans[].amount*"]);
   assert_eq!(outlined("loans[status = \"a\"]"), ["loans", "loans[]*", "loans[].status*"]);
+  // a list of a context has the type of its first item; another item can have the entry
+  let unlike = json!({"loans": [{"payment": 1}, {"payment": 2, "status": "a"}]});
+  assert_eq!(
+    shown(&req(json!({"op": "paths", "expression": "loans[status = \"a\"].payment", "context": unlike}))),
+    ["loans", "loans[].payment*", "loans[].status*"]
+  );
+  // a function that a context of the scope holds is not in the text: it can read every name
+  // of that context
+  let held = req(json!({"op": "paths", "expression": "f() + 1", "contextFormat": "feel", "context": "{k: 5, m: {n: 1}, f: function() k}"}));
+  assert_eq!(shown(&held), ["f*", "k*", "m*"]);
+  let not_read = req(json!({"op": "paths", "expression": "k + 1", "contextFormat": "feel", "context": "{k: 5, m: {n: 1}, f: function() k}"}));
+  assert_eq!(shown(&not_read), ["k*"]);
   // unary tests read the tested value
   assert_eq!(
     shown(&req(json!({"op": "paths", "dialect": "unaryTests", "expression": "> rate, 5", "context": context}))),

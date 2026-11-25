@@ -389,6 +389,14 @@ for `net operating income / sum(loans[status = "active"].payment)` with an outli
   read outside the filter too (the predicate is evaluated there first: a number selects an
   item). With a `context` or an `outline` the item is known to have the entry or not; without
   one, both are listed (`loans[].status` and `status`).
+- Whether the items of a list have an entry is read from the items of the `context`, all of
+  them: a name of a predicate is listed as an entry of the item when an item has it (the items
+  of a list need not be alike). An `outline` says the type of every item.
+- A function that a `context` holds (a context in FEEL format) is not in the text: when the
+  expression reads it, every name of the scope is listed as read whole. A function that the
+  text defines is followed into its body; when it invokes itself, what it gives is read whole.
+- Without a `context` or an `outline`, the name of a built-in function is that function, not
+  a name for the host to give.
 - Which values are lists is read from the `context` or the `outline`. Without one, an entry
   of a name is written as an entry (`loans.amount`) also when the value is a list at run
   time, and `[]` is written where the text takes items (a filter, a loop). Read such paths as
@@ -403,7 +411,8 @@ for `net operating income / sum(loans[status = "active"].payment)` with an outli
   of the text counted at each invocation); the expression can then read more than `paths` lists.
 - For `dialect: "unaryTests"` the tested value is the path `?`, read whole.
 - A text with syntax errors is the failure of kind `syntax` with `diagnostics` that `evaluate`
-  answers. The answer does not depend on the values of a `context`, only on their shape.
+  answers. The answer does not depend on the values of a `context`, only on their shape (the
+  entries that its contexts have, and which values are lists).
 
 `op: "format"` takes `expression`, `dialect`, the names in scope as `syntax` does, and the
 optional field `"width"` (the most characters of a line, 1 to 1000; default 80). It answers

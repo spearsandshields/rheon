@@ -310,6 +310,26 @@ impl<'s> Typing<'s> {
     }
   }
 
+  /// Whether a host states the types of names ([Typing::state]): an outline, which says the
+  /// type of every item of a list.
+  fn outlined(&self) -> bool {
+    !self.stated.is_empty()
+  }
+
+  /// The names that the scope has values of, each once.
+  fn names(&self) -> Vec<Name> {
+    let mut seen = std::collections::HashSet::new();
+    let mut names: Vec<Name> = vec![];
+    for frame in self.scope.frames().iter() {
+      for (name, _) in frame.iter() {
+        if seen.insert(name.clone()) {
+          names.push(name.clone());
+        }
+      }
+    }
+    names
+  }
+
   /// The name `name` as the scope writes it: the key of the value that the name reads, which
   /// can be written in another form than FEEL reads a name (`Date - Time` for `Date-Time`).
   /// The name itself when the scope has no value of it.
