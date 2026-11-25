@@ -281,8 +281,9 @@ export function feelEditor(config: FeelEditorConfig): Extension {
     if (context.aborted || !answer.ok) return null;
     const from = answer.items.reduce((least, item) => Math.min(least, item.from), context.pos);
     if (answer.items.length === 0 && !context.explicit) return null;
-    // nothing is offered for an empty word unless asked for, except after a dot and where a parameter is named
-    if (from === context.pos && !context.explicit && answer.expects !== 'property' && answer.expects !== 'parameter') return null;
+    // nothing is offered for an empty word unless asked for, except after a dot and where a parameter is named or values are listed
+    const values = answer.items.some((item) => item.kind === 'value');
+    if (from === context.pos && !context.explicit && answer.expects !== 'property' && answer.expects !== 'parameter' && !values) return null;
     const options = answer.items.map(completionOf);
     if (templates && answer.expects === 'expression') {
       const typed = text.slice(from, context.pos).toLowerCase();

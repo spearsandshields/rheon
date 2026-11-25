@@ -199,5 +199,7 @@
   {"op": "evaluate", "expression": "{a: 1, r: [{b: 5}, {b: 6}][(function() a)() = 1]}.r"},
   {"op": "evaluate", "expression": "{f: function() k, r: f(), k: 10}.r"},
   {"op": "evaluate", "expression": "{mk: {f: function() g(), g: function() 7}.f, r: mk()}.r"},
-  {"op": "evaluate", "expression": "{x: 1, f: function(a) function(b) a + b + x, r: f(10)(100)}.r"}
+  {"op": "evaluate", "expression": "{x: 1, f: function(a) function(b) a + b + x, r: f(10)(100)}.r"},
+  {"op": "evaluate", "expression": "{x: \"s\", h: function(x) function() [1][(function() x)() = 1], r: h(1)()}.r"},
+  {"op": "evaluate", "expression": "{x: \"s\", h: function(x) function() [{x: 5}][(function() x)() = 5], r: h(1)()}.r"}
 ]

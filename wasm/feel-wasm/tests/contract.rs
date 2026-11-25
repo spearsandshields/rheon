@@ -3413,3 +3413,65 @@ fn hover_says_what_a_name_is() {
   // a place beyond the text is its end
   assert_eq!(req(json!({"op": "hover", "expression": "a", "at": 99}))["hover"]["to"], 1);
 }
+
+/// Review of outline v2 (the second independent review).
+#[test]
+fn review_of_outline_v2() {
+  let complete = |expression: &str, outline: Json| {
+    let mut request = json!({"op": "complete", "expression": expression});
+    if !outline.is_null() {
+      request["outline"] = outline;
+    }
+    let response = req(request);
+    assert_eq!(response["ok"], true, "{expression}: {response}");
+    response
+  };
+  let values = |response: &Json| -> Vec<String> {
+    response["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| item["kind"] == "value")
+      .map(|item| item["label"].as_str().unwrap().to_string())
+      .collect()
+  };
+  // a path without its name before the operator: answered, with nothing to offer
+  for text in ["a.b + c. = \"", "a.b + c. = ", "x. != \"", ". = \""] {
+    assert!(values(&complete(text, Json::Null)).is_empty(), "{text}");
+  }
+  // the values of a type by name: beside the type of the name, and of the type itself
+  let by_name = json!({"types": {"Purpose": {"type": "string", "values": ["REFI", "PURCHASE"]}, "Loan": {"names": {"purpose": {"type": "Purpose"}}}},
+                       "names": {"p": {"type": "Purpose"}, "q": {"type": "Purpose", "values": ["OTHER"]}, "loan": {"type": "Loan"}}});
+  assert_eq!(values(&complete("p = \"", by_name.clone())), ["PURCHASE", "REFI"]);
+  assert_eq!(values(&complete("q = \"", by_name.clone())), ["OTHER"]);
+  assert_eq!(values(&complete("loan.purpose = \"", by_name.clone())), ["PURCHASE", "REFI"]);
+  // a name that the text binds is not the name of the outline
+  assert!(values(&complete("for p in [1] return p = ", by_name)).is_empty());
+  // a value is written as a string of FEEL holds it
+  let quoted = json!({"names": {"s": {"type": "string", "values": ["say \"hi\"", "a\nb"]}}});
+  assert_eq!(values(&complete("s = \"", quoted.clone())), ["a\\nb", "say \\\"hi\\\""]);
+  assert_eq!(values(&complete("s = ", quoted)), ["\"a\\nb\"", "\"say \\\"hi\\\"\""]);
+  // in unary tests the values of the input where a test starts, not in an argument
+  let input = json!({"names": {"?": {"type": "string", "values": ["A", "B"]}}});
+  let cell = |expression: &str| values(&req(json!({"op": "complete", "dialect": "unaryTests", "expression": expression, "outline": input})));
+  assert_eq!(cell(""), ["\"A\"", "\"B\""]);
+  assert_eq!(cell("\"A\", "), ["\"A\"", "\"B\""]);
+  assert_eq!(cell("not("), ["\"A\"", "\"B\""]);
+  assert!(cell("> max(1, ").is_empty());
+  assert!(cell("count(").is_empty());
+  // a function of the outline named as a built-in function is the function of the outline
+  let round = complete("rou", json!({"names": {"round": {"function": {"parameters": [{"name": "x"}], "result": "string"}}}}));
+  let item = round["items"].as_array().unwrap().iter().find(|item| item["label"] == "round").unwrap();
+  assert_eq!(
+    *item,
+    json!({"label": "round", "kind": "function", "from": 0, "type": "function<Any>->string", "detail": "round(x): string"})
+  );
+  // the types are checked whatever the outline of the request is
+  let failed = req(json!({"op": "complete", "expression": "a", "outline": {"type": "number", "types": {"T": {"function": 5}}}}));
+  assert_eq!(failed["ok"], false, "{failed}");
+  // hover at the end of a name that a symbol follows
+  let hover = |expression: &str, at: usize| req(json!({"op": "hover", "expression": expression, "at": at, "context": {"a": {"b": 1}}}))["hover"].clone();
+  assert_eq!(hover("a.b", 1)["kind"], "name");
+  assert_eq!(hover("a.b", 3)["kind"], "entry");
+  assert_eq!(hover("count(a)", 5)["kind"], "function");
+}

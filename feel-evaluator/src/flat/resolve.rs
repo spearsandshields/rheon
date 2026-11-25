@@ -341,6 +341,7 @@ fn resolve_as(ast: &AstNode, closures: bool) -> Resolved<'_> {
     closures,
     sites: vec![],
     nearer: vec![],
+    decided: std::collections::HashSet::new(),
     free_names: vec![],
     body: Body {
       proto: NONE,
@@ -354,12 +355,7 @@ fn resolve_as(ast: &AstNode, closures: bool) -> Resolved<'_> {
   resolver.out.root.body = root;
   resolver.out.root.binders = resolver.body.max;
   // the names that each function reads from its closure first, sorted
-  let mut nearer: Vec<(u32, u32)> = resolver
-    .nearer
-    .iter()
-    .filter(|(_, _, nearer)| *nearer)
-    .map(|&(function, name, _)| (function, name))
-    .collect();
+  let mut nearer = std::mem::take(&mut resolver.nearer);
   nearer.sort_unstable();
   nearer.dedup();
   let mut at = 0;
@@ -410,9 +406,11 @@ struct Resolver<'a> {
   /// Where the function definitions around the position being resolved are written, the
   /// outermost first: the function, and the innermost region where its definition stands.
   sites: Vec<(u32, u32)>,
-  /// The names that functions read from their closure first ([Proto::nearer]) and those decided
-  /// otherwise, as found: the function, the name, and whether it is one.
-  nearer: Vec<(u32, u32, bool)>,
+  /// The names that functions read from their closure first ([Proto::nearer]), as found: the
+  /// function and the name.
+  nearer: Vec<(u32, u32)>,
+  /// The functions and names decided so far ([Resolver::beyond]).
+  decided: std::collections::HashSet<(u32, u32)>,
   /// The free name of each name, read as a name and as a qualified name, or [NONE].
   free_names: Vec<[u32; 2]>,
   body: Body,
@@ -553,10 +551,13 @@ impl<'a> Resolver<'a> {
     let Some(&(innermost, _)) = self.sites.last() else {
       return;
     };
-    if !self.closures || self.nearer.iter().any(|&(function, known, _)| function == innermost && known == name) {
+    if !self.closures || !self.decided.insert((innermost, name)) {
       return;
     }
-    let mut found = None;
+    // the outermost function that reads its closure first: the one whose definition stands in
+    // the scope of the variable or parameter found, or in the predicate of a filter passed on
+    // the way (its item has the name or not when it is evaluated)
+    let mut from = None;
     'sites: for depth in (0..self.sites.len()).rev() {
       let mut region = self.sites[depth].1;
       while region != NONE {
@@ -570,27 +571,23 @@ impl<'a> Resolver<'a> {
                 break 'sites;
               }
             } else if layout.find(name, visible).is_some() {
-              found = Some(depth);
+              from = Some(depth);
               break 'sites;
             }
           }
-          RegionKind::Item { .. } => {
-            found = Some(depth);
-            break 'sites;
-          }
+          // the functions written in the predicate read their closure first, whatever has the
+          // name further out, which decides the functions around the filter
+          RegionKind::Item { .. } => from = Some(depth),
           RegionKind::Closure => break,
         }
         region = parent;
       }
     }
-    // the functions from the one whose definition stands in the scope found, inwards
-    let crossed = found.unwrap_or(self.sites.len());
-    for depth in 0..self.sites.len() {
-      let function = self.sites[depth].0;
-      if depth >= crossed {
-        self.nearer.push((function, name, true));
-      } else if depth + 1 == self.sites.len() {
-        self.nearer.push((function, name, false));
+    if let Some(from) = from {
+      for depth in from..self.sites.len() {
+        let function = self.sites[depth].0;
+        self.decided.insert((function, name));
+        self.nearer.push((function, name));
       }
     }
   }

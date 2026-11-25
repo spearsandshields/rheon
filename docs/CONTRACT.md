@@ -299,7 +299,8 @@ and an outline without it is read as before.
   `"description": "<text>"` and `"deprecated": true | "<the reason>"`. `complete` gives the
   description as the `documentation` of the item, and `deprecated` as the outline has it; the
   deprecated items of a kind come after the others.
-- **The values a name can have.** Beside a `type` that is a string, a number or a boolean:
+- **The values a name can have.** Beside a `type` that is a string, a number or a boolean
+  (also a type of `types` that is one, and in its definition there, for every name of it):
   `"values": [<value> | {"value": <value>, "description": "<text>"}, …]`. Where the name is
   compared (`=`, `!=`, `in`), `complete` offers the values first, as items of the kind
   `value`: after the operator as they are written (`"REFI"`, `12`), and inside a string that

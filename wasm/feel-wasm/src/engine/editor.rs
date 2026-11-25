@@ -100,14 +100,14 @@ fn scope(mut req: Map<String, Json>, mut unread: Unread, dialect: Dialect) -> Re
   unread.context = None;
   req.remove("contextFormat");
   let mut context = context_of_outline(&outline, 0, &At::Root("outline"), true)?;
-  if let (Json::Object(names), Json::Object(fields)) = (&mut context, &outline)
-    && let Some(Json::Object(types)) = fields.get("types")
-  {
+  if let Some(Json::Object(types)) = outline.get("types") {
     let mut held = Map::new();
     for (name, definition) in types {
       held.insert(name.clone(), context_of_outline(definition, 1, &At::Entry(&At::Root("outline.types"), name), false)?);
     }
-    names.insert(TYPES_KEY.to_string(), Json::Object(held));
+    if let Json::Object(names) = &mut context {
+      names.insert(TYPES_KEY.to_string(), Json::Object(held));
+    }
   }
   req.insert("context".to_string(), context);
   let scope = prepare_scope(req, unread, dialect, &mut vec![])?;
@@ -269,6 +269,8 @@ struct Schema {
   root_meta: HashMap<String, Meta>,
   /// What the outline says of an entry: by the type that has the entry, and its name.
   entry_meta: HashMap<(TypeId, String), Meta>,
+  /// What the outline says of a type of `types` itself (its values): for the names of that type.
+  type_meta: HashMap<TypeId, Meta>,
   /// The type that each type text read so far writes: an outline writes few texts many times.
   texts: HashMap<String, Option<TypeId>>,
 }
@@ -293,6 +295,9 @@ impl Schema {
       for (name, definition) in types {
         let defined = schema.node(typing, &named, definition, &At::Entry(&At::Root("outline.types"), name))?;
         typing.define(named[name], defined);
+        if let Some(meta) = definition.as_object().and_then(Meta::of) {
+          schema.type_meta.insert(named[name], meta);
+        }
       }
       // types that are only each other are no types
       for (name, definition) in types {
@@ -397,7 +402,7 @@ impl Schema {
     if let Some(Json::String(text)) = fields.get("type") {
       let written = self.text(typing, named, text, place)?;
       if let Some(Json::Array(values)) = fields.get("values") {
-        let of = typing.shown(written);
+        let of = typing.feel_type(written);
         for value in values {
           let inner = match value {
             Json::Object(fields) if fields.keys().all(|field| matches!(field.as_str(), "value" | "description")) && fields.get("description").is_none_or(Json::is_string) => {
@@ -407,8 +412,8 @@ impl Schema {
             plain => Some(plain),
           };
           let fits = matches!(
-            (of.as_deref(), inner),
-            (Some("string"), Some(Json::String(_))) | (Some("number"), Some(Json::Number(_))) | (Some("boolean"), Some(Json::Bool(_)))
+            (&of, inner),
+            (FeelType::String, Some(Json::String(_))) | (FeelType::Number, Some(Json::Number(_))) | (FeelType::Boolean, Some(Json::Bool(_)))
           );
           if !fits {
             return fail(
@@ -445,6 +450,19 @@ impl Schema {
         ),
       }
     }
+  }
+
+  /// The values that the outline lists for a name of the type `of`: those of the type itself, or
+  /// of a type it is defined as.
+  fn values_of(&self, typing: &Typing, of: TypeId) -> Option<&Meta> {
+    let mut of = of;
+    for _ in 0..64 {
+      if let Some(meta) = self.type_meta.get(&of).filter(|meta| !meta.values.is_empty()) {
+        return Some(meta);
+      }
+      of = typing.defined_as(of)?;
+    }
+    None
   }
 
   /// What the outline says of the entry `name` of a value of the type `base`: of an entry of a
@@ -1154,8 +1172,8 @@ fn compared<'m>(typing: &mut Typing, schema: &'m Schema, scope: &FeelScope, text
     operand
   } else if let Some(operand) = head.strip_suffix("in").filter(|operand| operand.ends_with(char::is_whitespace)) {
     operand
-  } else if unary_tests && (head.is_empty() || head.ends_with([',', '(']) || head.ends_with("not(")) {
-    return said(schema.root_meta.get("?"));
+  } else if unary_tests && test_starts(head) {
+    return said(schema.root_meta.get("?")).or_else(|| schema.roots.get("?").and_then(|input| schema.values_of(typing, *input)));
   } else {
     return None;
   };
@@ -1168,6 +1186,7 @@ fn compared<'m>(typing: &mut Typing, schema: &'m Schema, scope: &FeelScope, text
   if last.end != operand.len() {
     return None;
   }
+  let written = spaced(&operand[last.start..last.end]);
   // the longest path that ends the operand: the entry of the value before its last dot
   let path = syntax
     .nodes
@@ -1176,14 +1195,59 @@ fn compared<'m>(typing: &mut Typing, schema: &'m Schema, scope: &FeelScope, text
     .min_by_key(|node| node.start);
   match path {
     Some(path) => {
-      let dot = words(&syntax).filter(|token| token.end <= last.start && &operand[token.start..token.end] == ".").last()?;
+      let dot = words(&syntax)
+        .filter(|token| token.start > path.start && token.end <= last.start && &operand[token.start..token.end] == ".")
+        .last()?;
       let bound = bound_at(typing, scope, operand, &syntax, path.start);
       let base = type_of_piece(typing, scope, &operand[path.start..dot.start], &bound);
-      said(schema.entry(typing, base, &spaced(&operand[last.start..last.end])))
+      let member = typing.members(base).into_iter().find(|(name, _)| spaced(name) == written).map(|(_, member)| member);
+      said(schema.entry(typing, base, &written)).or_else(|| member.and_then(|member| schema.values_of(typing, member)))
     }
-    None if last.class == TokenClass::Name => said(schema.root_meta.get(&spaced(&operand[last.start..last.end]))),
+    None if last.class == TokenClass::Name => {
+      // a name that the text binds is not the name of the scope
+      let bound = bound_at(typing, scope, operand, &syntax, last.start);
+      if bound.names.iter().any(|(name, _)| name.as_str() == written) {
+        return None;
+      }
+      said(schema.root_meta.get(&written)).or_else(|| schema.roots.get(&written).and_then(|root| schema.values_of(typing, *root)))
+    }
     None => None,
   }
+}
+
+/// A text as a string literal of FEEL holds it.
+fn escaped(text: &str) -> String {
+  let mut out = String::with_capacity(text.len());
+  for ch in text.chars() {
+    match ch {
+      '\\' => out.push_str("\\\\"),
+      '"' => out.push_str("\\\""),
+      '\n' => out.push_str("\\n"),
+      '\r' => out.push_str("\\r"),
+      '\t' => out.push_str("\\t"),
+      ch => out.push(ch),
+    }
+  }
+  out
+}
+
+/// Whether a unary test starts where `head` ends: at the start of the text, after the `,` of the
+/// list of tests, and the same inside `not(`.
+fn test_starts(head: &str) -> bool {
+  let tests = head.trim_start().strip_prefix("not(").unwrap_or(head);
+  let mut depth = 0usize;
+  let mut string = false;
+  let mut before = ' ';
+  for ch in tests.chars() {
+    match ch {
+      '"' if before != '\\' => string = !string,
+      '(' | '[' | '{' if !string => depth += 1,
+      ')' | ']' | '}' if !string => depth = depth.saturating_sub(1),
+      _ => {}
+    }
+    before = ch;
+  }
+  !string && depth == 0 && (tests.trim().is_empty() || tests.trim_end().ends_with(','))
 }
 
 /// The values of `said` as they are offered: `quoted`, a string as its literal (where an
@@ -1194,8 +1258,8 @@ fn values(said: &Meta, quoted: bool) -> Vec<Offered> {
     .iter()
     .filter_map(|(value, description)| {
       let (label, feel_type) = match value {
-        Json::String(text) if quoted => (format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\"")), "string"),
-        Json::String(text) => (text.clone(), "string"),
+        Json::String(text) if quoted => (format!("\"{}\"", escaped(text)), "string"),
+        Json::String(text) => (escaped(text), "string"),
         Json::Number(number) if quoted => (number.to_string(), "number"),
         Json::Bool(boolean) if quoted => (boolean.to_string(), "boolean"),
         _ => return None,
@@ -1427,6 +1491,7 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
       match item.kind {
         // a parameter is inserted with its colon
         "parameter" => json["insertText"] = json!(format!("{}: ", item.label)),
+        "function" if item.said.as_ref().is_some_and(|said| said.signature.is_some()) => {}
         "function" => {
           if let Some(built_in) = built_in(&item.label) {
             let first = &built_in.signatures[0];
@@ -1490,9 +1555,15 @@ pub(super) fn hover(mut req: Map<String, Json>, unread: Unread, started: Instant
   let syntax = parse_tolerant_start(&scope, &expression, dialect.rule());
   let answer = |hover: Json| Ok(json!({ "ok": true, "hover": hover, "elapsedMicros": elapsed_micros(started) }));
   // the name at the place, or the one that ends there
+  let named = |token: &&SyntaxToken| {
+    matches!(
+      token.class,
+      TokenClass::Name | TokenClass::Function | TokenClass::Property | TokenClass::Variable | TokenClass::Parameter | TokenClass::Key
+    )
+  };
   let token = words(&syntax)
-    .find(|token| token.start <= at && at < token.end)
-    .or_else(|| words(&syntax).find(|token| token.end == at));
+    .find(|token| token.start <= at && at < token.end && named(token))
+    .or_else(|| words(&syntax).find(|token| token.end == at && named(token)));
   let Some(token) = token else {
     return answer(Json::Null);
   };

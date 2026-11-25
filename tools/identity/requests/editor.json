@@ -358,5 +358,16 @@
   {"op": "complete", "expression": "a", "outline": {"names": {"a": {"type": "date", "values": ["x"]}}}},
   {"op": "complete", "expression": "a", "outline": {"names": {"a": {"type": "string", "values": [1]}}}},
   {"op": "complete", "expression": "a", "outline": {"names": {"f": {"function": {"parameters": [{"type": "number"}]}}}}},
-  {"op": "complete", "expression": "a", "outline": {"names": {"f": {"function": {"parameters": [], "results": "number"}}}}}
+  {"op": "complete", "expression": "a", "outline": {"names": {"f": {"function": {"parameters": [], "results": "number"}}}}},
+  {"op": "complete", "expression": "a.b + c. = \""},
+  {"op": "complete", "expression": "a.b + c. = "},
+  {"op": "complete", "expression": "p = \"", "outline": {"types": {"Purpose": {"type": "string", "values": ["REFI", "PURCHASE"]}, "Loan": {"names": {"purpose": {"type": "Purpose"}}}}, "names": {"p": {"type": "Purpose"}, "loan": {"type": "Loan"}}}},
+  {"op": "complete", "expression": "loan.purpose = \"", "outline": {"types": {"Purpose": {"type": "string", "values": ["REFI", "PURCHASE"]}, "Loan": {"names": {"purpose": {"type": "Purpose"}}}}, "names": {"p": {"type": "Purpose"}, "loan": {"type": "Loan"}}}},
+  {"op": "complete", "expression": "for p in [1] return p = ", "outline": {"types": {"Purpose": {"type": "string", "values": ["REFI", "PURCHASE"]}, "Loan": {"names": {"purpose": {"type": "Purpose"}}}}, "names": {"p": {"type": "Purpose"}, "loan": {"type": "Loan"}}}},
+  {"op": "complete", "expression": "s = \"", "outline": {"names": {"s": {"type": "string", "values": ["say \"hi\"", "a\nb"]}}}},
+  {"op": "complete", "dialect": "unaryTests", "expression": "> max(1, ", "outline": {"names": {"?": {"type": "string", "values": ["A", "B"]}}}},
+  {"op": "complete", "dialect": "unaryTests", "expression": "count(", "outline": {"names": {"?": {"type": "string", "values": ["A", "B"]}}}},
+  {"op": "complete", "expression": "rou", "outline": {"names": {"round": {"function": {"parameters": [{"name": "x"}], "result": "string"}}}}},
+  {"op": "complete", "expression": "a", "outline": {"type": "number", "types": {"T": {"function": 5}}}},
+  {"op": "hover", "expression": "a.b", "at": 1, "context": {"a": {"b": 1}}}
 ]

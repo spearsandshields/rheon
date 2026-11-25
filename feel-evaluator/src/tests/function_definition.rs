@@ -63,3 +63,30 @@ fn a_function_reads_a_name_from_the_nearest_scope_around_it() {
     te_value(false, &scope!(), text, expected);
   }
 }
+
+/// Through the predicate of a filter to the parameter around it: the item has the name or not
+/// when it is evaluated, and what is further out decides the functions around the filter
+/// (review).
+#[test]
+fn a_function_in_a_filter_reads_the_item_then_the_scope_around_the_filter() {
+  te_value(false, &scope!(), r#"{x: "s", h: function(x) function() [1][(function() x)() = 1], r: h(1)()}.r"#, "[1]");
+  te_value(
+    false,
+    &scope!(),
+    r#"{x: "s", h: function(x) function() [{x: 5}][(function() x)() = 5], r: h(1)()}.r"#,
+    "[{x: 5}]",
+  );
+  te_value(false, &scope!(), r#"{x: 1, h: function() function() [7][(function() x)() = 1], r: h()()}.r"#, "[7]");
+}
+
+/// Deciding where the bodies read their names is the work of the text: many functions that read
+/// one name, and one function that reads many (review).
+#[test]
+fn many_functions_and_names_are_resolved_in_the_time_of_the_text() {
+  let started = std::time::Instant::now();
+  let functions = vec!["function() a"; 20_000].join(", ");
+  te_value(false, &scope!(), &format!("count([{functions}])"), "20000");
+  let names: Vec<String> = (0..20_000).map(|i| format!("a{i}")).collect();
+  te_value(false, &scope!(), &format!("count((function() [{}])())", names.join(", ")), "20000");
+  assert!(started.elapsed() < std::time::Duration::from_secs(20), "{:?}", started.elapsed());
+}
