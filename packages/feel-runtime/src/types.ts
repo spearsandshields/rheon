@@ -185,7 +185,20 @@ export interface ParseOptions {
  * operations take an outline in place of the context, so an editor does not send the values
  * with every keystroke.
  */
-export type Outline = null | { type: string } | { names: Record<string, Outline> } | { items: Outline };
+export type Outline = null | (OutlineForm & OutlineSaid);
+
+/** What a name is: of a type, a context of names, a list of items, or (the outline of a request) only the types. */
+export type OutlineForm = { type: string } | { names: Record<string, Outline> } | { items: Outline } | { names?: Record<string, Outline>; types: Record<string, Outline> };
+
+/** What an outline says of a name beside its type. */
+export interface OutlineSaid {
+  /** What the name is for: the `info` of its completion item. */
+  description?: string;
+  /** That the name should no longer be used: `true`, or the reason. */
+  deprecated?: boolean | string;
+  /** The types that the type texts of the outline can name; only in the outline of a request. */
+  types?: Record<string, Outline>;
+}
 
 /** What the editor operations (`syntax`, `complete`) know about the names in scope: a context or its outline, not both. */
 export interface EditorOptions {
@@ -240,10 +253,12 @@ export interface CompletionItem {
   type: string | null;
   /** More about the item: the first signature of a built-in function. */
   detail: string | null;
-  /** One line that says what a built-in function gives. */
+  /** One line that says what a built-in function gives, or the description an outline has for the name. */
   info?: string;
   /** The text to insert when it is not the label: a parameter with its colon. */
   insert?: string;
+  /** That an outline marks the name as deprecated: `true`, or the reason. */
+  deprecated?: true | string;
 }
 
 /** A parameter of a signature of a built-in function. */

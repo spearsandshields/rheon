@@ -89,12 +89,19 @@ struct Frame {
 pub struct Typing<'s> {
   types: Types,
   scope: &'s FeelScope,
+  /// The names of the scope whose types a host states ([Typing::state]): they are read before
+  /// the values of the scope.
+  stated: std::collections::HashMap<Name, TypeId>,
 }
 
 impl<'s> Typing<'s> {
   /// The typing of expressions in `scope`.
   pub fn new(scope: &'s FeelScope) -> Self {
-    Self { types: Types::new(), scope }
+    Self {
+      types: Types::new(),
+      scope,
+      stated: std::collections::HashMap::new(),
+    }
   }
 
   /// Returns the type of the value of `node`, where the names of `bound` (the variables and
@@ -120,6 +127,111 @@ impl<'s> Typing<'s> {
     };
     let frame = analysis.enter(root.root.binders, Outer::Bound { visible: bound.len() as u32 });
     analysis.fact(frame, 0, root.root()).ty
+  }
+
+  /// A new declared type, with its name when it has one: a type of a host, which stands for the
+  /// type it is defined as ([Typing::define]) and is itself, whatever other type is defined
+  /// alike. It can be held by types made before it is defined, so types can hold each other.
+  pub fn declare(&mut self, name: Option<Name>) -> TypeId {
+    self.types.declare(name)
+  }
+
+  /// Defines the declared type `declared` as the type `as_type`.
+  pub fn define(&mut self, declared: TypeId, as_type: TypeId) {
+    self.types.define(declared, as_type);
+  }
+
+  /// States the type of the name `name` of the scope: the name is read with this type, whatever
+  /// the scope holds for it.
+  pub fn state(&mut self, name: Name, stated: TypeId) {
+    self.stated.insert(Name::from(rheon_feel::names::name_form(name.as_str())), stated);
+  }
+
+  /// The type that the declared type `id` is defined as, None for a type that is not declared.
+  pub fn defined_as(&self, id: TypeId) -> Option<TypeId> {
+    self.types.defined_as(id)
+  }
+
+  /// The name of the type `id` when it is a declared type that has one.
+  pub fn name(&self, id: TypeId) -> Option<&Name> {
+    self.types.name(id)
+  }
+
+  /// The list type of items of the type `item`.
+  pub fn list(&mut self, item: TypeId) -> TypeId {
+    self.types.list(item)
+  }
+
+  /// The context type of the entries `entries`, the last of a name given twice.
+  pub fn context(&mut self, entries: impl IntoIterator<Item = (Name, TypeId)>) -> TypeId {
+    self.types.context(entries.into_iter().collect())
+  }
+
+  /// The function type of the parameters `parameters` and the result `result`.
+  pub fn function(&mut self, parameters: Vec<TypeId>, result: TypeId) -> TypeId {
+    self.types.function(parameters, result)
+  }
+
+  /// The type that `text` writes as FEEL writes a type (`number`, `list<string>`,
+  /// `context<a: number>`, `function<number>->string`), where a name that is no type of FEEL is
+  /// the type that `named` gives for it (a qualified name with its segments joined by `.`).
+  /// None when the text is no type, or `named` has none for a name.
+  pub fn written(&mut self, text: &str, named: &dyn Fn(&str) -> Option<TypeId>) -> Option<TypeId> {
+    let scope = FeelScope::default();
+    let node = rheon_feel_parser::parse_expression(&scope, &format!("null instance of {text}")).ok()?;
+    match &node {
+      AstNode::InstanceOf(value, written) if matches!(value.as_ref(), AstNode::Null) => self.written_node(written, named, 0),
+      _ => None,
+    }
+  }
+
+  fn written_node(&mut self, node: &AstNode, named: &dyn Fn(&str) -> Option<TypeId>, depth: usize) -> Option<TypeId> {
+    if depth >= MAX_TYPE_DEPTH {
+      return None;
+    }
+    Some(match node {
+      AstNode::FeelType(feel_type) => self.types.of(feel_type),
+      AstNode::ListType(item) => {
+        let item = self.written_node(item, named, depth + 1)?;
+        self.types.list(item)
+      }
+      AstNode::RangeType(endpoint) => {
+        let endpoint = self.written_node(endpoint, named, depth + 1)?;
+        self.types.range(endpoint)
+      }
+      AstNode::ContextType(entries) => {
+        let mut types = BTreeMap::new();
+        for entry in entries {
+          let AstNode::ContextTypeEntry(key, entry_type) = entry else {
+            return None;
+          };
+          let AstNode::ContextTypeEntryKey(name) = key.as_ref() else {
+            return None;
+          };
+          types.insert(name.clone(), self.written_node(entry_type, named, depth + 1)?);
+        }
+        self.types.context(types)
+      }
+      AstNode::FunctionType(parameters, result) => {
+        let AstNode::ParameterTypes(items) = parameters.as_ref() else {
+          return None;
+        };
+        let parameters = items.iter().map(|item| self.written_node(item, named, depth + 1)).collect::<Option<Vec<_>>>()?;
+        let result = self.written_node(result, named, depth + 1)?;
+        self.types.function(parameters, result)
+      }
+      AstNode::QualifiedName(segments) => {
+        let names: Vec<&str> = segments
+          .iter()
+          .map(|segment| match segment {
+            AstNode::Name(name) | AstNode::QualifiedNameSegment(name) => Some(name.as_str()),
+            _ => None,
+          })
+          .collect::<Option<_>>()?;
+        named(&names.join("."))?
+      }
+      _ => return None,
+    })
   }
 
   /// The type of the table that `feel_type` is.
@@ -176,6 +288,9 @@ impl<'s> Typing<'s> {
     if depth >= MAX_TYPE_DEPTH {
       return None;
     }
+    if let Some(name) = self.types.name(id) {
+      return Some(name.to_string());
+    }
     match self.types.kind(id) {
       Kind::Any | Kind::Null => None,
       Kind::Context(_) => Some("context".to_string()),
@@ -195,6 +310,15 @@ impl<'s> Typing<'s> {
 
   /// The type of what `name` holds in the scope, None when the scope has no value of the name.
   fn value(&mut self, name: &Name) -> Option<TypeId> {
+    if !self.stated.is_empty() {
+      let stated = match rheon_feel::names::is_in_name_form(name.as_str()) {
+        true => self.stated.get(name),
+        false => self.stated.get(&Name::from(rheon_feel::names::name_form(name.as_str()))),
+      };
+      if let Some(stated) = stated {
+        return Some(*stated);
+      }
+    }
     let frames = self.scope.frames();
     let value = frames.iter().rev().find_map(|frame| frame.get_entry(name))?;
     Some(self.types.of_value(value))

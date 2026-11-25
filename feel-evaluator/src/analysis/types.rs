@@ -46,6 +46,9 @@ pub(crate) enum Kind {
   Context(Box<[(Name, TypeId)]>),
   /// A function: the types of its parameters, and of its result.
   Function(Box<[TypeId]>, TypeId),
+  /// A type that a host declares ([Types::declare]): it stands for the type it is defined as,
+  /// and is itself, however many declared types are defined alike.
+  Declared(u32),
 }
 
 /// The types that hold no other type: every table has them, at these indexes.
@@ -100,6 +103,9 @@ pub(crate) struct Types {
   /// The types of the lists and contexts of a scope read so far, by their place in memory and
   /// their depth in the value read: a value that a scope holds at many places is read once.
   values: HashMap<(usize, usize), TypeId>,
+  /// The declared types: the name of each that has one, and the type it is defined as (`Any`
+  /// until it is defined).
+  declared: Vec<(Option<Name>, TypeId)>,
 }
 
 impl Types {
@@ -108,15 +114,59 @@ impl Types {
       kinds: Vec::new(),
       made: HashMap::new(),
       values: HashMap::new(),
+      declared: Vec::new(),
     }
   }
 
-  /// What the type `id` is; `Any` for a type that is none of this table.
-  pub(crate) fn kind(&self, id: TypeId) -> &Kind {
+  /// What the type `id` is as it stands in the table; `Any` for a type that is none of it.
+  fn stored(&self, id: TypeId) -> &Kind {
     let index = id.0 as usize;
     match SIMPLE.get(index) {
       Some(simple) => simple,
       None => self.kinds.get(index - SIMPLE.len()).map_or(&SIMPLE[0], |kind| kind),
+    }
+  }
+
+  /// What the type `id` is: of a declared type, what it is defined as. Declared types that are
+  /// only each other are `Any`.
+  pub(crate) fn kind(&self, id: TypeId) -> &Kind {
+    let mut kind = self.stored(id);
+    for _ in 0..=self.declared.len() {
+      match kind {
+        Kind::Declared(index) => kind = self.stored(self.declared[*index as usize].1),
+        _ => return kind,
+      }
+    }
+    &SIMPLE[0]
+  }
+
+  /// A new declared type, with its name when it has one; it is `Any` until it is defined.
+  pub(crate) fn declare(&mut self, name: Option<Name>) -> TypeId {
+    self.declared.push((name, ANY));
+    self.make(Kind::Declared(self.declared.len() as u32 - 1))
+  }
+
+  /// Defines the declared type `declared` as the type `as_type`.
+  pub(crate) fn define(&mut self, declared: TypeId, as_type: TypeId) {
+    if let Kind::Declared(index) = self.stored(declared) {
+      let index = *index as usize;
+      self.declared[index].1 = as_type;
+    }
+  }
+
+  /// The type that the declared type `id` is defined as, None for a type that is not declared.
+  pub(crate) fn defined_as(&self, id: TypeId) -> Option<TypeId> {
+    match self.stored(id) {
+      Kind::Declared(index) => Some(self.declared[*index as usize].1),
+      _ => None,
+    }
+  }
+
+  /// The name of the type `id` when it is a declared type that has one.
+  pub(crate) fn name(&self, id: TypeId) -> Option<&Name> {
+    match self.stored(id) {
+      Kind::Declared(index) => self.declared[*index as usize].0.as_ref(),
+      _ => None,
     }
   }
 
@@ -231,6 +281,7 @@ impl Types {
       Kind::Range(_) => FeelType::Range(Box::new(FeelType::Any)),
       Kind::Context(_) => FeelType::Context(BTreeMap::new()),
       Kind::Function(..) => FeelType::Function(vec![], Box::new(FeelType::Any)),
+      Kind::Declared(_) => FeelType::Any,
     }
   }
 

@@ -280,6 +280,36 @@ when the request has `"types": true` (default false: the answer is as without th
 the type of each name that is no context and no list of contexts, when the value says it (not
 for null; an empty list is a `list<Any>`).
 
+An outline says as much as the consumer has to say; every part of the following is optional,
+and an outline without it is read as before.
+
+- **Types by name.** The outline of a request can have `"types": {<name>: <outline>, …}`, and
+  a type text can name one of them, alone or inside another type (`"Customer"`,
+  `"list<Loan>"`). The types can name each other and themselves (a loan has a customer, who
+  has loans): the engine follows a name where the text reads it, so such an outline is as
+  small as its types, however deep a text goes. `complete` shows a name of such a type with
+  the name of the type. A name of `types` that is a type of FEEL (`number`, `list`), a type
+  text that names no type, and types that are only names of each other are failures of kind
+  `context` that name the entry.
+- **What a name is for.** Beside `type`, `names`, `items` or `function`, an outline can have
+  `"description": "<text>"` and `"deprecated": true | "<the reason>"`. `complete` gives the
+  description as the `info` of the item, and `deprecated` as the outline has it; the
+  deprecated items of a kind come after the others.
+
+```jsonc
+{ "types": {
+    "Loan":     { "names": { "amount": { "type": "number" },
+                             "purpose": { "type": "string", "description": "Loan purpose" },
+                             "customer": { "type": "Customer" } } },
+    "Customer": { "names": { "loans": { "type": "list<Loan>" },
+                             "old score": { "type": "number", "deprecated": "use score" } } } },
+  "names": { "loan": { "type": "Loan" } } }
+```
+
+A field that an outline does not have is a failure of kind `context` that names the entry and
+the field. The key of a name is read as the key of a context is (a key in another form than
+FEEL reads a name, `"Net - Price"`, is the name its tokens are).
+
 `op: "format"` takes `expression`, `dialect`, the names in scope as `syntax` does, and the
 optional field `"width"` (the most characters of a line, 1 to 1000; default 80). It answers
 `{ "ok": true, "formatted": "<text>", "changed": true | false, "elapsedMicros": n }`.

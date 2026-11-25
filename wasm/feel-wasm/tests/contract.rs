@@ -2142,7 +2142,7 @@ fn outline_in_place_of_the_context() {
   assert_error(
     &req(json!({"op": "syntax", "expression": "1", "outline": {"names": 1}})),
     "context",
-    "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
+    "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}}, {\"items\": <outline>} or {\"function\": {\"parameters\": […], \"result\": <type>}}, with \"description\" and \"deprecated\" beside it when it has them, and \"values\" beside a type",
   );
 }
 
@@ -2447,7 +2447,7 @@ fn an_outline_can_have_the_types_of_its_names() {
   assert_error(
     &req(json!({"op": "complete", "expression": "", "outline": {"names": {"a": {"type": "number", "names": {}}}}})),
     "context",
-    "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
+    "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}}, {\"items\": <outline>} or {\"function\": {\"parameters\": […], \"result\": <type>}}, with \"description\" and \"deprecated\" beside it when it has them, and \"values\" beside a type",
   );
 }
 
@@ -3165,4 +3165,91 @@ fn completion_shows_types_that_share_or_nest_much_within_bounds() {
       );
     }
   });
+}
+
+/// An outline can declare types that its names and each other refer to by name, and say more
+/// of a name than its type: a description, and that it is deprecated.
+#[test]
+fn an_outline_has_types_by_name_descriptions_and_deprecation() {
+  let outline = json!({
+    "types": {
+      "Loan": {"names": {
+        "amount": {"type": "number"},
+        "purpose": {"type": "string", "description": "Loan purpose"},
+        "customer": {"type": "Customer"}}},
+      "Customer": {"description": "The borrower", "names": {
+        "loans": {"type": "list<Loan>"},
+        "old score": {"type": "number", "deprecated": "use score"},
+        "score": {"type": "number"},
+        "Monthly Income": {"type": "number"}}}},
+    "names": {"loan": {"type": "Loan", "description": "The loan being assessed"}}
+  });
+  let items = |expression: &str| -> Vec<String> {
+    let response = req(json!({"op": "complete", "expression": expression, "outline": outline}));
+    assert_eq!(response["ok"], true, "{response}");
+    response["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| matches!(item["kind"].as_str(), Some("name" | "entry")))
+      .map(|item| {
+        let mut text = format!("{}: {}", item["label"].as_str().unwrap(), item["type"].as_str().unwrap_or("-"));
+        if let Some(info) = item["info"].as_str() {
+          text += &format!(" ({info})");
+        }
+        if !item["deprecated"].is_null() {
+          text += &format!(" deprecated {}", item["deprecated"]);
+        }
+        text
+      })
+      .collect()
+  };
+  // a name with a type by name shows the name of the type, and what the outline says of it
+  assert_eq!(items("lo"), ["loan: Loan (The loan being assessed)"]);
+  assert_eq!(items("loan."), ["amount: number", "customer: Customer", "purpose: string (Loan purpose)"]);
+  // the deprecated entry comes after the others, with its reason
+  assert_eq!(
+    items("loan.customer."),
+    ["loans: list<Loan>", "Monthly Income: number", "score: number", "old score: number deprecated \"use score\""]
+  );
+  // types that hold each other are followed as far as the text goes
+  let deep = format!("loan{}.", ".customer.loans[1]".repeat(50));
+  assert_eq!(items(&deep), ["amount: number", "customer: Customer", "purpose: string (Loan purpose)"]);
+  assert_eq!(items("for l in loan.customer.loans return l.customer.sc"), ["score: number"]);
+  // the members of a list are the lists of the members of its items
+  assert_eq!(items("loan.customer.loans.pur"), ["purpose: list<string> (Loan purpose)"]);
+  // an outline without the new fields is read as before
+  let plain = req(
+    json!({"op": "complete", "expression": "order.", "outline": {"names": {"order": {"names": {"total": {"type": "number"}, "lines": {"items": {"names": {"price": null}}}}}}}}),
+  );
+  let labels: Vec<_> = plain["items"]
+    .as_array()
+    .unwrap()
+    .iter()
+    .map(|item| format!("{}: {}", item["label"].as_str().unwrap(), item["type"].as_str().unwrap_or("-")))
+    .collect();
+  assert_eq!(labels, ["lines: list<context>", "total: number"]);
+  // what is no outline is a failure that names the place
+  for (outline, message) in [
+    (
+      json!({"names": {"a": {"type": "Nope"}}}),
+      "outline.a: expected a FEEL type (such as number, date, list<string> or range<date>), found \"Nope\"",
+    ),
+    (
+      json!({"types": {"A": {"type": "B"}, "B": {"type": "A"}}, "names": {}}),
+      "outline.types.A: expected a type that is more than the name of another, found types that are only each other",
+    ),
+    (
+      json!({"types": {"number": {"names": {}}}}),
+      "outline.types: expected a name that is no type of FEEL, found \"number\"",
+    ),
+    (
+      json!({"names": {"a": {"types": {}}}}),
+      "outline.a: an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}}, {\"items\": <outline>} or {\"function\": {\"parameters\": […], \"result\": <type>}}, with \"description\" and \"deprecated\" beside it when it has them, and \"values\" beside a type; found the field \"types\" with the value {}",
+    ),
+  ] {
+    for op in ["complete", "syntax", "format"] {
+      assert_error(&req(json!({"op": op, "expression": "a", "outline": outline})), "context", message);
+    }
+  }
 }

@@ -12,6 +12,7 @@ use rheon_feel::signatures::{BuiltIn, built_in};
 use rheon_feel::values::Value;
 use rheon_feel_evaluator::{TypeId, Typing, type_of_text, type_of_value};
 use rheon_feel_parser::{DEFAULT_WIDTH, Formatted, StartRule, Syntax, SyntaxNode, SyntaxToken, TokenClass, parse_expression, parse_tolerant_start};
+use std::collections::HashMap;
 
 /// The most items a `complete` answer holds.
 const MAX_ITEMS: usize = 200;
@@ -82,87 +83,256 @@ impl<'a> Places<'a> {
   }
 }
 
-/// The scope of an editor operation: from `context` as for `parse`, or from `outline`.
-fn scope(mut req: Map<String, Json>, mut unread: Unread, dialect: Dialect) -> Result<FeelScope, Failure> {
+/// The key under which the scope of an outline holds the names of its `types`: no name of FEEL
+/// (it starts with a control character), so no text reads it and no answer shows it. The lexer
+/// takes a key at any depth as a name in scope, and so knows the names of every type.
+const TYPES_KEY: &str = "\u{1}types";
+
+/// The scope of an editor operation: from `context` as for `parse`, or from `outline`, which
+/// is returned beside it for what it says of its names ([Schema]).
+fn scope(mut req: Map<String, Json>, mut unread: Unread, dialect: Dialect) -> Result<(FeelScope, Option<Json>), Failure> {
   let Some(outline) = req.remove("outline") else {
-    return prepare_scope(req, unread, dialect, &mut vec![]);
+    return Ok((prepare_scope(req, unread, dialect, &mut vec![])?, None));
   };
   if req.contains_key("context") || unread.context.is_some() {
     return fail(Kind::Request, "give 'context' or 'outline', not both");
   }
   unread.context = None;
   req.remove("contextFormat");
-  let mut typed = false;
-  req.insert("context".to_string(), context_of_outline(&outline, 0, "outline", &mut typed)?);
-  let scope = prepare_scope(req, unread, dialect, &mut vec![])?;
-  if !typed {
-    return Ok(scope);
-  }
-  // the names with a type stand in the scope with their type in the place of a value
-  let Some(mut context) = scope.frames().last().map(|frame| (**frame).clone()) else {
-    return Ok(scope);
-  };
-  if let Json::Object(fields) = &outline
-    && let Some(Json::Object(names)) = fields.get("names")
+  let mut context = context_of_outline(&outline, 0, &At::Root("outline"), true)?;
+  if let (Json::Object(names), Json::Object(fields)) = (&mut context, &outline)
+    && let Some(Json::Object(types)) = fields.get("types")
   {
-    for (name, entry) in names {
-      context.insert(Name::from(name.as_str()), value_of_outline(entry));
+    let mut held = Map::new();
+    for (name, definition) in types {
+      held.insert(name.clone(), context_of_outline(definition, 1, &At::Entry(&At::Root("outline.types"), name), false)?);
     }
+    names.insert(TYPES_KEY.to_string(), Json::Object(held));
   }
-  Ok(context.into())
+  req.insert("context".to_string(), context);
+  let scope = prepare_scope(req, unread, dialect, &mut vec![])?;
+  Ok((scope, Some(outline)))
 }
 
-/// The JSON context that has the names of an outline: null for a name without entries or with
-/// a type, an object for `{"names": …}`, a list of one such value for `{"items": …}`. `typed`
-/// is set when a name has a type.
-fn context_of_outline(outline: &Json, depth: usize, place: &str, typed: &mut bool) -> Result<Json, Failure> {
-  const SHAPE: &str = "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}";
+/// Where a part of an outline stands, written when a failure names it (`outline.order.lines[]`).
+#[derive(Clone, Copy)]
+enum At<'a> {
+  Root(&'a str),
+  Entry(&'a At<'a>, &'a str),
+  Items(&'a At<'a>),
+}
+
+impl std::fmt::Display for At<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      At::Root(text) => write!(f, "{text}"),
+      At::Entry(parent, name) => write!(f, "{parent}.{name}"),
+      At::Items(parent) => write!(f, "{parent}[]"),
+    }
+  }
+}
+
+/// The fields that say what an outline is, of which it has one.
+const FORMS: [&str; 4] = ["names", "items", "type", "function"];
+
+/// The JSON context that has the names of an outline: null for a name without entries, with a
+/// type or that is a function, an object for `{"names": …}`, a list of one such value for
+/// `{"items": …}`. The shape of the outline is checked; its types are checked when they are
+/// read ([Schema::read]). `root`: the outline of the request, which can have `types`.
+fn context_of_outline(outline: &Json, depth: usize, place: &At, root: bool) -> Result<Json, Failure> {
+  const SHAPE: &str = "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}}, {\"items\": <outline>} or {\"function\": {\"parameters\": […], \"result\": <type>}}, with \"description\" and \"deprecated\" beside it when it has them, and \"values\" beside a type";
   if depth > 100 {
     return fail(Kind::Context, "the outline is nested too deeply (at most 100 levels)");
   }
-  match outline {
-    Json::Null => Ok(Json::Null),
-    Json::Object(fields) if fields.len() == 1 => match (fields.get("names"), fields.get("items"), fields.get("type")) {
-      (Some(Json::Object(names)), None, None) => {
-        let mut context = Map::new();
-        for (name, entry) in names {
-          context.insert(name.clone(), context_of_outline(entry, depth + 1, &format!("{place}.{name}"), typed)?);
-        }
-        Ok(Json::Object(context))
+  let fields = match outline {
+    Json::Null => return Ok(Json::Null),
+    Json::Object(fields) => fields,
+    _ => return fail(Kind::Context, SHAPE),
+  };
+  for (field, value) in fields {
+    let known = match (field.as_str(), value) {
+      ("description", Json::String(_)) | ("deprecated", Json::Bool(_) | Json::String(_)) => true,
+      ("values", Json::Array(_)) => fields.contains_key("type"),
+      ("types", Json::Object(_)) => root,
+      (form, _) => FORMS.contains(&form),
+    };
+    if !known {
+      return fail(Kind::Context, format!("{place}: {SHAPE}; found the field {field:?} with the value {}", preview(value)));
+    }
+  }
+  let forms: Vec<&str> = FORMS.into_iter().filter(|form| fields.contains_key(*form)).collect();
+  match (forms.as_slice(), forms.first().and_then(|form| fields.get(*form))) {
+    // the outline of a request can be its types and nothing else
+    ([], None) if root && fields.contains_key("types") => Ok(Json::Object(Map::new())),
+    (["names"], Some(Json::Object(names))) => {
+      let mut context = Map::new();
+      for (name, entry) in names {
+        context.insert(name.clone(), context_of_outline(entry, depth + 1, &At::Entry(place, name), false)?);
       }
-      (None, Some(items), None) => Ok(Json::Array(vec![context_of_outline(items, depth + 1, &format!("{place}[]"), typed)?])),
-      (None, None, Some(Json::String(text))) if type_of_text(text).is_some() => {
-        *typed = true;
-        Ok(Json::Null)
-      }
-      (None, None, Some(Json::String(text))) => fail(
-        Kind::Context,
-        format!("{place}: expected a FEEL type (such as number, date, list<string> or range<date>), found {text:?}"),
-      ),
-      (None, None, Some(other)) => fail(Kind::Context, format!("{place}: expected a FEEL type as a string, found {other}")),
-      _ => fail(Kind::Context, SHAPE),
-    },
+      Ok(Json::Object(context))
+    }
+    (["items"], Some(items)) => Ok(Json::Array(vec![context_of_outline(items, depth + 1, &At::Items(place), false)?])),
+    (["type"], Some(Json::String(_))) => Ok(Json::Null),
+    (["type"], Some(other)) => fail(Kind::Context, format!("{place}: expected a FEEL type as a string, found {other}")),
+    (["function"], Some(Json::Object(_))) => Ok(Json::Null),
     _ => fail(Kind::Context, SHAPE),
   }
 }
 
-/// The value that stands for an outline (checked by [context_of_outline]) in the scope: a type
-/// for a name with a type, null for a name without, a context, or a list of one item.
-fn value_of_outline(outline: &Json) -> Value {
-  let Json::Object(fields) = outline else {
-    return Value::Null(None);
-  };
-  match (fields.get("names"), fields.get("items"), fields.get("type")) {
-    (Some(Json::Object(names)), ..) => {
-      let mut context = FeelContext::default();
-      for (name, entry) in names {
-        context.insert(Name::from(name.as_str()), value_of_outline(entry));
+/// A value of an outline as a message quotes it: its JSON text, the start of a long one.
+fn preview(value: &Json) -> String {
+  let text = value.to_string();
+  match text.char_indices().nth(60) {
+    Some((at, _)) => format!("{}…", &text[..at]),
+    None => text,
+  }
+}
+
+/// What an outline says of a name or an entry beside its type.
+#[derive(Default, Clone)]
+struct Meta {
+  description: Option<String>,
+  /// `true`, or the reason as text.
+  deprecated: Option<Json>,
+}
+
+impl Meta {
+  fn of(fields: &Map<String, Json>) -> Option<Meta> {
+    let meta = Meta {
+      description: fields.get("description").and_then(Json::as_str).map(str::to_string),
+      deprecated: fields.get("deprecated").filter(|deprecated| **deprecated != Json::Bool(false)).cloned(),
+    };
+    (meta.description.is_some() || meta.deprecated.is_some()).then_some(meta)
+  }
+}
+
+/// What the outline of a request says of its names: the type of each name of the scope, stated
+/// to the typing, and what it says beside the types.
+#[derive(Default)]
+struct Schema {
+  /// The type of each name of the scope that the outline has.
+  roots: HashMap<String, TypeId>,
+  /// What the outline says of a name of the scope.
+  root_meta: HashMap<String, Meta>,
+  /// What the outline says of an entry: by the type that has the entry, and its name.
+  entry_meta: HashMap<(TypeId, String), Meta>,
+  /// The type that each type text read so far writes: an outline writes few texts many times.
+  texts: HashMap<String, Option<TypeId>>,
+}
+
+impl Schema {
+  /// Reads the outline (of a shape that [context_of_outline] took) into the types of `typing`:
+  /// the types of `types`, which can hold each other, then the names of the scope. A text that
+  /// is no type, or names a type that the outline has not, is a failure that names the entry.
+  fn read(typing: &mut Typing, outline: Option<&Json>) -> Result<Schema, Failure> {
+    let mut schema = Schema::default();
+    let Some(Json::Object(fields)) = outline else {
+      return Ok(schema);
+    };
+    let mut named: HashMap<String, TypeId> = HashMap::new();
+    if let Some(Json::Object(types)) = fields.get("types") {
+      for name in types.keys() {
+        if type_of_text(name).is_some() {
+          return fail(Kind::Context, format!("outline.types: expected a name that is no type of FEEL, found {name:?}"));
+        }
+        named.insert(name.clone(), typing.declare(Some(Name::from(name.as_str()))));
       }
-      Value::Context(context.into())
+      for (name, definition) in types {
+        let defined = schema.node(typing, &named, definition, &At::Entry(&At::Root("outline.types"), name))?;
+        typing.define(named[name], defined);
+      }
+      // types that are only each other are no types
+      for (name, definition) in types {
+        let mut at = definition;
+        for _ in 0..=types.len() {
+          match at.get("type").and_then(Json::as_str).and_then(|text| types.get(text.trim())) {
+            Some(next) => at = next,
+            None => break,
+          }
+        }
+        if at.get("type").and_then(Json::as_str).is_some_and(|text| types.contains_key(text.trim())) {
+          return fail(
+            Kind::Context,
+            format!("outline.types.{name}: expected a type that is more than the name of another, found types that are only each other"),
+          );
+        }
+      }
     }
-    (_, Some(items), _) => Value::List(vec![value_of_outline(items)].into()),
-    (_, _, Some(Json::String(text))) => type_of_text(text).map_or(Value::Null(None), Value::FeelType),
-    _ => Value::Null(None),
+    if let Some(Json::Object(names)) = fields.get("names") {
+      for (name, entry) in names {
+        let stated = schema.node(typing, &named, entry, &At::Entry(&At::Root("outline"), name))?;
+        typing.state(Name::from(name.trim()), stated);
+        schema.roots.insert(name.trim().to_string(), stated);
+        if let Some(meta) = entry.as_object().and_then(Meta::of) {
+          schema.root_meta.insert(name.trim().to_string(), meta);
+        }
+      }
+    }
+    Ok(schema)
+  }
+
+  /// The type that the outline `node` at `place` is.
+  fn node(&mut self, typing: &mut Typing, named: &HashMap<String, TypeId>, node: &Json, place: &At) -> Result<TypeId, Failure> {
+    let Json::Object(fields) = node else {
+      return Ok(TypeId::ANY);
+    };
+    if let Some(Json::Object(names)) = fields.get("names") {
+      let mut entries = Vec::with_capacity(names.len());
+      let mut said = vec![];
+      for (name, entry) in names {
+        // an entry has its key as the context of the scope has it
+        entries.push((Name::from(name.trim()), self.node(typing, named, entry, &At::Entry(place, name))?));
+        if let Some(meta) = entry.as_object().and_then(Meta::of) {
+          said.push((name.trim().to_string(), meta));
+        }
+      }
+      let context = typing.context(entries);
+      if said.is_empty() {
+        return Ok(context);
+      }
+      // a context whose entries have more than a type is itself, whatever context is alike
+      let declared = typing.declare(None);
+      typing.define(declared, context);
+      for (name, meta) in said {
+        self.entry_meta.insert((declared, name), meta);
+      }
+      return Ok(declared);
+    }
+    if let Some(items) = fields.get("items") {
+      let item = self.node(typing, named, items, &At::Items(place))?;
+      return Ok(typing.list(item));
+    }
+    if let Some(Json::String(text)) = fields.get("type") {
+      let written = match self.texts.get(text) {
+        Some(written) => *written,
+        None => {
+          let written = typing.written(text, &|name| named.get(name).copied());
+          self.texts.insert(text.clone(), written);
+          written
+        }
+      };
+      return match written {
+        Some(written) => Ok(written),
+        None => fail(
+          Kind::Context,
+          format!("{place}: expected a FEEL type (such as number, date, list<string> or range<date>), found {text:?}"),
+        ),
+      };
+    }
+    Ok(TypeId::ANY)
+  }
+
+  /// What the outline says of the entry `name` of a value of the type `base`: of an entry of a
+  /// context, or of the contexts of a list.
+  fn entry(&self, typing: &Typing, base: TypeId, name: &str) -> Option<&Meta> {
+    let mut base = base;
+    for _ in 0..64 {
+      if let Some(meta) = self.entry_meta.get(&(base, name.to_string())) {
+        return Some(meta);
+      }
+      base = typing.defined_as(base).or_else(|| typing.item(base))?;
+    }
+    None
   }
 }
 
@@ -235,7 +405,8 @@ pub(super) fn syntax(mut req: Map<String, Json>, unread: Unread, started: Instan
     Some(Json::Bool(tree)) => tree,
     Some(_) => return fail(Kind::Request, "'tree' must be true or false"),
   };
-  let scope = scope(req, unread, dialect)?;
+  let (scope, outline) = scope(req, unread, dialect)?;
+  Schema::read(&mut Typing::new(&scope), outline.as_ref())?;
   let syntax = parse_tolerant_start(&scope, &expression, dialect.rule());
   let places = Places::new(&expression);
   let tokens: Vec<Json> = syntax.tokens.iter().map(|t| json!([t.class.as_str(), places.of(t.start), places.of(t.end)])).collect();
@@ -262,6 +433,27 @@ struct Item {
   from: usize,
   /// The FEEL type of the item, when it is known.
   feel_type: Option<String>,
+  /// What an outline says of the name or the entry.
+  said: Option<Meta>,
+}
+
+/// A name or an entry that is offered: its type when it is known, and what an outline says of
+/// it.
+struct Offered {
+  label: String,
+  feel_type: Option<String>,
+  said: Option<Meta>,
+}
+
+impl Offered {
+  fn of(label: String, feel_type: Option<String>) -> Self {
+    Self { label, feel_type, said: None }
+  }
+
+  fn with(mut self, said: Option<&Meta>) -> Self {
+    self.said = said.cloned();
+    self
+  }
 }
 
 /// The invocation of a built-in function that the end of a text stands in.
@@ -353,12 +545,12 @@ struct Expected {
 enum Offer {
   /// The names in scope: of the context, and those the text declares, each with its type when
   /// it is known.
-  Names(Vec<(String, Option<String>)>),
+  Names(Vec<Offered>),
   Functions,
   Keywords(Vec<&'static str>),
   Types,
   /// The entries or properties of the value before a dot, each with its type when it is known.
-  Entries(Vec<(String, Option<String>)>),
+  Entries(Vec<Offered>),
   /// The parameters of the invoked built-in function that can be named, with their types.
   Parameters(Vec<(&'static str, &'static str)>),
 }
@@ -657,7 +849,7 @@ fn bound_at(typing: &mut Typing, scope: &FeelScope, text: &str, syntax: &Syntax,
 /// shows it: the entries of a context, the properties of a date, a time, a duration or a
 /// range, and for a list the members of its items. The value is the expression before the dot,
 /// typed without evaluating it.
-fn members(typing: &mut Typing, scope: &FeelScope, text: &str, syntax: &Syntax) -> Vec<(String, Option<String>)> {
+fn members(typing: &mut Typing, schema: &Schema, scope: &FeelScope, text: &str, syntax: &Syntax) -> Vec<Offered> {
   let mut typed = || {
     let dot = words(syntax).last().filter(|token| &text[token.start..token.end] == ".")?;
     // the path that the dot belongs to starts where its base starts
@@ -668,7 +860,14 @@ fn members(typing: &mut Typing, scope: &FeelScope, text: &str, syntax: &Syntax) 
       .max_by_key(|node| node.start)?;
     let bound = bound_at(typing, scope, text, syntax, path.start);
     let base = type_of_piece(typing, scope, &text[path.start..dot.start], &bound);
-    let members: Vec<_> = typing.members(base).into_iter().map(|(name, member_type)| (name, typing.shown(member_type))).collect();
+    let members: Vec<_> = typing
+      .members(base)
+      .into_iter()
+      .map(|(name, member_type)| {
+        let said = schema.entry(typing, base, &name);
+        Offered::of(name, typing.shown(member_type)).with(said)
+      })
+      .collect();
     // a name that the text binds hides the name of the context: its members are all there is
     let hidden = words(syntax)
       .find(|token| token.start >= path.start)
@@ -682,7 +881,8 @@ fn members(typing: &mut Typing, scope: &FeelScope, text: &str, syntax: &Syntax) 
       .map(|path| entries(scope, &path))
       .unwrap_or_default()
       .into_iter()
-      .map(|name| (name, None))
+      .filter(|name| name != TYPES_KEY)
+      .map(|name| Offered::of(name, None))
       .collect(),
   }
 }
@@ -703,10 +903,8 @@ fn inside(text: &str, syntax: &Syntax) -> Option<&'static str> {
 }
 
 /// What the grammar takes where `text` ends, from the tolerant parse of `text`.
-fn expected(scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -> Expected {
+fn expected(typing: &mut Typing, schema: &Schema, scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -> Expected {
   let operators = || Offer::Keywords(OPERATOR_KEYWORDS.to_vec());
-  // the pieces of the text that are typed share one table of types
-  let mut typing = Typing::new(scope);
   let Some(end) = &syntax.end else {
     // the text is a whole expression: an operator can follow
     return Expected {
@@ -720,21 +918,30 @@ fn expected(scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -
       // constructs around the end of the text
       // (the innermost first: of two names that are the same the first is kept); in the
       // predicate of a filter they are `item` and the entries of an item
-      let bound = bound_at(&mut typing, scope, text, syntax, text.len());
-      let mut names: Vec<(String, Option<String>)> = bound.names.iter().rev().map(|(name, bound_type)| (name.to_string(), typing.shown(*bound_type))).collect();
-      names.extend(end.names.iter().map(|name| (name.clone(), None)));
-      names.extend(
-        scope
-          .frames()
-          .iter()
-          .rev()
-          .flat_map(|frame| frame.iter().map(|(name, value)| (name.to_string(), shown_of_value(value)))),
-      );
+      let bound = bound_at(typing, scope, text, syntax, text.len());
+      let mut names: Vec<Offered> = bound
+        .names
+        .iter()
+        .rev()
+        .map(|(name, bound_type)| Offered::of(name.to_string(), typing.shown(*bound_type)))
+        .collect();
+      names.extend(end.names.iter().map(|name| Offered::of(name.clone(), None)));
+      // a name of the scope: with the type the outline states for it and what it says of it
+      names.extend(scope.frames().iter().rev().flat_map(|frame| {
+        frame.iter().filter(|(name, _)| name.as_str() != TYPES_KEY).map(|(name, value)| {
+          let name = name.to_string();
+          let shown = match schema.roots.get(&name) {
+            Some(stated) => typing.shown(*stated),
+            None => shown_of_value(value),
+          };
+          Offered::of(name.clone(), shown).with(schema.root_meta.get(&name))
+        })
+      }));
       if unary_tests {
-        names.push(("?".to_string(), None));
+        names.push(Offered::of("?".to_string(), None));
       }
-      names.sort_by(|a, b| a.0.cmp(&b.0));
-      names.dedup_by(|later, first| later.0 == first.0);
+      names.sort_by(|a, b| a.label.cmp(&b.label));
+      names.dedup_by(|later, first| later.label == first.label);
       Expected {
         name: "expression".to_string(),
         kinds: vec![Offer::Names(names), Offer::Keywords(OPERAND_KEYWORDS.to_vec()), Offer::Functions],
@@ -742,7 +949,7 @@ fn expected(scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -
     }
     "expected-name" if end.role == TokenClass::Property => Expected {
       name: "property".to_string(),
-      kinds: vec![Offer::Entries(members(&mut typing, scope, text, syntax))],
+      kinds: vec![Offer::Entries(members(typing, schema, scope, text, syntax))],
     },
     // after a named parameter only a named one can follow
     "expected-name" if end.role == TokenClass::Parameter => Expected {
@@ -773,24 +980,29 @@ fn expected(scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -
 fn offer(items: &mut Vec<Item>, expected: &Expected, typed: &str, from: usize) {
   let normal = |text: &str| spaced(text).to_lowercase();
   let typed = normal(typed);
-  let mut add = |label: &str, kind: &'static str, feel_type: Option<&str>| {
+  let mut add_said = |label: &str, kind: &'static str, feel_type: Option<&str>, said: Option<&Meta>| {
     if normal(label).starts_with(&typed) && !items.iter().any(|item| item.label == label && item.kind == kind) {
       items.push(Item {
         label: label.to_string(),
         kind,
         from,
         feel_type: feel_type.map(str::to_string),
+        said: said.cloned(),
       });
     }
   };
   for kind in &expected.kinds {
     match kind {
-      Offer::Names(names) => names.iter().for_each(|(name, feel_type)| add(name, "name", feel_type.as_deref())),
-      Offer::Entries(names) => names.iter().for_each(|(name, feel_type)| add(name, "entry", feel_type.as_deref())),
-      Offer::Keywords(keywords) => keywords.iter().for_each(|keyword| add(keyword, "keyword", None)),
-      Offer::Functions => BUILT_IN_FUNCTION_NAMES.iter().for_each(|name| add(name, "function", None)),
-      Offer::Types => TYPES.iter().for_each(|name| add(name, "type", None)),
-      Offer::Parameters(parameters) => parameters.iter().for_each(|(name, feel_type)| add(name, "parameter", Some(feel_type))),
+      Offer::Names(names) => names
+        .iter()
+        .for_each(|offered| add_said(&offered.label, "name", offered.feel_type.as_deref(), offered.said.as_ref())),
+      Offer::Entries(names) => names
+        .iter()
+        .for_each(|offered| add_said(&offered.label, "entry", offered.feel_type.as_deref(), offered.said.as_ref())),
+      Offer::Keywords(keywords) => keywords.iter().for_each(|keyword| add_said(keyword, "keyword", None, None)),
+      Offer::Functions => BUILT_IN_FUNCTION_NAMES.iter().for_each(|name| add_said(name, "function", None, None)),
+      Offer::Types => TYPES.iter().for_each(|name| add_said(name, "type", None, None)),
+      Offer::Parameters(parameters) => parameters.iter().for_each(|(name, feel_type)| add_said(name, "parameter", Some(feel_type), None)),
     }
   }
 }
@@ -810,7 +1022,10 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
     },
     Some(_) => return fail(Kind::Request, "'cursor' must be a whole number that is not negative"),
   };
-  let scope = scope(req, unread, dialect)?;
+  let (scope, outline) = scope(req, unread, dialect)?;
+  // the pieces of the text that are typed share one table of types, with those of the outline
+  let mut typing = Typing::new(&scope);
+  let schema = Schema::read(&mut typing, outline.as_ref())?;
   let before = &expression[..cursor];
   let rule = dialect.rule();
   let syntax = parse_tolerant_start(&scope, before, rule);
@@ -839,19 +1054,19 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
       let head = &before[..from];
       let head_syntax = parse_tolerant_start(&scope, head, rule);
       invocation = call(head, &head_syntax);
-      let at_start = with_parameters(expected(&scope, head, &head_syntax, unary_tests), &invocation);
+      let at_start = with_parameters(expected(&mut typing, &schema, &scope, head, &head_syntax, unary_tests), &invocation);
       offer(&mut items, &at_start, typed, from);
       expects = at_start.name;
       if let Some(space) = typed.rfind(char::is_whitespace) {
         let word = from + space + typed[space..].chars().next().map_or(0, char::len_utf8);
         let head = &before[..word];
-        let at_word = expected(&scope, head, &parse_tolerant_start(&scope, head, rule), unary_tests);
+        let at_word = expected(&mut typing, &schema, &scope, head, &parse_tolerant_start(&scope, head, rule), unary_tests);
         offer(&mut items, &at_word, &before[word..], word);
       }
     }
     None => {
       invocation = call(before, &syntax);
-      let at_cursor = with_parameters(expected(&scope, before, &syntax, unary_tests), &invocation);
+      let at_cursor = with_parameters(expected(&mut typing, &schema, &scope, before, &syntax, unary_tests), &invocation);
       offer(&mut items, &at_cursor, "", cursor);
       expects = at_cursor.name;
     }
@@ -865,7 +1080,13 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
     });
   }
   let order = |kind: &str| ["parameter", "name", "entry", "keyword", "function", "type"].iter().position(|k| *k == kind);
-  items.sort_by(|a, b| order(a.kind).cmp(&order(b.kind)).then_with(|| a.label.to_lowercase().cmp(&b.label.to_lowercase())));
+  let deprecated = |item: &Item| item.said.as_ref().is_some_and(|said| said.deprecated.is_some());
+  items.sort_by(|a, b| {
+    order(a.kind)
+      .cmp(&order(b.kind))
+      .then_with(|| deprecated(a).cmp(&deprecated(b)))
+      .then_with(|| a.label.to_lowercase().cmp(&b.label.to_lowercase()))
+  });
   let truncated = items.len() > MAX_ITEMS;
   items.truncate(MAX_ITEMS);
   let items: Vec<Json> = items
@@ -887,6 +1108,14 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
           }
         }
         _ => {}
+      }
+      if let Some(said) = &item.said {
+        if let Some(description) = &said.description {
+          json["info"] = json!(description);
+        }
+        if let Some(deprecated) = &said.deprecated {
+          json["deprecated"] = deprecated.clone();
+        }
       }
       json
     })
@@ -921,7 +1150,8 @@ pub(super) fn format(mut req: Map<String, Json>, unread: Unread, started: Instan
     },
     Some(_) => return fail(Kind::Request, WIDTH),
   };
-  let scope = scope(req, unread, dialect)?;
+  let (scope, outline) = scope(req, unread, dialect)?;
+  Schema::read(&mut Typing::new(&scope), outline.as_ref())?;
   let (formatted, reason) = match rheon_feel_parser::format_start(&scope, &expression, dialect.rule(), width) {
     Formatted::Text(formatted) => (formatted, None),
     Formatted::Unchanged => (
