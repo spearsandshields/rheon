@@ -4137,3 +4137,107 @@ fn explain_steps_into_one_iteration_of_a_loop() {
     "'expand' has the node at [40, 57], which is evaluated once for each item of the loop around it: expected \"within\": [{\"at\": [4, 57], \"iteration\": n}], found 0 of them"
   );
 }
+
+#[test]
+fn explain_steps_into_the_body_that_an_invocation_runs() {
+  // the records as `kind from..to = display` with where they are evaluated
+  let shown = |response: &Json| -> Vec<String> {
+    assert_eq!(response["ok"], true, "{response}");
+    response["trace"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|record| {
+        let value = record["value"]["display"].as_str().unwrap_or("?").split_whitespace().collect::<Vec<_>>().join(" ");
+        let mut line = format!("{} {}..{} = {value}", record["kind"].as_str().unwrap(), record["from"], record["to"]);
+        if let Some(within) = record.get("within") {
+          let steps: Vec<String> = within
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|step| match step.get("iteration") {
+              Some(iteration) => format!("{}..{}#{iteration}", step["at"][0], step["at"][1]),
+              None => format!("{}..{}()", step["at"][0], step["at"][1]),
+            })
+            .collect();
+          line.push_str(&format!(" in {}", steps.join(" ")));
+        }
+        line
+      })
+      .collect()
+  };
+  let explain = |text: &str, expand: Json| req(json!({"op": "explain", "expression": text, "expand": expand}));
+  // a function that invokes itself: each invocation is a step, and the body it runs a part of it
+  let text = "{fact: function(n) if n <= 1 then 1 else n * fact(n - 1), r: fact(3) + 1}.r";
+  let first = explain(text, json!([[61, 68]]));
+  assert_eq!(shown(&first)[2..], ["If 19..56 = 6 in 61..68()", "Number 66..67 = 3"]);
+  // a node of the body, asked for with what the record of the body says it is in
+  let within = first["trace"][2]["within"].clone();
+  assert_eq!(within, json!([{"at": [61, 68], "call": true}]));
+  assert_eq!(
+    shown(&explain(text, json!([{"at": [19, 56], "within": within}, {"at": [41, 56], "within": within}])))[2..],
+    [
+      "Comparison 22..28 = false in 61..68()",
+      "Multiplication 41..56 = 6 in 61..68()",
+      "Name 41..42 = 3 in 61..68()",
+      "Invocation 45..56 = 2 in 61..68()"
+    ]
+  );
+  // the invocation in the body, in the body it runs, and so on down
+  let second = explain(text, json!([{"at": [45, 56], "within": within}]));
+  assert_eq!(shown(&second)[2..], ["If 19..56 = 2 in 61..68() 45..56()", "Addition 50..55 = 2 in 61..68()"]);
+  let twice = json!([{"at": [61, 68], "call": true}, {"at": [45, 56], "call": true}, {"at": [45, 56], "call": true}]);
+  assert_eq!(
+    shown(&explain(text, json!([{"at": [19, 56], "within": twice}])))[2..],
+    ["Comparison 22..28 = true in 61..68() 45..56() 45..56()", "Number 34..35 = 1 in 61..68() 45..56() 45..56()"]
+  );
+  // an invocation in a loop of a body: the steps are the invocation, the iteration, the invocation
+  let text = "{f: function(xs) for x in xs return g(x), g: function(a) a * 2, r: f([1, 2])}.r";
+  assert_eq!(
+    shown(&explain(text, json!([{"at": [17, 40], "within": [{"at": [67, 76], "call": true}]}])))[2..],
+    [
+      "Name 26..28 = [1, 2] in 67..76()",
+      "Invocation 36..40 = 2 in 67..76() 17..40#0",
+      "Invocation 36..40 = 4 in 67..76() 17..40#1"
+    ]
+  );
+  let inner = json!([{"at": [67, 76], "call": true}, {"at": [17, 40], "iteration": 1}]);
+  assert_eq!(
+    shown(&explain(text, json!([{"at": [36, 40], "within": inner}])))[2..],
+    ["Name 38..39 = 2 in 67..76() 17..40#1", "Multiplication 57..62 = 4 in 67..76() 17..40#1 36..40()"]
+  );
+  // a node of a body without the invocation that runs it, or with steps that do not lead to it
+  let refused = |expand: Json| {
+    let response = explain(text, expand);
+    assert_eq!(response["error"]["code"], "invalid-field", "{response}");
+    response["error"]["message"].as_str().unwrap().to_string()
+  };
+  assert_eq!(
+    refused(json!([[36, 40]])),
+    "'expand' has the node at [36, 40], which is in the body of a function, and evaluated once for each item of the loop around it there: expected \"within\" to end with [{\"at\": [the place of the invocation that runs the body], \"call\": true}, {\"at\": [17, 40], \"iteration\": n}], found 0 of them"
+  );
+  assert_eq!(
+    refused(json!([{"at": [57, 62], "within": [{"at": [17, 40], "iteration": 1}, {"at": [36, 40], "call": true}]}])),
+    "'expand' has the node at [57, 62], whose \"within\" has the invocation at [36, 40], which is in the body of a function, and evaluated once for each item of the loop around it there: expected the steps before it to end with [{\"at\": [the place of the invocation that runs the body], \"call\": true}, {\"at\": [17, 40], \"iteration\": n}], found 1 of them"
+  );
+  assert_eq!(
+    refused(json!([{"at": [57, 62], "within": [{"at": [1, 2], "call": true}]}])),
+    "'expand' has the node at [57, 62], whose \"within\" has {\"at\": [1, 2], \"call\": true}: expected the place of an invocation, found the place of none"
+  );
+  // a function that a function gives: the invocation of each runs its body
+  let text = "{make: function(k) function(x) x + k, r: make(2)(3)}.r";
+  assert_eq!(
+    shown(&explain(text, json!([[41, 51]])))[2..],
+    ["Addition 31..36 = 5 in 41..51()", "Invocation 41..48 = \"function<Any>->Any\"", "Number 49..50 = 3"]
+  );
+  // no body is run: by an invocation whose arguments are not the parameters, and by a built-in
+  // function (the function it is given is invoked by it, not by an invocation of the text)
+  assert_eq!(
+    shown(&explain("{f: function(a) a, r: f(1, 2)}.r", json!([[22, 29]])))[2..],
+    ["Number 24..25 = 1", "Number 27..28 = 2"]
+  );
+  assert_eq!(
+    shown(&explain("sort([3, 1, 2], function(a, b) a < b)", json!([[0, 37]])))[1..],
+    ["List 5..14 = [3, 1, 2]", "Function 16..36 = \"function<Any, Any>->Any\""]
+  );
+}

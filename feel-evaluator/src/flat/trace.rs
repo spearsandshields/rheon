@@ -10,22 +10,38 @@ use rheon_feel::values::Value;
 use rheon_feel_parser::AstNode;
 use std::cell::RefCell;
 
-/// What a program is compiled to record: the nodes and the loops of a request, by their numbers.
+/// What a program is compiled to record: the nodes, the loops and the invocations of a request,
+/// by their numbers.
 pub struct Tracing<'t> {
   /// The number of a node whose value the request asks for, None for another node.
   pub node: &'t dyn Fn(&AstNode) -> Option<u32>,
   /// The number of a loop or a filter that the request follows (the records of nodes in its
   /// body are of one of its iterations, or it says how many it had), None for another.
   pub repeat: &'t dyn Fn(&AstNode) -> Option<u32>,
+  /// The number of an invocation that the request follows (the records of nodes in the body of
+  /// the function it invokes are of that invocation), None for another.
+  pub call: &'t dyn Fn(&AstNode) -> Option<u32>,
+}
+
+/// A step of the way from the root expression to where a node is evaluated.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Step {
+  /// Into an iteration: the number of the loop ([Tracing::repeat]) and the index of the iteration.
+  Iteration(u32, usize),
+  /// Into the body of the function that an invocation invokes: the number of the invocation
+  /// ([Tracing::call]).
+  Call(u32),
 }
 
 /// A node whose value a request asks for, and when: a node in the body of a loop or in the
-/// predicate of a filter is evaluated once for each item, and the request says for which.
+/// predicate of a filter is evaluated once for each item, a node in the body of a function once
+/// for each invocation, and the request says for which.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Wanted {
-  /// The iterations that the node is wanted in: for each loop around it, innermost last, the
-  /// number of the loop ([crate::Tracing::repeat]) and the index of the iteration.
-  pub within: Vec<(u32, usize)>,
+  /// Where the node is wanted: the steps from the root expression, outermost first. The
+  /// iterations before the first invocation are of loops of the root expression, those after an
+  /// invocation of loops of the body it invokes; the node is in the body of the last.
+  pub within: Vec<Step>,
   /// The node is the body of a loop (its number) and is wanted for each iteration from the
   /// first index up to the second: a record for each.
   pub each: Option<(u32, usize, usize)>,
@@ -39,8 +55,6 @@ pub struct Plan {
   /// The nodes, each at the index that is its number ([crate::Tracing::node]): the ways it is
   /// wanted (a node of a loop's body can be wanted in several of its iterations).
   pub wanted: Vec<Vec<Wanted>>,
-  /// The number of loops that have a number.
-  pub repeats: usize,
   /// The most records that are kept.
   pub limit: usize,
 }
@@ -59,7 +73,7 @@ pub struct Recorded {
   pub iterations: Option<usize>,
 }
 
-/// Where a loop that has a number is.
+/// Where a loop that has a number is, in one body.
 #[derive(Clone, Copy, Default)]
 struct Repeat {
   /// The iterations begun since the loop was opened.
@@ -68,13 +82,43 @@ struct Repeat {
   current: Option<usize>,
 }
 
+/// The root expression, or a body of a function that is being evaluated.
+#[derive(Default)]
+struct Frame {
+  /// The invocation that the request follows and that invoked the body, None for the root
+  /// expression and for a body invoked otherwise.
+  site: Option<u32>,
+  /// The loops with a number that were opened in it, each with where it is.
+  repeats: Vec<(u32, Repeat)>,
+}
+
+impl Frame {
+  fn repeat(&self, number: u32) -> Option<&Repeat> {
+    self.repeats.iter().find(|(known, _)| *known == number).map(|(_, repeat)| repeat)
+  }
+
+  fn repeat_mut(&mut self, number: u32) -> &mut Repeat {
+    let index = match self.repeats.iter().position(|(known, _)| *known == number) {
+      Some(index) => index,
+      None => {
+        self.repeats.push((number, Repeat::default()));
+        self.repeats.len() - 1
+      }
+    };
+    &mut self.repeats[index].1
+  }
+}
+
 struct Recorder {
   plan: Plan,
   records: Vec<Recorded>,
   /// The records kept so far, by the node and the iteration: the first evaluation of a node in
   /// an iteration is the one kept.
   seen: std::collections::HashSet<(u32, usize, Option<usize>)>,
-  repeats: Vec<Repeat>,
+  /// The root expression and the bodies being evaluated in it, the one that runs last.
+  frames: Vec<Frame>,
+  /// The invocation that the request follows and that is about to invoke a function of the text.
+  calling: Option<u32>,
   /// Whether a record was not kept for the limit.
   truncated: bool,
 }
@@ -102,13 +146,13 @@ pub fn recording<T>(plan: Plan, f: impl FnOnce() -> T) -> (T, Trace) {
       RECORDER.with(|recorder| *recorder.borrow_mut() = self.0.take());
     }
   }
-  let repeats = vec![Repeat::default(); plan.repeats];
   let outer = RECORDER.with(|recorder| {
     recorder.borrow_mut().replace(Recorder {
       plan,
       records: vec![],
       seen: Default::default(),
-      repeats,
+      frames: vec![Frame::default()],
+      calling: None,
       truncated: false,
     })
   });
@@ -128,13 +172,31 @@ impl Recorder {
   /// that the record is of (None for a way that is not of each iteration); None when the node is
   /// not wanted now.
   fn now(&self, target: u32) -> Option<(usize, Option<usize>)> {
-    let current = |repeat: u32| self.repeats.get(repeat as usize).and_then(|repeat| repeat.current);
+    let top = self.frames.last()?;
+    let current = |frame: &Frame, repeat: u32| frame.repeat(repeat).and_then(|repeat| repeat.current);
     self.plan.wanted.get(target as usize)?.iter().enumerate().find_map(|(way, wanted)| {
-      if !wanted.within.iter().all(|&(repeat, index)| current(repeat) == Some(index)) {
+      // the steps along the bodies being evaluated, from the root expression to the one that runs
+      let mut depth = 0;
+      for step in &wanted.within {
+        match *step {
+          Step::Iteration(repeat, index) => {
+            if current(&self.frames[depth], repeat) != Some(index) {
+              return None;
+            }
+          }
+          Step::Call(site) => {
+            depth += 1;
+            if self.frames.get(depth)?.site != Some(site) {
+              return None;
+            }
+          }
+        }
+      }
+      if depth + 1 != self.frames.len() {
         return None;
       }
       let iteration = match wanted.each {
-        Some((repeat, from, to)) => Some(current(repeat).filter(|index| (from..to).contains(index))?),
+        Some((repeat, from, to)) => Some(current(top, repeat).filter(|index| (from..to).contains(index))?),
         None => None,
       };
       (!self.seen.contains(&(target, way, iteration))).then_some((way, iteration))
@@ -169,7 +231,7 @@ pub(crate) fn record(target: u32, value: Value) {
     {
       let iterations = recorder.plan.wanted[target as usize][way]
         .repeat
-        .and_then(|repeat| recorder.repeats.get(repeat as usize))
+        .and_then(|repeat| recorder.frames.last()?.repeat(repeat))
         .map(|repeat| repeat.begun);
       recorder.seen.insert((target, way, iteration));
       recorder.records.push(Recorded {
@@ -183,13 +245,13 @@ pub(crate) fn record(target: u32, value: Value) {
   });
 }
 
-/// The loop `repeat` is opened: it has begun no iteration.
+/// The loop `repeat` is opened in the body that runs: it has begun no iteration.
 pub(crate) fn opened(repeat: u32) {
   RECORDER.with(|recorder| {
     if let Some(recorder) = recorder.borrow_mut().as_mut()
-      && let Some(repeat) = recorder.repeats.get_mut(repeat as usize)
+      && let Some(frame) = recorder.frames.last_mut()
     {
-      *repeat = Repeat::default();
+      *frame.repeat_mut(repeat) = Repeat::default();
     }
   });
 }
@@ -199,8 +261,9 @@ pub(crate) fn opened(repeat: u32) {
 pub(crate) fn stepped(repeat: u32, counted: bool, item: Option<usize>) {
   RECORDER.with(|recorder| {
     if let Some(recorder) = recorder.borrow_mut().as_mut()
-      && let Some(repeat) = recorder.repeats.get_mut(repeat as usize)
+      && let Some(frame) = recorder.frames.last_mut()
     {
+      let repeat = frame.repeat_mut(repeat);
       if counted {
         repeat.current = Some(repeat.begun);
         repeat.begun += 1;
@@ -216,9 +279,41 @@ pub(crate) fn stepped(repeat: u32, counted: bool, item: Option<usize>) {
 pub(crate) fn closed(repeat: u32) {
   RECORDER.with(|recorder| {
     if let Some(recorder) = recorder.borrow_mut().as_mut()
-      && let Some(repeat) = recorder.repeats.get_mut(repeat as usize)
+      && let Some(frame) = recorder.frames.last_mut()
     {
-      repeat.current = None;
+      frame.repeat_mut(repeat).current = None;
+    }
+  });
+}
+
+/// The invocation `site` is about to invoke a function whose body is of a program, or with None
+/// has ended: the body that is entered next is the one it invokes.
+pub(crate) fn calling(site: Option<u32>) {
+  RECORDER.with(|recorder| {
+    if let Some(recorder) = recorder.borrow_mut().as_mut() {
+      recorder.calling = site;
+    }
+  });
+}
+
+/// The body of a function is entered: by the invocation that is about to invoke one, if any.
+pub(crate) fn entered() {
+  RECORDER.with(|recorder| {
+    if let Some(recorder) = recorder.borrow_mut().as_mut() {
+      let site = recorder.calling.take();
+      recorder.frames.push(Frame { site, repeats: vec![] });
+    }
+  });
+}
+
+/// The body that runs has its value: the body that invoked it runs again.
+pub(crate) fn left() {
+  RECORDER.with(|recorder| {
+    if let Some(recorder) = recorder.borrow_mut().as_mut()
+      && recorder.frames.len() > 1
+    {
+      recorder.frames.pop();
+      recorder.calling = None;
     }
   });
 }
@@ -238,7 +333,7 @@ pub enum PartFrame {
 /// the arguments of an invocation, the list and the predicate of a filter, the first domain and
 /// the body of a loop. The nodes that only hold other nodes (the list of the arguments, the
 /// contexts of an iteration) are passed through. A function definition has no parts: its body
-/// is evaluated where it is invoked. Of a loop with several variables only the first domain is
+/// ([body]) is evaluated where it is invoked. Of a loop with several variables only the first domain is
 /// a part (the others are evaluated for each item of those before).
 pub fn parts(node: &AstNode) -> Vec<(&AstNode, PartFrame)> {
   use AstNode as A;
@@ -295,4 +390,16 @@ pub fn parts(node: &AstNode) -> Vec<(&AstNode, PartFrame)> {
     other => other.for_each_child(|child| expressions(child, Same, &through, &mut found)),
   }
   found
+}
+
+/// The body of the function definition `node` that is evaluated when the function is invoked:
+/// None for another node and for a definition whose body is external.
+pub fn body(node: &AstNode) -> Option<&AstNode> {
+  match node {
+    AstNode::FunctionDefinition(_, body) => match body.as_ref() {
+      AstNode::FunctionBody(body, false) => Some(body),
+      _ => None,
+    },
+    _ => None,
+  }
 }

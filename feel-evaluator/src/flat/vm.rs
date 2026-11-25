@@ -54,6 +54,11 @@ impl Program {
   }
 }
 
+/// Whether `value` is a function whose body is of a program: its invocation runs that body.
+fn of_program(value: &Value) -> bool {
+  matches!(value, Value::FunctionDefinition(definition) if !definition.external && matches!(definition.body, FunctionBody::Feel(..)))
+}
+
 /// The program and the proto of `body`, when it is the body of a function definition of the
 /// flat evaluator.
 pub(crate) fn code_of(body: &FunctionBody) -> Option<(Arc<Program>, u32)> {
@@ -428,6 +433,22 @@ impl<'p> Vm<'p> {
             None
           };
           super::trace::stepped(repeat, !filter, item);
+        }
+        Op::TraceCall { site, function, done } => {
+          // only a function whose body is of a program enters a body for this invocation
+          let of_text = !done
+            && match function.decode() {
+              Operand::Slot(slot) | Operand::Take(slot) => of_program(self.slot(slot)),
+              Operand::Const(index) => of_program(&self.act.program.consts[index as usize]),
+            };
+          super::trace::calling(of_text.then_some(site));
+        }
+        Op::TraceBody { left } => {
+          if left {
+            super::trace::left();
+          } else {
+            super::trace::entered();
+          }
         }
         Op::Record { src, target } => {
           if super::trace::wants(target) {

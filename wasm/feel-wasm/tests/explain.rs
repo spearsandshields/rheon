@@ -78,7 +78,7 @@ fn an_explained_evaluation_is_the_evaluation() {
         collect(&read, &mut requests);
       }
     }
-    let (mut explained, mut failed, mut records, mut expanded, mut iterations) = (0usize, 0usize, 0usize, 0usize, 0usize);
+    let (mut explained, mut failed, mut records, mut expanded, mut iterations, mut calls) = (0usize, 0usize, 0usize, 0usize, 0usize, 0usize);
     for (number, request) in requests.values().enumerate() {
       if std::env::var_os("RHEON_EACH").is_some() {
         eprintln!("{number} {}", request.to_string().chars().take(300).collect::<String>());
@@ -163,44 +163,54 @@ fn an_explained_evaluation_is_the_evaluation() {
         assert!(from <= to && to as usize <= text.encode_utf16().count(), "{text}: {record}");
         assert!(record["kind"].is_string() && record["value"].is_object(), "{text}: {record}");
       }
-      // the records of the iterations of the loops, each expanded in its iteration: the
-      // predicate of a filter for an item, the body of a loop for an item
-      let inside: Vec<Json> = all["trace"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|record| record.get("within").is_some())
-        .take(40)
-        .map(|record| json!({"at": [record["from"], record["to"]], "within": record["within"]}))
-        .collect();
-      if !inside.is_empty() {
+      // the records of the iterations of the loops and of the bodies of the invocations, each
+      // expanded where it is evaluated: the predicate of a filter for an item, the body of a
+      // loop for an item, the body of a function for an invocation; and those inside them
+      let mut asked: std::collections::BTreeSet<String> = Default::default();
+      let mut from = all.clone();
+      for _ in 0..3 {
+        let inside: Vec<Json> = from["trace"]
+          .as_array()
+          .unwrap()
+          .iter()
+          .filter(|record| record.get("within").is_some())
+          .map(|record| json!({"at": [record["from"], record["to"]], "within": record["within"]}))
+          .filter(|entry| asked.insert(entry.to_string()))
+          .take(40)
+          .collect();
+        if inside.is_empty() {
+          break;
+        }
         let deeper = with("explain", &[("expand", json!(inside)), ("maxRecords", json!(10_000))]);
-        same(&deeper, "with the nodes of iterations expanded");
-        iterations += inside.len();
+        same(&deeper, "with the nodes of iterations and of bodies expanded");
+        let call = |entry: &&Json| entry["within"].as_array().unwrap().iter().any(|step| step.get("call").is_some());
+        calls += inside.iter().filter(call).count();
+        iterations += inside.len() - inside.iter().filter(call).count();
         records += deeper["trace"].as_array().unwrap().len();
-        // a record inside an iteration says which
+        // a record inside an iteration or a body says which
         for record in deeper["trace"].as_array().unwrap() {
           if let Some(within) = record.get("within") {
             assert!(
               within
                 .as_array()
-                .is_some_and(|steps| !steps.is_empty() && steps.iter().all(|step| step["iteration"].is_u64() && step["at"].is_array())),
+                .is_some_and(|steps| !steps.is_empty() && steps.iter().all(|step| (step["iteration"].is_u64() || step["call"] == true) && step["at"].is_array())),
               "{text}: {record}"
             );
           }
         }
+        from = deeper;
       }
       explained += 1;
       records += all["trace"].as_array().unwrap().len();
       expanded += known.len();
     }
     println!(
-      "{} requests, {explained} explained, {failed} failed as evaluate does, {expanded} nodes expanded, {iterations} in iterations, {records} records",
+      "{} requests, {explained} explained, {failed} failed as evaluate does, {expanded} nodes expanded, {iterations} in iterations, {calls} in bodies, {records} records",
       requests.len()
     );
     assert!(
-      explained > 5_000 && records > 20_000 && iterations > 500,
-      "{explained} explained, {records} records, {iterations} in iterations"
+      explained > 5_000 && records > 20_000 && iterations > 500 && calls > 500,
+      "{explained} explained, {records} records, {iterations} in iterations, {calls} in bodies"
     );
   });
 }

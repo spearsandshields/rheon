@@ -188,6 +188,12 @@ pub(crate) enum Op {
   /// The loop `repeat` of a request evaluates its body or its predicate: the filter of `record`
   /// for the item it visits, a walk for its next.
   TraceStep { repeat: Ix, record: u32, filter: bool },
+  /// The invocation `site` of a request is about to invoke `function`, or with `done` has ended
+  /// ([super::trace]).
+  TraceCall { site: Ix, function: Opnd, done: bool },
+  /// The body of a function is entered, or with `left` has its value ([super::trace]): in every
+  /// body of a program compiled for a request that asks for records.
+  TraceBody { left: bool },
   /// `dst` is the value of the free name `names[name]` below the scopes of the body (in the
   /// scope of the host for the root expression), else the built-in function of that name, else
   /// null with an error; in a body, the value is kept in the activation's cell `cell` once read.
@@ -547,7 +553,8 @@ impl Program {
         }
         Op::Warn { msg, .. } => check.index(msg, self.messages.len(), "message out of range")?,
         Op::Record { src, .. } => check.opnd(src)?,
-        Op::TraceLoop { .. } | Op::TraceStep { .. } => {}
+        Op::TraceLoop { .. } | Op::TraceStep { .. } | Op::TraceBody { .. } => {}
+        Op::TraceCall { function, .. } => check.opnd(function)?,
         Op::LoadName { dst, name, cell } => {
           check.slot(dst)?;
           check.index(name, self.names.len(), "name out of range")?;

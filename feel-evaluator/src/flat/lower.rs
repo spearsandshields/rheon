@@ -464,11 +464,18 @@ impl<'a> Lower<'_, 'a> {
     self.proto = proto as u32;
     self.cell_names.clear();
     let entry = self.builder.here();
+    // in a program that records: the records of the body are of the invocation that enters it
+    if self.targets.is_some() {
+      self.builder.emit(Op::TraceBody { left: false });
+    }
     let result = if function.body == NONE {
       self.builder.konst(Value::Null(None))
     } else {
       self.value(function.body, None)?
     };
+    if self.targets.is_some() {
+      self.builder.emit(Op::TraceBody { left: true });
+    }
     self.builder.emit(Op::Return { src: result });
     let mut cells: Vec<(u32, u32)> = self.cell_names.iter().copied().zip(0..).collect();
     cells.sort_unstable();
@@ -535,7 +542,23 @@ impl<'a> Lower<'_, 'a> {
           names,
           region,
         });
-        self.builder.emit(Op::Call { dst, call });
+        // an invocation that a request follows: the body it enters is the one of its records
+        let site = self.targets.and_then(|targets| (targets.call)(resolved.nodes[node as usize].ast));
+        if let Some(site) = site {
+          let function = match function.decode() {
+            super::program::Operand::Take(slot) => Opnd::slot(slot),
+            _ => function,
+          };
+          self.builder.emit(Op::TraceCall { site, function, done: false });
+          self.builder.emit(Op::Call { dst, call });
+          self.builder.emit(Op::TraceCall {
+            site,
+            function: Opnd::slot(dst),
+            done: true,
+          });
+        } else {
+          self.builder.emit(Op::Call { dst, call });
+        }
       }
       Err(text) => self.fail(dst, text),
     }

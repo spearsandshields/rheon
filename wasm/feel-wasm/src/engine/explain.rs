@@ -5,14 +5,16 @@
 //! text and its parts one level down; `expand` names nodes, by their places, whose parts are
 //! wanted too. A part of a loop or a filter that is evaluated once for each item (the body, the
 //! predicate) has a record for each of its first iterations, or for those that the request
-//! names; a node inside such a part is named with the iteration it is in. Each request
+//! names; a node inside such a part is named with the iteration it is in. The parts of an
+//! invocation are its arguments and, when it invokes a function of the text, the body of that
+//! function; a node of a body is named with the invocation that runs it. Each request
 //! evaluates the text again, with a record of the values of those nodes only: the engine keeps
 //! nothing between requests, and an answer is as long as the request asks, whatever the data is.
 
 use super::*;
-use rheon_feel_evaluator::{PartFrame, Plan, Tracing, parts, prepare_traced, recording};
+use rheon_feel_evaluator::{PartFrame, Plan, Tracing, body, parts, prepare_traced, recording};
 use rheon_feel_parser::{Positioned, parse_positioned};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// The most records of one answer when the request does not say: beyond the limit the trace is
 /// cut and says so.
@@ -53,28 +55,46 @@ fn small(value: &Value, left: &mut isize) -> bool {
 /// A place of the text, in bytes.
 type At = (usize, usize);
 
+/// A step of the way to where a node is evaluated: into an iteration of the loop or the filter
+/// at a place, or into the body of the function that the invocation at a place invokes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum Step {
+  Iteration(At, usize),
+  Call(At),
+}
+
 /// A node whose value the request asks for, in one of the ways it is asked for.
 struct Wanted<'t> {
   node: &'t AstNode,
   at: At,
   kind: &'static str,
-  /// The iterations it is in: the place of each loop around it, outermost first, and the index.
-  within: Vec<(At, usize)>,
+  /// Where it is evaluated: the steps from the root of the text, outermost first.
+  within: Vec<Step>,
   /// It is the body of this loop, wanted for each iteration from the first index up to the second.
   each: Option<(&'t AstNode, usize, usize)>,
 }
 
-/// An entry of `expand`: a node by its place, the iterations it is in, and for a loop which of
+/// A way that a node is wanted: its place, where it is evaluated, and the iterations asked for.
+type Way = (At, Vec<Step>, Option<(usize, usize)>);
+
+/// The nodes that are wanted, each way once.
+#[derive(Default)]
+struct Wants<'t> {
+  list: Vec<Wanted<'t>>,
+  known: HashSet<Way>,
+}
+
+/// An entry of `expand`: a node by its place, where it is evaluated, and for a loop which of
 /// its iterations are wanted.
 struct Asked {
   at: At,
-  within: Vec<(At, usize)>,
+  within: Vec<Step>,
   iterations: Option<(usize, usize)>,
 }
 
-/// A node whose parts are wanted: the node, the iterations it is in, and for a loop which of
-/// its iterations.
-type Open<'t> = (&'t AstNode, Vec<(At, usize)>, Option<(usize, usize)>);
+/// A node whose parts are wanted: the node, where it is evaluated, and for a loop which of its
+/// iterations.
+type Open<'t> = (&'t AstNode, Vec<Step>, Option<(usize, usize)>);
 
 /// The node of `tree` at the place `at`: the outermost that has it.
 fn node_at(positioned: &Positioned, at: At) -> Option<&AstNode> {
@@ -104,29 +124,58 @@ fn repeats(node: &AstNode) -> bool {
   matches!(node, AstNode::For(..) | AstNode::Some(..) | AstNode::Every(..) | AstNode::Filter(..))
 }
 
-/// The loops around `target` in `tree`, outermost first: those in whose body or predicate it
-/// stands. None for a node that is no part of the tree as [parts] walks it (a node of the body
-/// of a function definition).
-fn loops_around<'t>(tree: &'t AstNode, target: &AstNode) -> Option<Vec<&'t AstNode>> {
-  // a walk with its own stack: the node, and the loops around it
-  let mut stack: Vec<(&AstNode, Vec<&AstNode>)> = vec![(tree, vec![])];
-  while let Some((node, around)) = stack.pop() {
+/// The node at the place `at` that is a loop or a filter (`invocation`: an invocation).
+fn step_node(positioned: &Positioned, at: At, invocation: bool) -> Option<&AstNode> {
+  let mut stack = vec![positioned.tree()];
+  while let Some(node) = stack.pop() {
+    let fits = if invocation { matches!(node, AstNode::FunctionInvocation(..)) } else { repeats(node) };
+    if fits && positioned.place(node) == Some(at) {
+      return Some(node);
+    }
+    node.for_each_child(|child| stack.push(child));
+  }
+  None
+}
+
+/// Where `target` stands in `tree`: whether in the body of a function definition (the innermost
+/// around it), and the loops around it there, outermost first: those in whose body or predicate
+/// it stands. None for a node that is not evaluated for a value (a name of a parameter, a type).
+fn around<'t>(tree: &'t AstNode, target: &AstNode) -> Option<(bool, Vec<&'t AstNode>)> {
+  // a walk with its own stack: the node, whether in a body, and the loops around it
+  let mut stack: Vec<(&AstNode, bool, Vec<&AstNode>)> = vec![(tree, false, vec![])];
+  while let Some((node, in_body, loops)) = stack.pop() {
     if std::ptr::eq(node, target) || std::ptr::eq(valued(node), target) {
-      return Some(around);
+      return Some((in_body, loops));
+    }
+    if let Some(body) = body(valued(node)) {
+      stack.push((body, true, vec![]));
     }
     for (part, frame) in parts(valued(node)) {
-      let mut around = around.clone();
+      let mut loops = loops.clone();
       if frame == PartFrame::Iteration {
-        around.push(valued(node));
+        loops.push(valued(node));
       }
-      stack.push((part, around));
+      stack.push((part, in_body, loops));
     }
   }
   None
 }
 
+/// The bodies of the function definitions of `tree`, each evaluated when its function is invoked.
+fn bodies(tree: &AstNode) -> Vec<&AstNode> {
+  let mut found = vec![];
+  let mut stack = vec![tree];
+  while let Some(node) = stack.pop() {
+    if let Some(body) = body(node) {
+      found.push(body);
+    }
+    node.for_each_child(|child| stack.push(child));
+  }
+  found
+}
+
 pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<String, Failure> {
-  const EXPAND: &str = "'expand' must be a list of nodes, each its place [from, to] in UTF-16 units, or {\"at\": [from, to], \"within\": [{\"at\": [from, to], \"iteration\": n}, …], \"iterations\": [from, to]}";
+  const EXPAND: &str = "'expand' must be a list of nodes, each its place [from, to] in UTF-16 units, or {\"at\": [from, to], \"within\": [{\"at\": [from, to], \"iteration\": n} or {\"at\": [from, to], \"call\": true}, …], \"iterations\": [from, to]}";
   const LIMIT: &str = "'maxRecords' must be a whole number from 1 to 10000";
   let dialect = dialect(&req)?;
   let language = language(&req)?;
@@ -160,8 +209,10 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
             None | Some(Json::Null) => vec![],
             Some(Json::Array(steps)) => steps
               .iter()
-              .map(|step| match (step.get("at"), step.get("iteration").and_then(Json::as_u64)) {
-                (Some(at), Some(iteration)) if step.as_object().is_some_and(|fields| fields.len() == 2) => Ok((place(at)?, iteration as usize)),
+              .map(|step| match (step.get("at"), step.get("iteration").and_then(Json::as_u64), step.get("call")) {
+                _ if step.as_object().is_none_or(|fields| fields.len() != 2) => fail("invalid-field", EXPAND),
+                (Some(at), Some(iteration), None) => Ok(Step::Iteration(place(at)?, iteration as usize)),
+                (Some(at), None, Some(Json::Bool(true))) => Ok(Step::Call(place(at)?)),
                 _ => fail("invalid-field", EXPAND),
               })
               .collect::<Result<_, _>>()?,
@@ -209,9 +260,9 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
   let shown = |at: At| format!("[{}, {}]", places.of(at.0), places.of(at.1));
   // the nodes that are wanted: the root, its parts, and the parts of the nodes to expand
   let root = positioned.tree();
-  let mut wanted: Vec<Wanted> = vec![];
-  add(&positioned, root, &[], None, &mut wanted);
-  // the nodes whose parts are wanted: the node, the iterations it is in, and those of it asked for
+  let mut wants = Wants::default();
+  add(&positioned, root, &[], None, &mut wants);
+  // the nodes whose parts are wanted: the node, where it is evaluated, and the iterations of it asked for
   let mut open: Vec<Open> = vec![(root, vec![], None)];
   for Asked { at, within, iterations } in asked {
     let Some(node) = node_at(&positioned, at) else {
@@ -223,30 +274,77 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
         ),
       );
     };
-    // the iterations it is in are those of the loops around it
-    let Some(around) = loops_around(root, node) else {
-      return fail(
-        "invalid-field",
-        format!("'expand' has the place {}, a node of the body of a function: its parts are not recorded", shown(at)),
-      );
-    };
-    let expected: Vec<At> = around.iter().filter_map(|repeat| positioned.place(repeat)).collect();
-    if expected.len() != around.len() || within.iter().map(|(at, _)| *at).collect::<Vec<_>>() != expected {
-      let wants: Vec<String> = expected.iter().map(|at| format!("{{\"at\": {}, \"iteration\": n}}", shown(*at))).collect();
-      return fail(
-        "invalid-field",
-        format!(
-          "'expand' has the node at {}, which is evaluated once for each item of {}: expected \"within\": [{}], found {} of them",
-          shown(at),
-          if expected.len() == 1 {
-            "the loop around it".to_string()
+    // the steps lead to the node: from the end, the loops around it, then for a node of a body
+    // the invocation that runs the body, which the steps before lead to
+    let (mut reached, mut steps) = (node, within.as_slice());
+    loop {
+      let Some((in_body, loops)) = around(root, reached) else {
+        return fail(
+          "invalid-field",
+          format!("'expand' has the place {}, a node that is not evaluated for a value: it has no parts", shown(at)),
+        );
+      };
+      let expected: Vec<At> = loops.iter().filter_map(|repeat| positioned.place(repeat)).collect();
+      let (before, last) = steps.split_at(steps.len().saturating_sub(expected.len()));
+      let fits =
+        expected.len() == loops.len() && last.len() == expected.len() && last.iter().zip(&expected).all(|(step, at)| matches!(step, Step::Iteration(found, _) if found == at));
+      let site = match before.split_last() {
+        Some((Step::Call(site), _)) if in_body => step_node(&positioned, *site, true),
+        _ => None,
+      };
+      if fits
+        && in_body
+        && site.is_none()
+        && let Some((Step::Call(site), _)) = before.split_last()
+      {
+        return fail(
+          "invalid-field",
+          format!(
+            "'expand' has the node at {}, whose \"within\" has {{\"at\": {}, \"call\": true}}: expected the place of an invocation, found the place of none",
+            shown(at),
+            shown(*site)
+          ),
+        );
+      }
+      if !fits || (in_body && site.is_none()) || (!in_body && !before.is_empty()) {
+        let mut wants: Vec<String> = expected.iter().map(|at| format!("{{\"at\": {}, \"iteration\": n}}", shown(*at))).collect();
+        if in_body {
+          wants.insert(0, "{\"at\": [the place of the invocation that runs the body], \"call\": true}".to_string());
+        }
+        let stands = match (in_body, expected.len()) {
+          (false, 0) => "is in no loop and in no body of a function".to_string(),
+          (false, 1) => "is evaluated once for each item of the loop around it".to_string(),
+          (false, count) => format!("is evaluated once for each item of the {count} loops around it"),
+          (true, 0) => "is in the body of a function".to_string(),
+          (true, 1) => "is in the body of a function, and evaluated once for each item of the loop around it there".to_string(),
+          (true, count) => format!("is in the body of a function, and evaluated once for each item of the {count} loops around it there"),
+        };
+        return fail(
+          "invalid-field",
+          if std::ptr::eq(reached, node) {
+            format!(
+              "'expand' has the node at {}, which {stands}: expected \"within\"{} [{}], found {} of them",
+              shown(at),
+              if in_body { " to end with" } else { ":" },
+              wants.join(", "),
+              steps.len()
+            )
           } else {
-            format!("the {} loops around it", expected.len())
+            format!(
+              "'expand' has the node at {}, whose \"within\" has the invocation at {}, which {stands}: expected the steps before it{} [{}], found {} of them",
+              shown(at),
+              positioned.place(reached).map_or_else(String::new, &shown),
+              if in_body { " to end with" } else { ":" },
+              wants.join(", "),
+              steps.len()
+            )
           },
-          wants.join(", "),
-          within.len()
-        ),
-      );
+        );
+      }
+      match site {
+        Some(site) => (reached, steps) = (site, &before[..before.len() - 1]),
+        None => break,
+      }
     }
     if iterations.is_some() && !repeats(valued(node)) {
       return fail(
@@ -256,31 +354,41 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
     }
     open.push((node, within, iterations));
   }
+  let bodies = bodies(root);
   for (node, within, iterations) in &open {
     let node = valued(node);
     for (part, frame) in parts(node) {
       match frame {
-        PartFrame::Same => add(&positioned, part, within, None, &mut wanted),
+        PartFrame::Same => add(&positioned, part, within, None, &mut wants),
         // once for each item: a record for each of the iterations asked for
         PartFrame::Iteration => {
           let (from, to) = iterations.unwrap_or((0, DEFAULT_ITERATIONS));
-          add(&positioned, part, within, Some((node, from, to)), &mut wanted);
+          add(&positioned, part, within, Some((node, from, to)), &mut wants);
         }
       }
     }
+    // the body that an invocation runs: whichever of the text its function has, which only the
+    // evaluation says, so every body is wanted for this invocation and one has a record
+    if let (AstNode::FunctionInvocation(..), Some(site)) = (node, positioned.place(node)) {
+      let mut within = within.clone();
+      within.push(Step::Call(site));
+      for body in &bodies {
+        add(&positioned, body, &within, None, &mut wants);
+      }
+    }
   }
+  let wanted = wants.list;
   // the numbers of the nodes and of the loops that the program records
   let mut targets: HashMap<usize, u32> = HashMap::new();
   let mut repeat_numbers: HashMap<usize, u32> = HashMap::new();
+  let mut call_numbers: HashMap<usize, u32> = HashMap::new();
+  // the loop or the invocation of a step, by its place
+  let mut step_nodes: HashMap<(At, bool), Option<&AstNode>> = HashMap::new();
   let address = |node: &AstNode| node as *const AstNode as usize;
-  let mut plan = Plan {
-    wanted: vec![],
-    repeats: 0,
-    limit,
-  };
+  let mut plan = Plan { wanted: vec![], limit };
   // the ways of a node, each with the index of what is wanted
   let mut ways: Vec<Vec<usize>> = vec![];
-  let repeat_of = |node: &AstNode, numbers: &mut HashMap<usize, u32>| -> u32 {
+  let number_of = |node: &AstNode, numbers: &mut HashMap<usize, u32>| -> u32 {
     let next = numbers.len() as u32;
     *numbers.entry(address(node)).or_insert(next)
   };
@@ -293,24 +401,33 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
       ways.resize(target + 1, vec![]);
     }
     let mut within = vec![];
-    for (at, iteration) in &wanted.within {
-      if let Some(repeat) = node_at(&positioned, *at) {
-        within.push((repeat_of(valued(repeat), &mut repeat_numbers), *iteration));
-      }
+    for step in &wanted.within {
+      let (at, invocation) = match step {
+        Step::Iteration(at, _) => (*at, false),
+        Step::Call(at) => (*at, true),
+      };
+      let Some(found) = *step_nodes.entry((at, invocation)).or_insert_with(|| step_node(&positioned, at, invocation)) else {
+        return fail("internal", "a step of a record leads to no node");
+      };
+      within.push(match step {
+        Step::Iteration(_, iteration) => rheon_feel_evaluator::Step::Iteration(number_of(found, &mut repeat_numbers), *iteration),
+        Step::Call(_) => rheon_feel_evaluator::Step::Call(number_of(found, &mut call_numbers)),
+      });
     }
     plan.wanted[target].push(rheon_feel_evaluator::Wanted {
       within,
-      each: wanted.each.map(|(repeat, from, to)| (repeat_of(repeat, &mut repeat_numbers), from, to)),
-      repeat: repeats(node).then(|| repeat_of(node, &mut repeat_numbers)),
+      each: wanted.each.map(|(repeat, from, to)| (number_of(repeat, &mut repeat_numbers), from, to)),
+      repeat: repeats(node).then(|| number_of(node, &mut repeat_numbers)),
     });
     ways[target].push(index);
   }
-  plan.repeats = repeat_numbers.len();
   let node_number = |node: &AstNode| targets.get(&address(node)).copied();
   let repeat_number = |node: &AstNode| repeat_numbers.get(&address(node)).copied();
+  let call_number = |node: &AstNode| call_numbers.get(&address(node)).copied();
   let tracing = Tracing {
     node: &node_number,
     repeat: &repeat_number,
+    call: &call_number,
   };
   let evaluator = prepare_traced(positioned.tree(), language, &tracing);
   let (answer, trace) = recording(plan, || answered(&scope, None, &evaluator, error_mode, max_steps, warnings, started));
@@ -344,20 +461,23 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
     }
     records.push_str(&format!(",\"to\":{},\"value\":", places.of(wanted.at.1)));
     write_value(&record.value, &mut records);
-    // the iterations it is in: of the loops around it, and of its own loop for a body
-    let mut within: Vec<(At, usize)> = wanted.within.clone();
+    // where it is evaluated: the steps to it, and for the body of a loop its iteration
+    let mut within: Vec<Step> = wanted.within.clone();
     if let (Some((repeat, ..)), Some(iteration)) = (wanted.each, record.iteration)
       && let Some(at) = positioned.place(repeat)
     {
-      within.push((at, iteration));
+      within.push(Step::Iteration(at, iteration));
     }
     if !within.is_empty() {
       records.push_str(",\"within\":[");
-      for (index, (at, iteration)) in within.iter().enumerate() {
+      for (index, step) in within.iter().enumerate() {
         if index > 0 {
           records.push(',');
         }
-        records.push_str(&format!("{{\"at\":[{},{}],\"iteration\":{iteration}}}", places.of(at.0), places.of(at.1)));
+        match step {
+          Step::Iteration(at, iteration) => records.push_str(&format!("{{\"at\":[{},{}],\"iteration\":{iteration}}}", places.of(at.0), places.of(at.1))),
+          Step::Call(at) => records.push_str(&format!("{{\"at\":[{},{}],\"call\":true}}", places.of(at.0), places.of(at.1))),
+        }
       }
       records.push(']');
     }
@@ -372,15 +492,13 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
   Ok(response)
 }
 
-/// Adds `node` to the nodes that are wanted, in the iterations `within` and for each iteration
-/// of `each`, when it has a place and is not among them so.
-fn add<'t>(positioned: &'t Positioned, node: &'t AstNode, within: &[(At, usize)], each: Option<(&'t AstNode, usize, usize)>, wanted: &mut Vec<Wanted<'t>>) {
+/// Adds `node` to the nodes that are wanted, evaluated at `within` and for each iteration of
+/// `each`, when it has a place and is not among them so.
+fn add<'t>(positioned: &'t Positioned, node: &'t AstNode, within: &[Step], each: Option<(&'t AstNode, usize, usize)>, wants: &mut Wants<'t>) {
   if let (Some(at), Some(kind)) = (positioned.place(node), positioned.kind(node))
-    && !wanted
-      .iter()
-      .any(|known| known.at == at && known.within == within && known.each.map(|(_, from, to)| (from, to)) == each.map(|(_, from, to)| (from, to)))
+    && wants.known.insert((at, within.to_vec(), each.map(|(_, from, to)| (from, to))))
   {
-    wanted.push(Wanted {
+    wants.list.push(Wanted {
       node,
       at,
       kind,
