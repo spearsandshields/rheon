@@ -1,8 +1,9 @@
 //! The editor's typing against evaluation: the type that the editor operations infer for an
 //! expression is a type of the value the expression gives. The expressions are those of the
 //! identity request sets (`tools/identity/requests`), each with its context; the inferred type
-//! is read from `complete`, which shows the type of the entry `zzq` of `{zzq: (<expression>)}.`,
-//! and the value is that of `{zzq: (<expression>)}.zzq`.
+//! is read from `complete`, which shows the type of the entry `zzq` of `{zzq: (<expression>)}.`
+//! and, after `.zzq.`, the types of the entries of a context or of the contexts of a list; the
+//! value is that of `{zzq: (<expression>)}.zzq`.
 //!
 //! The inferred type is the type a value has when it is not null, so a null (also inside a
 //! list) is of every type; an expression of no known type is not compared. Native only: the
@@ -20,23 +21,38 @@ mod big_stack;
 /// the engine, which an entry of a context literal around them exceeds or pays for again; and
 /// the set of the key by which `serde_json` hands a number to its tree, which this test's own
 /// reading of the file would take for numbers.
-const LEFT_OUT: [&str; 5] = ["doubled-values.json", "private-number-key.json", "value-depth.json", "values-deep.json", "values.json"];
+const LEFT_OUT: [&str; 4] = ["doubled-values.json", "private-number-key.json", "value-depth.json", "values-deep.json"];
 
-/// The expressions whose inferred type evaluation contradicts today: guesses of the typing that
-/// are wrong for these values. Each is to be made right or told apart as a guess; an entry that
-/// agrees again fails the test, so that it is taken off this list.
-const DISAGREE: [&str; 5] = [
+/// The fewest expressions, and entries of their contexts, that are compared: the sets give
+/// 4,591 and 416 today, and a change that loses the type of many of them is to be seen.
+const COMPARED: (usize, usize) = (4_500, 400);
+
+/// The expressions whose inferred type evaluation contradicts today, each with that type:
+/// guesses of the typing that are wrong for these values. Each is to be made right or told
+/// apart as a guess; an entry that agrees again, or disagrees with another type, fails the
+/// test, so that this list says what is wrong.
+const DISAGREE: [(&str, &str); 6] = [
   // the items given to these functions join the list, of whatever type they are
-  "append([1], [2])",
-  "insert before([1, 2], [1], [0])",
-  "list replace([1, 2], [1], [9])",
+  ("append([1], [2])", "list<number>"),
+  ("insert before([1, 2], [1], [0])", "list<number>"),
+  ("list replace([1, 2], [1], [9])", "list<number>"),
+  // and so do the items of the other lists: the entry `a` of the second item is a string
+  ("union([{a: 1}], [{a: \"a\"}])", ".a: list<number>"),
   // a filter whose predicate is a number only when it is evaluated selects one item
-  "{f: function(n) f(n + 1), g: 1, r: [{g: f, v: 5}][if (g instance of number) then 1 else g(1)].v}.r",
-  "{f: function(n) f(n + 1), g: 1, r: [{g: f, v: 5}][if g instance of number then 1 else g(1)].v}.r",
+  (
+    "{f: function(n) f(n + 1), g: 1, r: [{g: f, v: 5}][if (g instance of number) then 1 else g(1)].v}.r",
+    "list<number>",
+  ),
+  (
+    "{f: function(n) f(n + 1), g: 1, r: [{g: f, v: 5}][if g instance of number then 1 else g(1)].v}.r",
+    "list<number>",
+  ),
 ];
 
+/// The answer to `request`; null for an answer nested deeper than this test reads JSON (the
+/// values of some sets are), which is then not compared.
 fn call(request: Json) -> Json {
-  serde_json::from_str(&feel_wasm::call(&request.to_string())).expect("a response is JSON")
+  serde_json::from_str(&feel_wasm::call(&request.to_string())).unwrap_or(Json::Null)
 }
 
 /// The requests of `value` that evaluate an expression of FEEL: the expression and what the
@@ -91,17 +107,19 @@ fn agrees(inferred: &Shown, typed: &Json, named: Option<&str>) -> bool {
     return true;
   }
   if let Some(kind) = simple["type"].as_str() {
-    let kinds: &[&str] = match inferred.name {
-      "number" => &["xsd:decimal"],
-      "string" => &["xsd:string"],
-      "boolean" => &["xsd:boolean"],
-      "date" => &["xsd:date"],
-      "time" => &["xsd:time"],
-      "date and time" => &["xsd:dateTime"],
-      "days and time duration" | "years and months duration" => &["xsd:duration"],
-      _ => &[],
+    // the two durations have one type in this form: their texts tell them apart
+    let months = simple["text"].as_str().is_some_and(|text| !text.contains('D') && !text.contains('T'));
+    return match inferred.name {
+      "number" => kind == "xsd:decimal",
+      "string" => kind == "xsd:string",
+      "boolean" => kind == "xsd:boolean",
+      "date" => kind == "xsd:date",
+      "time" => kind == "xsd:time",
+      "date and time" => kind == "xsd:dateTime",
+      "days and time duration" => kind == "xsd:duration" && !months,
+      "years and months duration" => kind == "xsd:duration" && months,
+      _ => false,
     };
-    return kinds.contains(&kind);
   }
   if let Some(items) = typed["list"]["items"].as_array() {
     return inferred.name == "list" && inferred.of.as_ref().is_none_or(|item| items.iter().all(|value| agrees(item, value, None)));
@@ -113,6 +131,40 @@ fn agrees(inferred: &Shown, typed: &Json, named: Option<&str>) -> bool {
     Some(named) => named.starts_with(inferred.name),
     None => matches!(inferred.name, "range" | "function"),
   }
+}
+
+/// The entry `name` of the context `typed`, None when it has none.
+fn component<'v>(typed: &'v Json, name: &str) -> Option<&'v Json> {
+  typed["components"].as_array()?.iter().find(|entry| entry["name"] == name).map(|entry| &entry["value"])
+}
+
+/// The entries that `items` (the items of `complete` after the dot of a value) show a type
+/// for and whose type is no type of the entry of the value `typed`: of a context its entries,
+/// of a list of contexts the lists of the entries of its items.
+fn wrong_members(items: &[Json], typed: &Json) -> Vec<String> {
+  let mut wrong = vec![];
+  for item in items {
+    let (Some(label), Some(inferred)) = (item["label"].as_str(), item["type"].as_str()) else {
+      continue;
+    };
+    let inferred_type = shown(inferred);
+    let agreed = if typed["components"].is_array() {
+      component(typed, label).is_none_or(|value| agrees(&inferred_type, value, None))
+    } else if let Some(values) = typed["list"]["items"].as_array() {
+      // the member of a list is the list of the members of its items
+      inferred_type.name == "list"
+        && inferred_type
+          .of
+          .as_ref()
+          .is_none_or(|member| values.iter().all(|value| component(value, label).is_none_or(|value| agrees(member, value, None))))
+    } else {
+      true
+    };
+    if !agreed {
+      wrong.push(format!(".{label}: {inferred}"));
+    }
+  }
+  wrong
 }
 
 #[test]
@@ -128,8 +180,9 @@ fn an_inferred_type_is_a_type_of_the_value() {
         collect(&serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap(), &mut requests);
       }
     }
-    let (mut values, mut compared) = (0, 0);
-    let mut disagree = BTreeSet::new();
+    let (mut compared, mut members) = (0, 0);
+    let mut disagree: BTreeSet<(String, String)> = BTreeSet::new();
+    let mut shown_values = vec![];
     for request in &requests {
       let request: Json = serde_json::from_str(request).unwrap();
       let expression = request["expression"].as_str().unwrap();
@@ -144,7 +197,7 @@ fn an_inferred_type_is_a_type_of_the_value() {
       if evaluated["ok"] != true || evaluated["result"]["isNull"] == true {
         continue;
       }
-      values += 1;
+      let typed = &evaluated["result"]["typed"];
       let completed = with("complete", format!("{{zzq: ({expression}\n)}}."));
       let inferred = completed["items"]
         .as_array()
@@ -154,22 +207,38 @@ fn an_inferred_type_is_a_type_of_the_value() {
         continue;
       };
       compared += 1;
-      if !agrees(&shown(inferred), &evaluated["result"]["typed"], evaluated["result"]["type"].as_str()) {
-        disagree.insert(format!(
-          "{expression}\n    inferred {inferred}, value {} of type {}",
-          evaluated["result"]["display"], evaluated["result"]["type"]
+      let mut wrong = vec![];
+      if !agrees(&shown(inferred), typed, evaluated["result"]["type"].as_str()) {
+        wrong.push(inferred.to_string());
+      } else if typed["components"].is_array()
+        || typed["list"]["items"]
+          .as_array()
+          .is_some_and(|items| items.iter().any(|item| item["components"].is_array()))
+      {
+        // the entries of a context, and of the contexts of a list
+        let after = with("complete", format!("{{zzq: ({expression}\n)}}.zzq."));
+        let items = after["items"].as_array().cloned().unwrap_or_default();
+        members += items.iter().filter(|item| item["type"].is_string()).count();
+        wrong.extend(wrong_members(&items, typed));
+      }
+      if !wrong.is_empty() {
+        shown_values.push(format!(
+          "{expression}\n    inferred {}, value {} of type {}",
+          wrong.join(", "),
+          evaluated["result"]["display"],
+          evaluated["result"]["type"]
         ));
+        disagree.insert((expression.to_string(), wrong.join(", ")));
       }
     }
     // the sets are large enough to say something
-    assert!(values > 3000 && compared > 3000, "{values} values, {compared} compared");
-    let found: BTreeSet<&str> = disagree.iter().map(|line| line.split("\n    ").next().unwrap()).collect();
-    let expected: BTreeSet<&str> = DISAGREE.into_iter().collect();
+    assert!(compared >= COMPARED.0 && members >= COMPARED.1, "{compared} expressions and {members} entries compared");
+    let expected: BTreeSet<(String, String)> = DISAGREE.into_iter().map(|(expression, inferred)| (expression.to_string(), inferred.to_string())).collect();
     assert_eq!(
-      found,
+      disagree,
       expected,
-      "the inferred types that are no types of their values:\n{}",
-      disagree.iter().cloned().collect::<Vec<_>>().join("\n")
+      "{compared} expressions and {members} entries compared; the inferred types that are no types of their values:\n{}",
+      shown_values.join("\n")
     );
   });
 }

@@ -313,5 +313,66 @@ fn a_deep_tree_is_typed_within_the_limit() {
   let text = format!("{}1{}", "[".repeat(400), "]".repeat(400));
   let node = rheon_feel_parser::parse_expression(&scope, &text).unwrap();
   let text = infer_type(&node, &scope, &[]).to_string();
-  assert!(text.starts_with("list<list<") && text.contains("Any"), "{}", &text[..40]);
+  assert!(text.starts_with("list<list<") && text.contains("Any"), "{}", text.chars().take(120).collect::<String>());
+}
+
+/// The work of the typing grows with the text, also where a type holds one type at many places
+/// or types hold each other entry after entry (review of the analysis).
+#[test]
+fn types_that_share_or_nest_much_are_typed_within_bounds() {
+  let scope = te_scope("{}");
+  let typed = |text: &str| {
+    let node = rheon_feel_parser::parse_expression(&scope, text).unwrap_or_else(|e| panic!("{e}"));
+    let started = std::time::Instant::now();
+    let text = infer_type(&node, &scope, &[]).to_string();
+    assert!(started.elapsed() < std::time::Duration::from_secs(2), "{:?}", started.elapsed());
+    text
+  };
+  // a context whose two entries are the context before, 40 times: one type for each in the
+  // table, 2^40 types written out as a tree; what is written is cut
+  let mut entries = vec!["a0: {x: 1}".to_string()];
+  entries.extend((1..=40).map(|i| format!("a{i}: {{l: a{}, r: a{}}}", i - 1, i - 1)));
+  let doubled = entries.join(", ");
+  let text = typed(&format!("{{{doubled}, f: function() a40}}.f"));
+  assert!(
+    text.starts_with("function<>->context<l: context<") && text.contains("Any"),
+    "{}",
+    text.chars().take(120).collect::<String>()
+  );
+  // functions that each give the function before: a type as deep as the literal is long
+  let chain: Vec<String> = (1..=3000).map(|i| format!("f{i}: function() f{}", i - 1)).collect();
+  let text = typed(&format!("{{f0: function() 0, {}}}.f3000", chain.join(", ")));
+  assert!(
+    text.starts_with("function<>->function<>->") && text.contains("Any"),
+    "{}",
+    text.chars().take(120).collect::<String>()
+  );
+  // many names read through many functions written in each other
+  let names: Vec<String> = (1..=4000).map(|i| format!("n{i}")).collect();
+  let text = typed(&format!("{}[{}]", "function() ".repeat(140), names.join(", ")));
+  assert!(text.starts_with("function<>->function<>->"), "{}", text.chars().take(120).collect::<String>());
+}
+
+/// A value that the scope holds at many places is read once for its type.
+#[test]
+fn a_value_shared_in_the_scope_is_read_once() {
+  let scope = te_scope("{x: (for i in 1..40 return if i = 1 then {leaf: 1} else {a: partial[-1], b: partial[-1]})[-1]}");
+  let node = rheon_feel_parser::parse_expression(&scope, "x.a.b.a").unwrap();
+  let started = std::time::Instant::now();
+  let text = infer_type(&node, &scope, &[]).to_string();
+  assert!(started.elapsed() < std::time::Duration::from_secs(2), "{:?}", started.elapsed());
+  assert!(text.starts_with("context<a: context<"), "{}", text.chars().take(120).collect::<String>());
+}
+
+/// A type of another typing is no type of this one: it reads as not known, and nothing fails.
+#[test]
+fn a_type_of_another_typing_is_not_known() {
+  let scope = te_scope("{}");
+  let mut one = crate::Typing::new(&scope);
+  let list = one.of(&FeelType::List(Box::new(FeelType::List(Box::new(FeelType::Number)))));
+  let other = crate::Typing::new(&scope);
+  assert_eq!(None, other.shown(list));
+  assert_eq!(None, other.item(list));
+  assert_eq!(FeelType::Any, other.feel_type(list));
+  assert_eq!(Some("list<list<number>>".to_string()), one.shown(list));
 }

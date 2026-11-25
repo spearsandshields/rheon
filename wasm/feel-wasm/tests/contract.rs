@@ -3130,3 +3130,39 @@ fn third_review_of_the_batch() {
     "{response}"
   );
 }
+
+/// Completion of a text whose types hold one type at many places, or hold each other entry
+/// after entry, answers in the time of the text and shows a type of a bounded size (review of
+/// the analysis).
+#[test]
+fn completion_shows_types_that_share_or_nest_much_within_bounds() {
+  with_big_stack(|| {
+    // a context whose two entries are the context before, 40 times, and a function that gives it
+    let mut entries = vec!["a0: {x: 1}".to_string()];
+    entries.extend((1..=40).map(|i| format!("a{i}: {{l: a{}, r: a{}}}", i - 1, i - 1)));
+    let doubled = format!("{{{}, f: function() a40}}.", entries.join(", "));
+    // functions that each give the function before
+    let chain: Vec<String> = (1..=3000).map(|i| format!("f{i}: function() f{}", i - 1)).collect();
+    let chained = format!("{{f0: function() 0, {}}}.", chain.join(", "));
+    // (of the 3,001 entries the first 200 by name are offered: `f1000` is among them)
+    for (text, name) in [(doubled, "f"), (chained, "f1000")] {
+      let started = std::time::Instant::now();
+      let response = req(json!({"op": "complete", "expression": text}));
+      assert!(started.elapsed() < std::time::Duration::from_secs(5), "{:?}", started.elapsed());
+      assert_eq!(response["ok"], true, "{response}");
+      let item = response["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["label"] == name)
+        .unwrap_or_else(|| panic!("no item {name}"));
+      let shown = item["type"].as_str().unwrap();
+      assert!(
+        shown.starts_with("function<>->") && shown.len() < 20_000,
+        "{} characters: {}",
+        shown.len(),
+        &shown[..80.min(shown.len())]
+      );
+    }
+  });
+}

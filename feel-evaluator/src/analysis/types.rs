@@ -79,6 +79,17 @@ const COMPARABLE: TypeId = TypeId(10);
 const TEMPORAL: TypeId = TypeId(11);
 const DURATION: TypeId = TypeId(12);
 
+/// The most types that hold each other in one type (`list<list<…>>`, a function that gives a
+/// function, a context of contexts) that a walk of the type follows: what the type holds below
+/// that is read as `Any`. The entries of a context literal can each hold the type of the entry
+/// before, so the depth of a type is not bounded by the depth of the tree.
+pub(crate) const MAX_TYPE_DEPTH: usize = 256;
+
+/// The most types that [Types::feel_type] writes out: what is beyond is `Any`. A type of the
+/// table can hold one type at many places (a context whose two entries are the same context,
+/// and so on down), which a [FeelType] writes out at each.
+const MAX_WRITTEN: usize = 100_000;
+
 /// The table of the types of one typing. It holds the types that hold other types, after the
 /// indexes of [SIMPLE]; a table that only ever meets simple types allocates nothing.
 pub(crate) struct Types {
@@ -86,6 +97,9 @@ pub(crate) struct Types {
   kinds: Vec<Rc<Kind>>,
   /// Each type made with its index.
   made: HashMap<Rc<Kind>, TypeId>,
+  /// The types of the lists and contexts of a scope read so far, by their place in memory and
+  /// their depth in the value read: a value that a scope holds at many places is read once.
+  values: HashMap<(usize, usize), TypeId>,
 }
 
 impl Types {
@@ -93,15 +107,16 @@ impl Types {
     Self {
       kinds: Vec::new(),
       made: HashMap::new(),
+      values: HashMap::new(),
     }
   }
 
-  /// What the type `id` is.
+  /// What the type `id` is; `Any` for a type that is none of this table.
   pub(crate) fn kind(&self, id: TypeId) -> &Kind {
     let index = id.0 as usize;
     match SIMPLE.get(index) {
       Some(simple) => simple,
-      None => &self.kinds[index - SIMPLE.len()],
+      None => self.kinds.get(index - SIMPLE.len()).map_or(&SIMPLE[0], |kind| kind),
     }
   }
 
@@ -170,13 +185,27 @@ impl Types {
     }
   }
 
-  /// The type `id` as a [FeelType].
+  /// The type `id` as a [FeelType], of at most [MAX_WRITTEN] types.
   pub(crate) fn feel_type(&self, id: TypeId) -> FeelType {
+    self.written(id, &mut { MAX_WRITTEN }, 0)
+  }
+
+  /// The type `id` as a [FeelType] of at most `left` types, read from the depth `depth`: what
+  /// is beyond either is `Any`.
+  pub(crate) fn written(&self, id: TypeId, left: &mut usize, depth: usize) -> FeelType {
+    if *left == 0 || depth >= MAX_TYPE_DEPTH {
+      return FeelType::Any;
+    }
+    *left -= 1;
+    let depth = depth + 1;
     match self.kind(id) {
-      Kind::List(item) => FeelType::List(Box::new(self.feel_type(*item))),
-      Kind::Range(endpoint) => FeelType::Range(Box::new(self.feel_type(*endpoint))),
-      Kind::Context(entries) => FeelType::Context(entries.iter().map(|(name, entry)| (name.clone(), self.feel_type(*entry))).collect()),
-      Kind::Function(parameters, result) => FeelType::Function(parameters.iter().map(|parameter| self.feel_type(*parameter)).collect(), Box::new(self.feel_type(*result))),
+      Kind::List(item) => FeelType::List(Box::new(self.written(*item, left, depth))),
+      Kind::Range(endpoint) => FeelType::Range(Box::new(self.written(*endpoint, left, depth))),
+      Kind::Context(entries) => FeelType::Context(entries.iter().map(|(name, entry)| (name.clone(), self.written(*entry, left, depth))).collect()),
+      Kind::Function(parameters, result) => FeelType::Function(
+        parameters.iter().map(|parameter| self.written(*parameter, left, depth)).collect(),
+        Box::new(self.written(*result, left, depth)),
+      ),
       _ => self.simple(id),
     }
   }
@@ -216,15 +245,26 @@ impl Types {
     if depth >= MAX_VALUE_DEPTH {
       return ANY;
     }
+    // a list or a context is read once at each depth, at however many places the scope holds it
+    let place = (value as *const Value as usize, depth);
+    if matches!(value, Value::Context(_) | Value::List(_))
+      && let Some(&known) = self.values.get(&place)
+    {
+      return known;
+    }
     match value {
       Value::Context(context) => {
         let mut entries: Vec<(Name, TypeId)> = context.iter().map(|(name, value)| (name.clone(), self.value(value, depth + 1))).collect();
         entries.sort_by(|a, b| a.0.cmp(&b.0));
-        self.make(Kind::Context(entries.into()))
+        let made = self.make(Kind::Context(entries.into()));
+        self.values.insert(place, made);
+        made
       }
       Value::List(items) => {
         let item = items.first().map_or(ANY, |item| self.value(item, depth + 1));
-        self.list(item)
+        let made = self.list(item);
+        self.values.insert(place, made);
+        made
       }
       Value::Null(_) => ANY,
       // a type in the place of a value says the type of the name (an outline, a DMN declaration)
@@ -237,7 +277,7 @@ impl Types {
   /// property of a date, a time, a duration or a range, and for a list the list of the members
   /// of its items), `Any` when the type has none of this name.
   pub(crate) fn member(&mut self, base: TypeId, name: &str) -> TypeId {
-    self.member_of(base, name).unwrap_or(ANY)
+    self.member_of(base, name, 0).unwrap_or(ANY)
   }
 
   /// The members that a value of the type `base` has after a dot, with their types, in the
@@ -245,13 +285,19 @@ impl Types {
   /// time, a duration and a range, and for a list the members of its items, each as the list of
   /// its values.
   pub(crate) fn members(&mut self, base: TypeId) -> Vec<(String, TypeId)> {
+    self.members_of(base, 0)
+  }
+
+  /// [Types::members] of a type read at the depth `depth` of lists.
+  fn members_of(&mut self, base: TypeId, depth: usize) -> Vec<(String, TypeId)> {
     let number = |names: &[&str]| names.iter().map(|name| (name.to_string(), NUMBER)).collect::<Vec<_>>();
     let offset = [("time offset".to_string(), DAYS_AND_TIME_DURATION), ("timezone".to_string(), STRING)];
     match self.kind(base) {
       Kind::Context(entries) => entries.iter().map(|(name, entry)| (name.to_string(), *entry)).collect(),
+      Kind::List(_) if depth >= MAX_TYPE_DEPTH => vec![],
       Kind::List(item) => {
         let item = *item;
-        self.members(item).into_iter().map(|(name, member)| (name, self.list(member))).collect()
+        self.members_of(item, depth + 1).into_iter().map(|(name, member)| (name, self.list(member))).collect()
       }
       Kind::Date => number(&["year", "month", "day", "weekday", "value"]),
       Kind::DateTime => number(&["year", "month", "day", "weekday", "hour", "minute", "second", "value"])
@@ -271,8 +317,9 @@ impl Types {
     }
   }
 
-  /// [Types::member], None when the type has no member of this name.
-  fn member_of(&mut self, base: TypeId, name: &str) -> Option<TypeId> {
+  /// [Types::member] of a type read at the depth `depth` of lists, None when the type has no
+  /// member of this name.
+  fn member_of(&mut self, base: TypeId, name: &str, depth: usize) -> Option<TypeId> {
     let number = |names: &[&str]| names.contains(&name).then_some(NUMBER);
     let offset = || match name {
       "time offset" => Some(DAYS_AND_TIME_DURATION),
@@ -281,9 +328,10 @@ impl Types {
     };
     match self.kind(base) {
       Kind::Context(entries) => entries.binary_search_by(|(entry, _)| entry.as_str().cmp(name)).ok().map(|index| entries[index].1),
+      Kind::List(_) if depth >= MAX_TYPE_DEPTH => None,
       Kind::List(item) => {
         let item = *item;
-        let member = self.member_of(item, name)?;
+        let member = self.member_of(item, name, depth + 1)?;
         Some(self.list(member))
       }
       Kind::Date => number(&["year", "month", "day", "weekday", "value"]),

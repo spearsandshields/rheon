@@ -16,13 +16,12 @@ mod types;
 use crate::flat::{Info, LayoutKind, NONE, Place, Read, Region, RegionKind, Resolved, Target, resolve_names, variables};
 use crate::infer::{addition, at_literal, signature_type, subtraction, type_written, written_type};
 use rheon_feel::signatures::{BuiltIn, built_in};
-use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, FeelType, Name};
 use rheon_feel_parser::AstNode;
 use std::cell::OnceCell;
 use std::collections::BTreeMap;
 pub use types::TypeId;
-use types::{ANY, BOOLEAN, Kind, NULL, NUMBER, STRING, Types};
+use types::{ANY, BOOLEAN, Kind, MAX_TYPE_DEPTH, NULL, NUMBER, STRING, Types};
 
 /// The deepest tree that is typed: below it the type is `Any`. Name resolution, which the walk
 /// reads, recurses over the whole tree as it does before an evaluation; the trees of the parser
@@ -34,6 +33,9 @@ pub(crate) const MAX_DEPTH: usize = 300;
 /// functions that invoke each other would type their bodies without end. Beyond it a function
 /// literal has the type its body has with the types of its parameters as written.
 pub(crate) const MAX_STEPS: usize = 20_000;
+
+/// The most types that the signature of a function is shown with ([Typing::shown]).
+const MAX_SHOWN: usize = 256;
 
 /// What the analysis knows of a value.
 #[derive(Clone, Copy)]
@@ -77,8 +79,6 @@ enum Outer {
 /// One body being typed: the root expression of a tree, or a function body.
 #[derive(Clone, Copy)]
 struct Frame {
-  /// The tree of the body ([Analysis::unit]).
-  unit: u32,
   /// Where its slots start in [Analysis::slots]; they end where those of the next frame start.
   base: u32,
   outer: Outer,
@@ -89,18 +89,12 @@ struct Frame {
 pub struct Typing<'s> {
   types: Types,
   scope: &'s FeelScope,
-  /// The types of the values of the scope read so far.
-  values: Vec<(*const Value, TypeId)>,
 }
 
 impl<'s> Typing<'s> {
   /// The typing of expressions in `scope`.
   pub fn new(scope: &'s FeelScope) -> Self {
-    Self {
-      types: Types::new(),
-      scope,
-      values: vec![],
-    }
+    Self { types: Types::new(), scope }
   }
 
   /// Returns the type of the value of `node`, where the names of `bound` (the variables and
@@ -124,7 +118,7 @@ impl<'s> Typing<'s> {
       depth: 0,
       steps: 0,
     };
-    let frame = analysis.enter(0, root.root.binders, Outer::Bound { visible: bound.len() as u32 });
+    let frame = analysis.enter(root.root.binders, Outer::Bound { visible: bound.len() as u32 });
     analysis.fact(frame, 0, root.root()).ty
   }
 
@@ -171,19 +165,27 @@ impl<'s> Typing<'s> {
 
   /// The type `id` as an item of an editor shows it: the kind of the value, without the entries
   /// of a context (`context`, `list<context>`, `list<number>`), and a function with its
-  /// signature when the types of its parameters or of its result are known. None when the type
-  /// is not known.
+  /// signature when the types of its parameters or of its result are known (of at most
+  /// [MAX_SHOWN] types: what is beyond is written `Any`). None when the type is not known.
   pub fn shown(&self, id: TypeId) -> Option<String> {
+    self.shown_at(id, 0)
+  }
+
+  /// [Typing::shown] of a type read at the depth `depth` of lists and ranges.
+  fn shown_at(&self, id: TypeId, depth: usize) -> Option<String> {
+    if depth >= MAX_TYPE_DEPTH {
+      return None;
+    }
     match self.types.kind(id) {
       Kind::Any | Kind::Null => None,
       Kind::Context(_) => Some("context".to_string()),
-      Kind::Function(parameters, result) if parameters.iter().chain([result]).any(|known| *known != ANY) => Some(self.types.feel_type(id).to_string()),
+      Kind::Function(parameters, result) if parameters.iter().chain([result]).any(|known| *known != ANY) => Some(self.types.written(id, &mut { MAX_SHOWN }, depth).to_string()),
       Kind::Function(..) => Some("function".to_string()),
-      Kind::List(item) => Some(match self.shown(*item) {
+      Kind::List(item) => Some(match self.shown_at(*item, depth + 1) {
         Some(item) => format!("list<{item}>"),
         None => "list".to_string(),
       }),
-      Kind::Range(endpoint) => Some(match self.shown(*endpoint) {
+      Kind::Range(endpoint) => Some(match self.shown_at(*endpoint, depth + 1) {
         Some(endpoint) => format!("range<{endpoint}>"),
         None => "range".to_string(),
       }),
@@ -195,13 +197,7 @@ impl<'s> Typing<'s> {
   fn value(&mut self, name: &Name) -> Option<TypeId> {
     let frames = self.scope.frames();
     let value = frames.iter().rev().find_map(|frame| frame.get_entry(name))?;
-    let key = value as *const Value;
-    if let Some((_, ty)) = self.values.iter().find(|(known, _)| *known == key) {
-      return Some(*ty);
-    }
-    let ty = self.types.of_value(value);
-    self.values.push((key, ty));
-    Some(ty)
+    Some(self.types.of_value(value))
   }
 }
 
@@ -263,10 +259,10 @@ impl<'a, 'n> Analysis<'a, '_, 'n> {
   }
 
   /// Starts a frame of `binders` slots that hold nothing yet, and returns its index.
-  fn enter(&mut self, unit: u32, binders: u32, outer: Outer) -> usize {
+  fn enter(&mut self, binders: u32, outer: Outer) -> usize {
     let base = self.slots.len();
     self.slots.resize(base + binders as usize, Fact::ANY);
-    self.frames.push(Frame { unit, base: base as u32, outer });
+    self.frames.push(Frame { base: base as u32, outer });
     self.frames.len() - 1
   }
 
@@ -469,14 +465,21 @@ impl<'a, 'n> Analysis<'a, '_, 'n> {
   /// The type both types are: the type itself when they are the same, `Any` otherwise. A type
   /// and `Null` are the type (a value or null).
   fn join(&mut self, a: TypeId, b: TypeId) -> TypeId {
+    self.join_at(a, b, 0)
+  }
+
+  /// [Analysis::join] of types read at the depth `depth` of lists.
+  fn join_at(&mut self, a: TypeId, b: TypeId, depth: usize) -> TypeId {
     if a == NULL {
       return b;
     }
     if b == NULL || a == b {
       return a;
     }
-    if let (Kind::List(a), Kind::List(b)) = (self.typing.types.kind(a), self.typing.types.kind(b)) {
-      let item = self.join(*a, *b);
+    if depth < MAX_TYPE_DEPTH
+      && let (Kind::List(a), Kind::List(b)) = (self.typing.types.kind(a), self.typing.types.kind(b))
+    {
+      let item = self.join_at(*a, *b, depth + 1);
       return self.typing.types.list(item);
     }
     ANY
@@ -486,10 +489,7 @@ impl<'a, 'n> Analysis<'a, '_, 'n> {
   fn read(&mut self, frame: usize, unit: &'a Resolved<'n>, id: u32, read: &Read) -> Fact {
     match read.target {
       Target::Place(place) => self.place(frame, place),
-      Target::Free(free) => {
-        let name: &Name = &unit.names[unit.frees[free as usize].name as usize];
-        self.outside(frame, name)
-      }
+      Target::Free(free) => self.outside(frame, unit, unit.frees[free as usize].name),
       // a qualified name of several segments: its first segment, as a name reads it there
       Target::Search if read.name != NONE => {
         let mut region = unit.nodes[id as usize].region;
@@ -506,8 +506,7 @@ impl<'a, 'n> Analysis<'a, '_, 'n> {
           }
           region = parent;
         }
-        let name: &Name = &unit.names[read.name as usize];
-        self.outside(frame, name)
+        self.outside(frame, unit, read.name)
       }
       Target::Search => Fact::ANY,
     }
@@ -522,35 +521,35 @@ impl<'a, 'n> Analysis<'a, '_, 'n> {
     }
   }
 
-  /// What the name `name` reads that the body of the frame `frame` does not bind: for a
-  /// function body, a binder that is in scope where the function is written (every entry of
-  /// the context literals it is written in, DMN 1.6 clause 10.3.2.11.1), then what that body
-  /// reads from outside; for the root of a tree, a name bound around it or a value of the
-  /// scope.
-  fn outside(&mut self, mut frame: usize, name: &Name) -> Fact {
+  /// What the name `name` of the tree `unit` reads that the body of the frame `frame` does not
+  /// bind: for a function body, a binder that is in scope where the function is written (every
+  /// entry of the context literals it is written in, DMN 1.6 clause 10.3.2.11.1), then what
+  /// that body reads from outside; for the root of a tree, a name bound around it or a value of
+  /// the scope. The bodies of one chain are of one tree, so the name is its index all along.
+  fn outside(&mut self, mut frame: usize, unit: &'a Resolved<'n>, name: u32) -> Fact {
     loop {
       match self.frames[frame].outer {
-        Outer::Bound { visible } => return self.bound_name(name, visible as usize),
+        Outer::Bound { visible } => {
+          let name: &Name = &unit.names[name as usize];
+          return self.bound_name(name, visible as usize);
+        }
         Outer::Site { frame: site, region } => {
           let site = site as usize;
-          let unit = self.unit(self.frames[site].unit);
-          if let Some(index) = unit.names.iter().position(|known| **known == *name) {
-            let mut region = region;
-            while region != NONE {
-              let Region { parent, kind } = unit.regions[region as usize];
-              match kind {
-                RegionKind::Layout { layout, visible } => {
-                  let layout = &unit.layouts[layout as usize];
-                  let visible = if layout.kind == LayoutKind::Context { layout.entries.len() as u32 } else { visible };
-                  if let Some(place) = layout.find(index as u32, visible) {
-                    return self.place(site, place);
-                  }
+          let mut region = region;
+          while region != NONE {
+            let Region { parent, kind } = unit.regions[region as usize];
+            match kind {
+              RegionKind::Layout { layout, visible } => {
+                let layout = &unit.layouts[layout as usize];
+                let visible = if layout.kind == LayoutKind::Context { layout.entries.len() as u32 } else { visible };
+                if let Some(place) = layout.find(name, visible) {
+                  return self.place(site, place);
                 }
-                RegionKind::Item { .. } => {}
-                RegionKind::Closure => break,
               }
-              region = parent;
+              RegionKind::Item { .. } => {}
+              RegionKind::Closure => break,
             }
+            region = parent;
           }
           frame = site;
         }
@@ -683,7 +682,6 @@ impl<'a, 'n> Analysis<'a, '_, 'n> {
       (Info::Function { proto }, AstNode::FunctionBody(_, false)) if *proto != NONE => {
         let proto = &unit.functions[*proto as usize];
         let body = self.enter(
-          unit_index,
           proto.binders,
           Outer::Site {
             frame: frame as u32,
@@ -760,7 +758,7 @@ impl<'a, 'n> Analysis<'a, '_, 'n> {
         let unit_index = self.bound_unit(at as usize)?;
         let unit = self.unit(unit_index);
         // the root of the literal reads the names bound before it and its own
-        let root = self.enter(unit_index, unit.root.binders, Outer::Bound { visible: at + 1 });
+        let root = self.enter(unit.root.binders, Outer::Bound { visible: at + 1 });
         let result = self.call_at(unit_index, unit.root(), root as u32, arguments, written);
         self.leave();
         result
@@ -820,7 +818,7 @@ impl<'a, 'n> Analysis<'a, '_, 'n> {
         }
       }
     }
-    let body = self.enter(unit_index, proto.binders, Outer::Site { frame: site, region: node.region });
+    let body = self.enter(proto.binders, Outer::Site { frame: site, region: node.region });
     for (slot, parameter_type) in parameters {
       if let Some(held) = self.slot(body, slot) {
         *held = Fact::of(parameter_type);
