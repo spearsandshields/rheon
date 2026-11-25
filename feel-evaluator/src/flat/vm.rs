@@ -11,7 +11,7 @@
 //! (its home), its closure, then the scope of the host. It reads nothing of its caller.
 
 use super::program::{CallInfo, Compare, Domain, Fold, Kernel1, Kernel2, ListKind, LoopKind, NONE, Op, Operand, Opnd, Pc, Program, Slot};
-use super::resolve::{Layout, Place, Region, RegionKind};
+use super::resolve::{Layout, LayoutKind, Place, Region, RegionKind};
 use crate::Dialect;
 use crate::MAX_CALL_DEPTH;
 use crate::bfeel;
@@ -930,7 +930,7 @@ impl<'p> Vm<'p> {
     let mut captures = proto.captures.iter();
     let function = kernels::function_definition(parameters, body, &proto.closure, |name| {
       let first = captures.next().copied().unwrap_or(NONE);
-      self.search_from(info.region, first, name)
+      self.captured(info.region, first, name)
     });
     // a function sees the entries of the context literal it is written in
     match (function, self.home()) {
@@ -1148,13 +1148,13 @@ impl<'p> Vm<'p> {
   }
 
   /// Visits the scopes from the region `region` of the activation that runs down, innermost
-  /// first; the first value that `visit` gives.
-  fn scopes_below(&self, region: u32, mut visit: impl FnMut(&Self, &Activation, Region) -> Option<Value>) -> Option<Value> {
+  /// first; what the first scope that `visit` decides in gives.
+  fn scopes_below<T>(&self, region: u32, mut visit: impl FnMut(&Self, &Activation, Region) -> Option<T>) -> Option<T> {
     let mut at = region;
     while at != NONE {
       let region = self.act.program.regions[at as usize];
-      if let Some(value) = visit(self, &self.act, region) {
-        return Some(value);
+      if let Some(decided) = visit(self, &self.act, region) {
+        return Some(decided);
       }
       at = region.parent;
     }
@@ -1499,6 +1499,71 @@ impl<'p> Vm<'p> {
         }
       })
       .or_else(|| self.host.search(segments))
+  }
+
+  /// What a function definition at the region `region` keeps of the qualified name `segments`
+  /// that its body reads: the value of the name, with the number of its segments; or, when the
+  /// innermost scope that has the first segment has not the others, the value of the first
+  /// segment alone, with 1, so that the body reads the name there (it has no value) and not in a
+  /// scope further out. An entry of a context literal is not kept so: the body reads it where
+  /// the function is written, when the entry has its value.
+  #[cold]
+  #[inline(never)]
+  fn captured(&self, region: u32, first: u32, segments: &[Name]) -> Option<(usize, Value)> {
+    let Some(head) = segments.first() else {
+      return self.host.search(segments).map(|value| (segments.len(), value));
+    };
+    let program = &self.act.program;
+    // in the scope that decides: the value of the name, and the value of its first segment
+    let decided: Option<(Option<Value>, Option<Value>)> = self.scopes_below(region, |vm, act, region| {
+      let first = if Arc::ptr_eq(&act.program, program) {
+        first
+      } else {
+        vm.name_index(&act.program, Some(head))
+      };
+      match region.kind {
+        RegionKind::Layout { layout, visible } => {
+          let layout = &act.program.layouts[layout as usize];
+          layout.find(first, visible).map(|place| {
+            let value = vm.place(act, place);
+            let found = search_in(&value, &segments[1..]);
+            (found, (layout.kind != LayoutKind::Context).then_some(value))
+          })
+        }
+        RegionKind::Item { record } => {
+          let filter = vm.filter_of(act.records, record);
+          let item = filter.item()?;
+          if !filter.item_entry && *head == *ITEM {
+            return Some((search_in(item, &segments[1..]), Some(item.clone())));
+          }
+          match item {
+            Value::Context(context) => context.get_entry(head).map(|entry| (context.search_deep(segments).cloned(), Some(entry.clone()))),
+            _ => None,
+          }
+        }
+        RegionKind::Closure => {
+          let function = act.function.as_ref()?;
+          let closed = || {
+            function
+              .closure_ctx
+              .get_entry(head)
+              .map(|entry| (function.closure_ctx.search_deep(segments).cloned(), Some(entry.clone())))
+          };
+          let at_home = || vm.at_home(function, head).map(|value| (search_in(&value, &segments[1..]), None));
+          if vm.closure_first(act, first) {
+            closed().or_else(at_home)
+          } else {
+            at_home().or_else(closed)
+          }
+        }
+      }
+    });
+    match decided {
+      Some((Some(value), _)) => Some((segments.len(), value)),
+      Some((None, Some(first))) if segments.len() > 1 => Some((1, first)),
+      Some((None, _)) => None,
+      None => self.host.search(segments).map(|value| (segments.len(), value)),
+    }
   }
 }
 

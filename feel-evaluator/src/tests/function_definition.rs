@@ -90,3 +90,45 @@ fn many_functions_and_names_are_resolved_in_the_time_of_the_text() {
   te_value(false, &scope!(), &format!("count((function() [{}])())", names.join(", ")), "20000");
   assert!(started.elapsed() < std::time::Duration::from_secs(20), "{:?}", started.elapsed());
 }
+
+/// A function reads a path (`p.customer`) of the nearest scope around it that has the first
+/// name, as the path reads it where the function is written: when the value there has not the
+/// entry, the path has no value, and a `p` further out that has one is not read. A parameter,
+/// a variable or an entry of an item hides the name around it, whatever its value is; so an
+/// expression gives the same in a function that is invoked at once as without it.
+#[test]
+fn a_function_reads_a_path_of_the_nearest_scope_that_has_its_first_name() {
+  for (text, expected) in [
+    // the nearest `p` has no `customer`: null, as without the innermost function
+    ("{book: {customer: \"B\"}, r: (function(p) (function(p) p.customer)(7))(book)}.r", "null"),
+    ("{book: {customer: \"B\"}, r: (function(p) (function(p) (function() p.customer)())(7))(book)}.r", "null"),
+    (
+      "{book: {customer: \"B\"}, r: (function(p) (function(p) (function() (function() p.customer)())())(7))(book)}.r",
+      "null",
+    ),
+    ("{p: {customer: \"B\"}, r: (function(p) (function() p.customer)())(7)}.r", "null"),
+    ("{p: {customer: \"B\"}, r: (function(p) (function() p.customer)())(null)}.r", "null"),
+    ("{p: {customer: \"B\"}, r: (function(p) (function() p.customer)())({other: 1})}.r", "null"),
+    ("{p: {customer: \"B\"}, r: for p in [7] return (function() p.customer)()}.r", "[null]"),
+    ("{p: {customer: \"B\"}, r: [{p: 7}][(function() p.customer)() = \"B\"]}.r", "[]"),
+    ("{p: {customer: \"B\"}, f: function(p) function() p.customer, g: f(7), r: g()}.r", "null"),
+    ("{f: function(p) {p: 7, g: function() p.customer}.g(), r: f({customer: \"B\"})}.r", "null"),
+    // deeper paths, and a path beside a path that has a value
+    ("{p: {a: {b: 1}}, r: (function(p) (function() p.a.b)())({a: 7})}.r", "null"),
+    ("{p: {a: 1, c: 3}, r: (function(p) (function() [p.a, p.c])())({a: 2})}.r", "[2, null]"),
+    // the nearest `p` has it
+    ("{p: {customer: \"B\"}, r: (function(p) (function() p.customer)())({customer: \"I\"})}.r", "\"I\""),
+    ("{p: {customer: \"B\"}, r: (function(q) (function() p.customer)())(7)}.r", "\"B\""),
+    ("{p: {customer: \"B\"}, f: function() p.customer, r: f()}.r", "\"B\""),
+    ("{f: function() p.customer, r: f(), p: {customer: \"B\"}}.r", "\"B\""),
+    (
+      "{p: {customer: \"B\"}, r: [{p: {customer: \"I\"}}][(function() p.customer)() = \"I\"]}.r",
+      "[{p: {customer: \"I\"}}]",
+    ),
+    ("{p: {customer: \"B\"}, r: [{q: 1}][(function() p.customer)() = \"B\"]}.r", "[{q: 1}]"),
+    ("{r: [{customer: \"X\"}][(function() item.customer)() = \"X\"]}.r", "[{customer: \"X\"}]"),
+  ] {
+    // compared as values: a null says why it is one
+    te_value(false, &scope!(), &format!("({text}) = ({expected})"), "true");
+  }
+}

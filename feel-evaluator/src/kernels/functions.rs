@@ -9,17 +9,19 @@ use rheon_feel::{Evaluator, FeelScope, FeelType, FunctionBody, FunctionDefinitio
 use std::sync::Arc;
 
 /// The function that a definition gives from its evaluated formal parameters and body. Its closure
-/// context holds the value of each name of `closure` that `search` finds, in the order of `closure`;
+/// context holds the value of each name of `closure` that `search` finds (of the number of its
+/// first segments that `search` says), in the order of `closure`;
 /// the function is nested no deeper than values may nest.
-pub(crate) fn function_definition(parameters: Value, body: Value, closure: &Closure, mut search: impl FnMut(&QualifiedName) -> Option<Value>) -> Value {
+pub(crate) fn function_definition(parameters: Value, body: Value, closure: &Closure, mut search: impl FnMut(&QualifiedName) -> Option<(usize, Value)>) -> Value {
   match parameters {
     Value::FormalParameters(parameters) => {
       if let Value::FunctionBody(body, external) = body {
         // evaluate closure context
         let mut closure_ctx = FeelContext::default();
         for closure_name in closure.iter() {
-          if let Some(closure_value) = search(closure_name) {
-            closure_ctx.create_entry(closure_name, closure_value);
+          // the value of the name, or of its first segments when only they have one
+          if let Some((segments, closure_value)) = search(closure_name) {
+            closure_ctx.create_entries(&closure_name.as_slice()[..segments.min(closure_name.as_slice().len())], closure_value);
           }
         }
         //TODO Check if `FeelType::Any` is always ok for function result type in function definition.
