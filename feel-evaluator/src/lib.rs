@@ -26,7 +26,7 @@ pub use crate::analysis::{MissingEntry, ReadPath, Reads, Segment, TypeId, Typing
 pub use crate::bfeel::Dialect;
 pub use crate::evaluators::*;
 pub use crate::filters::FilterExpressionEvaluator;
-pub use crate::flat::trace::{PartFrame, Recorded, Trace, parts, recording};
+pub use crate::flat::trace::{PartFrame, Plan, Recorded, Trace, Tracing, Wanted, parts, recording};
 pub use crate::infer::{infer_type, infer_type_with, members_of, type_of_text, type_of_value};
 pub use crate::invocation::MAX_CALL_DEPTH;
 pub use crate::iterations::{Domain, Iteration, Sequence};

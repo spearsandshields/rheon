@@ -22,9 +22,8 @@ use rheon_feel::values::Value;
 use rheon_feel_parser::AstNode;
 use std::sync::Arc;
 
-/// The nodes whose values a request asks for: the number of each, None for a node that is none
-/// of them.
-pub(crate) type Targets<'t> = dyn Fn(&AstNode) -> Option<u32> + 't;
+/// What a request asks a program to record ([crate::Tracing]).
+pub(crate) type Targets<'t> = crate::Tracing<'t>;
 
 /// The program of the resolved expression `resolved` in `dialect`: the code of the root
 /// expression, then that of the body of each function definition in it.
@@ -144,7 +143,7 @@ impl<'a> Lower<'_, 'a> {
   fn value(&mut self, node: u32, dst: Option<Slot>) -> Result<Opnd, Malformed<'a>> {
     let opnd = self.lowered(node, dst)?;
     if let Some(targets) = self.targets
-      && let Some(target) = targets(self.resolved.nodes[node as usize].ast)
+      && let Some(target) = (targets.node)(self.resolved.nodes[node as usize].ast)
     {
       let src = match opnd.decode() {
         super::program::Operand::Take(slot) => Opnd::slot(slot),
@@ -621,14 +620,25 @@ impl<'a> Lower<'_, 'a> {
       after: 0,
       test,
     });
+    // a filter that a request follows: where it is, for the records of its predicate
+    let repeat = self.targets.and_then(|targets| (targets.repeat)(rnode.ast));
+    if let Some(repeat) = repeat {
+      self.builder.emit(Op::TraceLoop { repeat, closed: false });
+    }
     self.builder.emit(Op::FilterOpen { record, info, list });
     self.next = mark;
     let body = self.builder.here();
+    if let Some(repeat) = repeat {
+      self.builder.emit(Op::TraceStep { repeat, record, filter: true });
+    }
     let c = self.value(kids[1], None)?;
     self.builder.emit(Op::FilterStep { record, c });
     self.next = mark;
     let close = self.builder.emit(Op::FilterClose { record });
     let after = self.builder.here();
+    if let Some(repeat) = repeat {
+      self.builder.emit(Op::TraceLoop { repeat, closed: true });
+    }
     let info = self.builder.filter_mut(info);
     info.body = body;
     info.close = close;
@@ -686,6 +696,11 @@ impl<'a> Lower<'_, 'a> {
       exit: 0,
       levels: Box::new([]),
     });
+    // a loop that a request follows: where it is, for the records of its body
+    let repeat = self.targets.and_then(|targets| (targets.repeat)(rnode.ast));
+    if let Some(repeat) = repeat {
+      self.builder.emit(Op::TraceLoop { repeat, closed: false });
+    }
     self.builder.emit(Op::LoopOpen { record, info });
     self.builder.emit(Op::LevelPush { record, domain, a, b });
     self.next = mark;
@@ -699,10 +714,16 @@ impl<'a> Lower<'_, 'a> {
     let last = levels.len() - 1;
     levels[last].1 = self.builder.here();
     let body = parts.next().ok_or(Malformed { at: rnode.ast })?;
+    if let Some(repeat) = repeat {
+      self.builder.emit(Op::TraceStep { repeat, record, filter: false });
+    }
     let src = self.value(body, None)?;
     self.builder.emit(Op::Visit { record, src });
     self.next = mark;
     let exit = self.builder.emit(Op::LoopClose { record, dst });
+    if let Some(repeat) = repeat {
+      self.builder.emit(Op::TraceLoop { repeat, closed: true });
+    }
     // some and every are boolean expressions: B-FEEL answers false where FEEL answers null (11.2)
     if kind != LoopKind::For {
       self.boolean_default(dst, false, false);

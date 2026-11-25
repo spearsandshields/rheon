@@ -10,20 +10,71 @@ use rheon_feel::values::Value;
 use rheon_feel_parser::AstNode;
 use std::cell::RefCell;
 
+/// What a program is compiled to record: the nodes and the loops of a request, by their numbers.
+pub struct Tracing<'t> {
+  /// The number of a node whose value the request asks for, None for another node.
+  pub node: &'t dyn Fn(&AstNode) -> Option<u32>,
+  /// The number of a loop or a filter that the request follows (the records of nodes in its
+  /// body are of one of its iterations, or it says how many it had), None for another.
+  pub repeat: &'t dyn Fn(&AstNode) -> Option<u32>,
+}
+
+/// A node whose value a request asks for, and when: a node in the body of a loop or in the
+/// predicate of a filter is evaluated once for each item, and the request says for which.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Wanted {
+  /// The iterations that the node is wanted in: for each loop around it, innermost last, the
+  /// number of the loop ([crate::Tracing::repeat]) and the index of the iteration.
+  pub within: Vec<(u32, usize)>,
+  /// The node is the body of a loop (its number) and is wanted for each iteration from the
+  /// first index up to the second: a record for each.
+  pub each: Option<(u32, usize, usize)>,
+  /// The node is a loop (its number): its record says how many iterations it had.
+  pub repeat: Option<u32>,
+}
+
+/// What a request asks an evaluation to record.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Plan {
+  /// The nodes, each at the index that is its number ([crate::Tracing::node]): the ways it is
+  /// wanted (a node of a loop's body can be wanted in several of its iterations).
+  pub wanted: Vec<Vec<Wanted>>,
+  /// The number of loops that have a number.
+  pub repeats: usize,
+  /// The most records that are kept.
+  pub limit: usize,
+}
+
 /// The value that an evaluation gave for a node that a request asked for.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Recorded {
-  /// The number that the request gave the node ([crate::prepare_traced]).
+  /// The number that the request gave the node.
   pub target: u32,
+  /// Which of the ways the node is wanted this record is of: its index.
+  pub way: usize,
   pub value: Value,
+  /// For a node wanted for each iteration of its loop: the index of the iteration.
+  pub iteration: Option<usize>,
+  /// For a loop: how many iterations it had (the items it visited).
+  pub iterations: Option<usize>,
+}
+
+/// Where a loop that has a number is.
+#[derive(Clone, Copy, Default)]
+struct Repeat {
+  /// The iterations begun since the loop was opened.
+  begun: usize,
+  /// The index of the iteration that runs, None outside one.
+  current: Option<usize>,
 }
 
 struct Recorder {
+  plan: Plan,
   records: Vec<Recorded>,
-  /// The targets that have their record: the first evaluation of a node is the one kept.
-  seen: Vec<bool>,
-  /// The most records that are kept.
-  limit: usize,
+  /// The records kept so far, by the node and the iteration: the first evaluation of a node in
+  /// an iteration is the one kept.
+  seen: std::collections::HashSet<(u32, usize, Option<usize>)>,
+  repeats: Vec<Repeat>,
   /// Whether a record was not kept for the limit.
   truncated: bool,
 }
@@ -37,25 +88,27 @@ thread_local! {
 pub struct Trace {
   /// The records, in the order the evaluations of their nodes ended.
   pub records: Vec<Recorded>,
-  /// Whether more nodes were evaluated than the limit of records.
+  /// Whether more records were asked for than the limit.
   pub truncated: bool,
 }
 
 /// Runs `f`, an evaluation of a program compiled with [crate::prepare_traced], and returns what
-/// it gives with the records of at most `limit` nodes. The recorder of an evaluation around
-/// this one is put back when this one ends, also when it panics.
-pub fn recording<T>(limit: usize, f: impl FnOnce() -> T) -> (T, Trace) {
+/// it gives with the records that `plan` asks for. The recorder of an evaluation around this
+/// one is put back when this one ends, also when it panics.
+pub fn recording<T>(plan: Plan, f: impl FnOnce() -> T) -> (T, Trace) {
   struct Restore(Option<Recorder>);
   impl Drop for Restore {
     fn drop(&mut self) {
       RECORDER.with(|recorder| *recorder.borrow_mut() = self.0.take());
     }
   }
+  let repeats = vec![Repeat::default(); plan.repeats];
   let outer = RECORDER.with(|recorder| {
     recorder.borrow_mut().replace(Recorder {
+      plan,
       records: vec![],
-      seen: vec![],
-      limit,
+      seen: Default::default(),
+      repeats,
       truncated: false,
     })
   });
@@ -70,18 +123,37 @@ pub fn recording<T>(limit: usize, f: impl FnOnce() -> T) -> (T, Trace) {
   (result, trace)
 }
 
-/// Whether the node `target` has no record yet and a recorder is running: its value is read
-/// only then.
+impl Recorder {
+  /// The way that the node `target` is wanted now and has no record of yet, with the iteration
+  /// that the record is of (None for a way that is not of each iteration); None when the node is
+  /// not wanted now.
+  fn now(&self, target: u32) -> Option<(usize, Option<usize>)> {
+    let current = |repeat: u32| self.repeats.get(repeat as usize).and_then(|repeat| repeat.current);
+    self.plan.wanted.get(target as usize)?.iter().enumerate().find_map(|(way, wanted)| {
+      if !wanted.within.iter().all(|&(repeat, index)| current(repeat) == Some(index)) {
+        return None;
+      }
+      let iteration = match wanted.each {
+        Some((repeat, from, to)) => Some(current(repeat).filter(|index| (from..to).contains(index))?),
+        None => None,
+      };
+      (!self.seen.contains(&(target, way, iteration))).then_some((way, iteration))
+    })
+  }
+}
+
+/// Whether a recorder is running that wants the value of the node `target` now, and has no
+/// record of it: its value is read only then.
 pub(crate) fn wants(target: u32) -> bool {
   RECORDER.with(|recorder| {
     let mut recorder = recorder.borrow_mut();
     let Some(recorder) = recorder.as_mut() else {
       return false;
     };
-    if recorder.seen.get(target as usize).copied().unwrap_or(false) {
+    if recorder.now(target).is_none() {
       return false;
     }
-    if recorder.records.len() >= recorder.limit {
+    if recorder.records.len() >= recorder.plan.limit {
       recorder.truncated = true;
       return false;
     }
@@ -92,13 +164,61 @@ pub(crate) fn wants(target: u32) -> bool {
 /// Keeps the value of the node `target` ([wants] said so).
 pub(crate) fn record(target: u32, value: Value) {
   RECORDER.with(|recorder| {
-    if let Some(recorder) = recorder.borrow_mut().as_mut() {
-      let at = target as usize;
-      if recorder.seen.len() <= at {
-        recorder.seen.resize(at + 1, false);
+    if let Some(recorder) = recorder.borrow_mut().as_mut()
+      && let Some((way, iteration)) = recorder.now(target)
+    {
+      let iterations = recorder.plan.wanted[target as usize][way]
+        .repeat
+        .and_then(|repeat| recorder.repeats.get(repeat as usize))
+        .map(|repeat| repeat.begun);
+      recorder.seen.insert((target, way, iteration));
+      recorder.records.push(Recorded {
+        target,
+        way,
+        value,
+        iteration,
+        iterations,
+      });
+    }
+  });
+}
+
+/// The loop `repeat` is opened: it has begun no iteration.
+pub(crate) fn opened(repeat: u32) {
+  RECORDER.with(|recorder| {
+    if let Some(recorder) = recorder.borrow_mut().as_mut()
+      && let Some(repeat) = recorder.repeats.get_mut(repeat as usize)
+    {
+      *repeat = Repeat::default();
+    }
+  });
+}
+
+/// The loop `repeat` evaluates its body, or its predicate: for the item `item` when the loop
+/// says which (a filter: None while it is evaluated before the items), else for the next.
+pub(crate) fn stepped(repeat: u32, counted: bool, item: Option<usize>) {
+  RECORDER.with(|recorder| {
+    if let Some(recorder) = recorder.borrow_mut().as_mut()
+      && let Some(repeat) = recorder.repeats.get_mut(repeat as usize)
+    {
+      if counted {
+        repeat.current = Some(repeat.begun);
+        repeat.begun += 1;
+      } else {
+        repeat.current = item;
+        repeat.begun = item.map_or(repeat.begun, |item| item + 1);
       }
-      recorder.seen[at] = true;
-      recorder.records.push(Recorded { target, value });
+    }
+  });
+}
+
+/// The loop `repeat` is closed: no iteration of it runs.
+pub(crate) fn closed(repeat: u32) {
+  RECORDER.with(|recorder| {
+    if let Some(recorder) = recorder.borrow_mut().as_mut()
+      && let Some(repeat) = recorder.repeats.get_mut(repeat as usize)
+    {
+      repeat.current = None;
     }
   });
 }

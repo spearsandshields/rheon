@@ -10,7 +10,7 @@
         "interest": 50
       }
     },
-    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
     "old": {
       "error": {
         "kind": "request",
@@ -138,7 +138,7 @@
         ]
       ]
     },
-    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
     "old": {
       "error": {
         "kind": "request",
@@ -333,7 +333,7 @@
         ]
       ]
     },
-    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
     "old": {
       "error": {
         "kind": "request",
@@ -542,7 +542,7 @@
       ],
       "maxRecords": 2
     },
-    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
     "old": {
       "error": {
         "kind": "request",
@@ -624,7 +624,7 @@
       "op": "explain",
       "expression": "count(for i in 1..2000 return i)"
     },
-    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
     "old": {
       "error": {
         "kind": "request",
@@ -676,6 +676,7 @@
         },
         {
           "from": 6,
+          "iterations": 2000,
           "kind": "For",
           "to": 31,
           "value": {
@@ -695,7 +696,7 @@
       "op": "explain",
       "expression": "1 + \"a\""
     },
-    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
     "old": {
       "error": {
         "kind": "request",
@@ -805,7 +806,7 @@
         ]
       ]
     },
-    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
     "old": {
       "error": {
         "kind": "request",
@@ -826,7 +827,7 @@
       "op": "explain",
       "expression": "1 +"
     },
-    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
     "old": {
       "error": {
         "kind": "request",
@@ -861,7 +862,7 @@
         ]
       ]
     },
-    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
     "old": {
       "error": {
         "kind": "request",
@@ -959,6 +960,2139 @@
       ],
       "traceTruncated": false,
       "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit",
+      "context": {
+        "loans": [
+          {
+            "amount": 100,
+            "rate": 2,
+            "status": "a"
+          },
+          {
+            "amount": 50,
+            "rate": 4,
+            "status": "b"
+          },
+          {
+            "amount": 10,
+            "rate": 1,
+            "status": "a"
+          }
+        ],
+        "limit": 40
+      },
+      "expand": [
+        [
+          0,
+          58
+        ]
+      ]
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Comparison",
+          "to": 66,
+          "value": {
+            "display": "true",
+            "feel": "true",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "true",
+                "type": "xsd:boolean"
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Invocation",
+          "to": 58,
+          "value": {
+            "display": "210",
+            "feel": "210",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "210",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 4,
+          "iterations": 2,
+          "kind": "For",
+          "to": 57,
+          "value": {
+            "display": "[200, 10]",
+            "feel": "[200, 10]",
+            "isNull": false,
+            "type": "list<number>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "200",
+                      "type": "xsd:decimal"
+                    }
+                  },
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "10",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                ]
+              },
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 61,
+          "kind": "Name",
+          "to": 66,
+          "value": {
+            "display": "40",
+            "feel": "40",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "40",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit",
+      "context": {
+        "loans": [
+          {
+            "amount": 100,
+            "rate": 2,
+            "status": "a"
+          },
+          {
+            "amount": 50,
+            "rate": 4,
+            "status": "b"
+          },
+          {
+            "amount": 10,
+            "rate": 1,
+            "status": "a"
+          }
+        ],
+        "limit": 40
+      },
+      "expand": [
+        [
+          4,
+          57
+        ]
+      ]
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Comparison",
+          "to": 66,
+          "value": {
+            "display": "true",
+            "feel": "true",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "true",
+                "type": "xsd:boolean"
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Invocation",
+          "to": 58,
+          "value": {
+            "display": "210",
+            "feel": "210",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "210",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 13,
+          "iterations": 3,
+          "kind": "Filter",
+          "to": 32,
+          "value": {
+            "display": "[\n  {\"amount\": 100, \"rate\": 2, \"status\": \"a\"},\n  {\"amount\": 10, \"rate\": 1, \"status\": \"a\"}\n]",
+            "feel": "[{amount: 100, rate: 2, status: \"a\"}, {amount: 10, rate: 1, status: \"a\"}]",
+            "isNull": false,
+            "type": "list<context<amount: number, rate: number, status: string>>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": [
+                      {
+                        "isNil": false,
+                        "name": "amount",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "100",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "rate",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "2",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "status",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "a",
+                            "type": "xsd:string"
+                          }
+                        }
+                      }
+                    ],
+                    "list": null,
+                    "simple": null
+                  },
+                  {
+                    "components": [
+                      {
+                        "isNil": false,
+                        "name": "amount",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "10",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "rate",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "1",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "status",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "a",
+                            "type": "xsd:string"
+                          }
+                        }
+                      }
+                    ],
+                    "list": null,
+                    "simple": null
+                  }
+                ]
+              },
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 40,
+          "iteration": 0,
+          "kind": "Multiplication",
+          "to": 57,
+          "value": {
+            "display": "200",
+            "feel": "200",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "200",
+                "type": "xsd:decimal"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                4,
+                57
+              ],
+              "iteration": 0
+            }
+          ]
+        },
+        {
+          "from": 40,
+          "iteration": 1,
+          "kind": "Multiplication",
+          "to": 57,
+          "value": {
+            "display": "10",
+            "feel": "10",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "10",
+                "type": "xsd:decimal"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                4,
+                57
+              ],
+              "iteration": 1
+            }
+          ]
+        },
+        {
+          "from": 61,
+          "kind": "Name",
+          "to": 66,
+          "value": {
+            "display": "40",
+            "feel": "40",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "40",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit",
+      "context": {
+        "loans": [
+          {
+            "amount": 100,
+            "rate": 2,
+            "status": "a"
+          },
+          {
+            "amount": 50,
+            "rate": 4,
+            "status": "b"
+          },
+          {
+            "amount": 10,
+            "rate": 1,
+            "status": "a"
+          }
+        ],
+        "limit": 40
+      },
+      "expand": [
+        {
+          "at": [
+            40,
+            57
+          ],
+          "within": [
+            {
+              "at": [
+                4,
+                57
+              ],
+              "iteration": 1
+            }
+          ]
+        }
+      ]
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Comparison",
+          "to": 66,
+          "value": {
+            "display": "true",
+            "feel": "true",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "true",
+                "type": "xsd:boolean"
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Invocation",
+          "to": 58,
+          "value": {
+            "display": "210",
+            "feel": "210",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "210",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 40,
+          "kind": "Path",
+          "to": 48,
+          "value": {
+            "display": "10",
+            "feel": "10",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "10",
+                "type": "xsd:decimal"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                4,
+                57
+              ],
+              "iteration": 1
+            }
+          ]
+        },
+        {
+          "from": 51,
+          "kind": "Path",
+          "to": 57,
+          "value": {
+            "display": "1",
+            "feel": "1",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "1",
+                "type": "xsd:decimal"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                4,
+                57
+              ],
+              "iteration": 1
+            }
+          ]
+        },
+        {
+          "from": 61,
+          "kind": "Name",
+          "to": 66,
+          "value": {
+            "display": "40",
+            "feel": "40",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "40",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit",
+      "context": {
+        "loans": [
+          {
+            "amount": 100,
+            "rate": 2,
+            "status": "a"
+          },
+          {
+            "amount": 50,
+            "rate": 4,
+            "status": "b"
+          },
+          {
+            "amount": 10,
+            "rate": 1,
+            "status": "a"
+          }
+        ],
+        "limit": 40
+      },
+      "expand": [
+        [
+          13,
+          32
+        ]
+      ]
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Comparison",
+          "to": 66,
+          "value": {
+            "display": "true",
+            "feel": "true",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "true",
+                "type": "xsd:boolean"
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Invocation",
+          "to": 58,
+          "value": {
+            "display": "210",
+            "feel": "210",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "210",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 13,
+          "kind": "Name",
+          "to": 18,
+          "value": {
+            "display": "[\n  {\"amount\": 100, \"rate\": 2, \"status\": \"a\"},\n  {\"amount\": 50, \"rate\": 4, \"status\": \"b\"},\n  {\"amount\": 10, \"rate\": 1, \"status\": \"a\"}\n]",
+            "feel": "[{amount: 100, rate: 2, status: \"a\"}, {amount: 50, rate: 4, status: \"b\"}, {amount: 10, rate: 1, status: \"a\"}]",
+            "isNull": false,
+            "type": "list<context<amount: number, rate: number, status: string>>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": [
+                      {
+                        "isNil": false,
+                        "name": "amount",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "100",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "rate",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "2",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "status",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "a",
+                            "type": "xsd:string"
+                          }
+                        }
+                      }
+                    ],
+                    "list": null,
+                    "simple": null
+                  },
+                  {
+                    "components": [
+                      {
+                        "isNil": false,
+                        "name": "amount",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "50",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "rate",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "4",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "status",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "b",
+                            "type": "xsd:string"
+                          }
+                        }
+                      }
+                    ],
+                    "list": null,
+                    "simple": null
+                  },
+                  {
+                    "components": [
+                      {
+                        "isNil": false,
+                        "name": "amount",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "10",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "rate",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "1",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "status",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "a",
+                            "type": "xsd:string"
+                          }
+                        }
+                      }
+                    ],
+                    "list": null,
+                    "simple": null
+                  }
+                ]
+              },
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 19,
+          "iteration": 0,
+          "kind": "Comparison",
+          "to": 31,
+          "value": {
+            "display": "true",
+            "feel": "true",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "true",
+                "type": "xsd:boolean"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                13,
+                32
+              ],
+              "iteration": 0
+            }
+          ]
+        },
+        {
+          "from": 19,
+          "iteration": 1,
+          "kind": "Comparison",
+          "to": 31,
+          "value": {
+            "display": "false",
+            "feel": "false",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "false",
+                "type": "xsd:boolean"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                13,
+                32
+              ],
+              "iteration": 1
+            }
+          ]
+        },
+        {
+          "from": 19,
+          "iteration": 2,
+          "kind": "Comparison",
+          "to": 31,
+          "value": {
+            "display": "true",
+            "feel": "true",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "true",
+                "type": "xsd:boolean"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                13,
+                32
+              ],
+              "iteration": 2
+            }
+          ]
+        },
+        {
+          "from": 61,
+          "kind": "Name",
+          "to": 66,
+          "value": {
+            "display": "40",
+            "feel": "40",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "40",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit",
+      "context": {
+        "loans": [
+          {
+            "amount": 100,
+            "rate": 2,
+            "status": "a"
+          },
+          {
+            "amount": 50,
+            "rate": 4,
+            "status": "b"
+          },
+          {
+            "amount": 10,
+            "rate": 1,
+            "status": "a"
+          }
+        ],
+        "limit": 40
+      },
+      "expand": [
+        {
+          "at": [
+            13,
+            32
+          ],
+          "iterations": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Comparison",
+          "to": 66,
+          "value": {
+            "display": "true",
+            "feel": "true",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "true",
+                "type": "xsd:boolean"
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Invocation",
+          "to": 58,
+          "value": {
+            "display": "210",
+            "feel": "210",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "210",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 13,
+          "kind": "Name",
+          "to": 18,
+          "value": {
+            "display": "[\n  {\"amount\": 100, \"rate\": 2, \"status\": \"a\"},\n  {\"amount\": 50, \"rate\": 4, \"status\": \"b\"},\n  {\"amount\": 10, \"rate\": 1, \"status\": \"a\"}\n]",
+            "feel": "[{amount: 100, rate: 2, status: \"a\"}, {amount: 50, rate: 4, status: \"b\"}, {amount: 10, rate: 1, status: \"a\"}]",
+            "isNull": false,
+            "type": "list<context<amount: number, rate: number, status: string>>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": [
+                      {
+                        "isNil": false,
+                        "name": "amount",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "100",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "rate",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "2",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "status",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "a",
+                            "type": "xsd:string"
+                          }
+                        }
+                      }
+                    ],
+                    "list": null,
+                    "simple": null
+                  },
+                  {
+                    "components": [
+                      {
+                        "isNil": false,
+                        "name": "amount",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "50",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "rate",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "4",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "status",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "b",
+                            "type": "xsd:string"
+                          }
+                        }
+                      }
+                    ],
+                    "list": null,
+                    "simple": null
+                  },
+                  {
+                    "components": [
+                      {
+                        "isNil": false,
+                        "name": "amount",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "10",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "rate",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "1",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      },
+                      {
+                        "isNil": false,
+                        "name": "status",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "a",
+                            "type": "xsd:string"
+                          }
+                        }
+                      }
+                    ],
+                    "list": null,
+                    "simple": null
+                  }
+                ]
+              },
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 19,
+          "iteration": 1,
+          "kind": "Comparison",
+          "to": 31,
+          "value": {
+            "display": "false",
+            "feel": "false",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "false",
+                "type": "xsd:boolean"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                13,
+                32
+              ],
+              "iteration": 1
+            }
+          ]
+        },
+        {
+          "from": 61,
+          "kind": "Name",
+          "to": 66,
+          "value": {
+            "display": "40",
+            "feel": "40",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "40",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit",
+      "context": {
+        "loans": [
+          {
+            "amount": 100,
+            "rate": 2,
+            "status": "a"
+          },
+          {
+            "amount": 50,
+            "rate": 4,
+            "status": "b"
+          },
+          {
+            "amount": 10,
+            "rate": 1,
+            "status": "a"
+          }
+        ],
+        "limit": 40
+      },
+      "expand": [
+        [
+          40,
+          57
+        ]
+      ]
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "request",
+        "message": "'expand' has the node at [40, 57], which is evaluated once for each item of the loop around it: expected \"within\": [{\"at\": [4, 57], \"iteration\": n}], found 0 of them"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "for a in [1, 2] return (for b in [10, 20] return a * b)",
+      "expand": [
+        {
+          "at": [
+            24,
+            54
+          ],
+          "within": [
+            {
+              "at": [
+                0,
+                55
+              ],
+              "iteration": 1
+            }
+          ]
+        },
+        {
+          "at": [
+            49,
+            54
+          ],
+          "within": [
+            {
+              "at": [
+                0,
+                55
+              ],
+              "iteration": 1
+            },
+            {
+              "at": [
+                24,
+                54
+              ],
+              "iteration": 0
+            }
+          ]
+        }
+      ]
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[10, 20], [20, 40]]",
+        "feel": "[[10, 20], [20, 40]]",
+        "isNull": false,
+        "type": "list<list<number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "10",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "20",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "20",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "40",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "iterations": 2,
+          "kind": "For",
+          "to": 55,
+          "value": {
+            "display": "[[10, 20], [20, 40]]",
+            "feel": "[[10, 20], [20, 40]]",
+            "isNull": false,
+            "type": "list<list<number>>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": null,
+                    "list": {
+                      "isNil": false,
+                      "items": [
+                        {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "10",
+                            "type": "xsd:decimal"
+                          }
+                        },
+                        {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "20",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      ]
+                    },
+                    "simple": null
+                  },
+                  {
+                    "components": null,
+                    "list": {
+                      "isNil": false,
+                      "items": [
+                        {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "20",
+                            "type": "xsd:decimal"
+                          }
+                        },
+                        {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "40",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      ]
+                    },
+                    "simple": null
+                  }
+                ]
+              },
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 9,
+          "kind": "List",
+          "to": 15,
+          "value": {
+            "display": "[1, 2]",
+            "feel": "[1, 2]",
+            "isNull": false,
+            "type": "list<number>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "1",
+                      "type": "xsd:decimal"
+                    }
+                  },
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "2",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                ]
+              },
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 24,
+          "iteration": 0,
+          "iterations": 2,
+          "kind": "For",
+          "to": 54,
+          "value": {
+            "display": "[10, 20]",
+            "feel": "[10, 20]",
+            "isNull": false,
+            "type": "list<number>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "10",
+                      "type": "xsd:decimal"
+                    }
+                  },
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "20",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                ]
+              },
+              "simple": null
+            }
+          },
+          "within": [
+            {
+              "at": [
+                0,
+                55
+              ],
+              "iteration": 0
+            }
+          ]
+        },
+        {
+          "from": 24,
+          "iteration": 1,
+          "iterations": 2,
+          "kind": "For",
+          "to": 54,
+          "value": {
+            "display": "[20, 40]",
+            "feel": "[20, 40]",
+            "isNull": false,
+            "type": "list<number>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "20",
+                      "type": "xsd:decimal"
+                    }
+                  },
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "40",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                ]
+              },
+              "simple": null
+            }
+          },
+          "within": [
+            {
+              "at": [
+                0,
+                55
+              ],
+              "iteration": 1
+            }
+          ]
+        },
+        {
+          "from": 33,
+          "kind": "List",
+          "to": 41,
+          "value": {
+            "display": "[10, 20]",
+            "feel": "[10, 20]",
+            "isNull": false,
+            "type": "list<number>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "10",
+                      "type": "xsd:decimal"
+                    }
+                  },
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "20",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                ]
+              },
+              "simple": null
+            }
+          },
+          "within": [
+            {
+              "at": [
+                0,
+                55
+              ],
+              "iteration": 1
+            }
+          ]
+        },
+        {
+          "from": 49,
+          "iteration": 0,
+          "kind": "Multiplication",
+          "to": 54,
+          "value": {
+            "display": "20",
+            "feel": "20",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "20",
+                "type": "xsd:decimal"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                0,
+                55
+              ],
+              "iteration": 1
+            },
+            {
+              "at": [
+                24,
+                54
+              ],
+              "iteration": 0
+            }
+          ]
+        },
+        {
+          "from": 49,
+          "iteration": 1,
+          "kind": "Multiplication",
+          "to": 54,
+          "value": {
+            "display": "40",
+            "feel": "40",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "40",
+                "type": "xsd:decimal"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                0,
+                55
+              ],
+              "iteration": 1
+            },
+            {
+              "at": [
+                24,
+                54
+              ],
+              "iteration": 1
+            }
+          ]
+        },
+        {
+          "from": 49,
+          "kind": "Name",
+          "to": 50,
+          "value": {
+            "display": "2",
+            "feel": "2",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "2",
+                "type": "xsd:decimal"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                0,
+                55
+              ],
+              "iteration": 1
+            },
+            {
+              "at": [
+                24,
+                54
+              ],
+              "iteration": 0
+            }
+          ]
+        },
+        {
+          "from": 53,
+          "kind": "Name",
+          "to": 54,
+          "value": {
+            "display": "10",
+            "feel": "10",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "10",
+                "type": "xsd:decimal"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                0,
+                55
+              ],
+              "iteration": 1
+            },
+            {
+              "at": [
+                24,
+                54
+              ],
+              "iteration": 0
+            }
+          ]
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "some x in [1, 5, 9] satisfies x > 4",
+      "expand": [
+        [
+          0,
+          35
+        ]
+      ]
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "iterations": 2,
+          "kind": "Quantified",
+          "to": 35,
+          "value": {
+            "display": "true",
+            "feel": "true",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "true",
+                "type": "xsd:boolean"
+              }
+            }
+          }
+        },
+        {
+          "from": 10,
+          "kind": "List",
+          "to": 19,
+          "value": {
+            "display": "[1, 5, 9]",
+            "feel": "[1, 5, 9]",
+            "isNull": false,
+            "type": "list<number>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "1",
+                      "type": "xsd:decimal"
+                    }
+                  },
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "5",
+                      "type": "xsd:decimal"
+                    }
+                  },
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "9",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                ]
+              },
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 30,
+          "iteration": 0,
+          "kind": "Comparison",
+          "to": 35,
+          "value": {
+            "display": "false",
+            "feel": "false",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "false",
+                "type": "xsd:boolean"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                0,
+                35
+              ],
+              "iteration": 0
+            }
+          ]
+        },
+        {
+          "from": 30,
+          "iteration": 1,
+          "kind": "Comparison",
+          "to": 35,
+          "value": {
+            "display": "true",
+            "feel": "true",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "true",
+                "type": "xsd:boolean"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                0,
+                35
+              ],
+              "iteration": 1
+            }
+          ]
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "for i in 1..1000 return i * 2",
+      "expand": [
+        {
+          "at": [
+            0,
+            29
+          ],
+          "iterations": [
+            0,
+            1000
+          ]
+        }
+      ],
+      "maxRecords": 50
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, the body of a loop and the predicate of a filter once for each iteration asked for.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "sha256": "b8e7c982a852d6cd56e04d017593fbac810542b10c68cbdba38d885329c636f7"
     }
   }
 ]

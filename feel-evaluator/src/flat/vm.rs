@@ -413,6 +413,22 @@ impl<'p> Vm<'p> {
           let value = value_null!(&*program.messages[msg as usize]);
           self.set(dst, value);
         }
+        Op::TraceLoop { repeat, closed } => {
+          if closed {
+            super::trace::closed(repeat);
+          } else {
+            super::trace::opened(repeat);
+          }
+        }
+        Op::TraceStep { repeat, record, filter } => {
+          let item = if filter {
+            let filter = self.filter_of(self.act.records, record);
+            filter.visiting.then_some(filter.at)
+          } else {
+            None
+          };
+          super::trace::stepped(repeat, !filter, item);
+        }
         Op::Record { src, target } => {
           if super::trace::wants(target) {
             let value = match src.decode() {

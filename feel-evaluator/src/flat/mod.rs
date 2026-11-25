@@ -69,8 +69,9 @@ pub(crate) fn lower(node: &AstNode, dialect: Dialect) -> Result<Evaluator, Malfo
 }
 
 /// [lower] with a recording instruction after the value of each node that `targets` gives a
-/// number for: an evaluation inside [trace::recording] keeps those values.
-pub(crate) fn lower_traced<'a>(node: &'a AstNode, dialect: Dialect, targets: &dyn Fn(&AstNode) -> Option<u32>) -> Result<Evaluator, Malformed<'a>> {
+/// number for, and where the loops are that it gives one for: an evaluation inside
+/// [trace::recording] keeps those values.
+pub(crate) fn lower_traced<'a>(node: &'a AstNode, dialect: Dialect, targets: &crate::Tracing<'_>) -> Result<Evaluator, Malformed<'a>> {
   let resolved = resolve::resolve(node);
   let program = lower::lower(resolved, dialect, Some(targets))?;
   Ok(Box::new(move |scope: &FeelScope| program.run(scope)))

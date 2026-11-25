@@ -4018,3 +4018,122 @@ fn explain_answers_the_evaluation_and_the_values_of_the_nodes_asked_for() {
   let failed = req(json!({"op": "explain", "expression": "1 +"}));
   assert_eq!(failed["error"], req(json!({"op": "evaluate", "expression": "1 +"}))["error"]);
 }
+
+/// `explain` of loops and filters: a loop is one record that says how many iterations it had;
+/// expanded, its body has a record for each of its first iterations, or for those asked for;
+/// a node inside an iteration is asked for with the iteration.
+#[test]
+fn explain_steps_into_one_iteration_of_a_loop() {
+  let context = json!({"loans": [{"amount": 100, "rate": 2, "status": "a"}, {"amount": 50, "rate": 4, "status": "b"}, {"amount": 10, "rate": 1, "status": "a"}], "limit": 40});
+  let text = "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit";
+  // the records as `kind from..to = display` with what else they say
+  let shown = |response: &Json| -> Vec<String> {
+    assert_eq!(response["ok"], true, "{response}");
+    response["trace"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|record| {
+        let value = record["value"]["display"].as_str().unwrap_or("?").split_whitespace().collect::<Vec<_>>().join(" ");
+        let mut line = format!("{} {}..{} = {value}", record["kind"].as_str().unwrap(), record["from"], record["to"]);
+        if let Some(iterations) = record.get("iterations") {
+          line.push_str(&format!(" ({iterations} iterations)"));
+        }
+        if let Some(within) = record.get("within") {
+          let steps: Vec<String> = within
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|step| format!("{}..{}#{}", step["at"][0], step["at"][1], step["iteration"]))
+            .collect();
+          line.push_str(&format!(" in {}", steps.join(" ")));
+        }
+        line
+      })
+      .collect()
+  };
+  let explain = |expand: Json| req(json!({"op": "explain", "expression": text, "context": context, "expand": expand}));
+  // the loop as one record, with its iterations
+  assert_eq!(
+    shown(&explain(json!([[0, 58]]))),
+    [
+      "Comparison 0..66 = true",
+      "Invocation 0..58 = 210",
+      "For 4..57 = [200, 10] (2 iterations)",
+      "Name 61..66 = 40"
+    ]
+  );
+  // expanded: its domain, and its body for each iteration
+  let iterations = explain(json!([[4, 57]]));
+  assert_eq!(
+    shown(&iterations)[2..5],
+    [
+      "Filter 13..32 = [ {\"amount\": 100, \"rate\": 2, \"status\": \"a\"}, {\"amount\": 10, \"rate\": 1, \"status\": \"a\"} ] (3 iterations)",
+      "Multiplication 40..57 = 200 in 4..57#0",
+      "Multiplication 40..57 = 10 in 4..57#1"
+    ]
+  );
+  assert_eq!(iterations["trace"][3]["iteration"], 0);
+  // a node inside an iteration, asked for with what its record says it is in
+  let within = iterations["trace"][4]["within"].clone();
+  assert_eq!(within, json!([{"at": [4, 57], "iteration": 1}]));
+  let inside = explain(json!([{"at": [40, 57], "within": within}]));
+  assert_eq!(shown(&inside)[2..], ["Path 40..48 = 10 in 4..57#1", "Path 51..57 = 1 in 4..57#1", "Name 61..66 = 40"]);
+  // the predicate of a filter, for each item; iterations asked for by their indexes
+  assert_eq!(
+    shown(&explain(json!([[13, 32]])))[3..6],
+    [
+      "Comparison 19..31 = true in 13..32#0",
+      "Comparison 19..31 = false in 13..32#1",
+      "Comparison 19..31 = true in 13..32#2"
+    ]
+  );
+  assert_eq!(
+    shown(&explain(json!([{"at": [13, 32], "iterations": [1, 2]}])))[3..5],
+    ["Comparison 19..31 = false in 13..32#1", "Name 61..66 = 40"]
+  );
+  // some and every, and a loop in a loop: the iterations of both
+  let nested = req(json!({"op": "explain", "expression": "for a in [1, 2] return (for b in [10, 20] return a * b)",
+    "expand": [{"at": [24, 54], "within": [{"at": [0, 55], "iteration": 1}]}, {"at": [49, 54], "within": [{"at": [0, 55], "iteration": 1}, {"at": [24, 54], "iteration": 0}]}]}));
+  assert_eq!(
+    shown(&nested)[2..],
+    [
+      "For 24..54 = [10, 20] (2 iterations) in 0..55#0",
+      "For 24..54 = [20, 40] (2 iterations) in 0..55#1",
+      "List 33..41 = [10, 20] in 0..55#1",
+      "Multiplication 49..54 = 20 in 0..55#1 24..54#0",
+      "Multiplication 49..54 = 40 in 0..55#1 24..54#1",
+      "Name 49..50 = 2 in 0..55#1 24..54#0",
+      "Name 53..54 = 10 in 0..55#1 24..54#0"
+    ]
+  );
+  let some = req(json!({"op": "explain", "expression": "some x in [1, 5, 9] satisfies x > 4", "expand": [[0, 35]]}));
+  assert_eq!(
+    shown(&some),
+    [
+      "Quantified 0..35 = true (2 iterations)",
+      "List 10..19 = [1, 5, 9]",
+      "Comparison 30..35 = false in 0..35#0",
+      "Comparison 30..35 = true in 0..35#1"
+    ]
+  );
+  // many iterations: the first twenty by default, the trace cut at its limit
+  let many = req(json!({"op": "explain", "expression": "for i in 1..1000 return i * 2", "expand": [[0, 29]]}));
+  assert_eq!(many["trace"][0]["iterations"], 1000);
+  assert_eq!(many["trace"].as_array().unwrap().iter().filter(|record| record.get("iteration").is_some()).count(), 20);
+  let cut = req(json!({"op": "explain", "expression": "for i in 1..1000 return i * 2", "expand": [{"at": [0, 29], "iterations": [0, 1000]}], "maxRecords": 50}));
+  assert_eq!((cut["trace"].as_array().unwrap().len(), &cut["traceTruncated"]), (50, &json!(true)));
+  // a node inside a loop without its iteration, and iterations of what is no loop
+  for expand in [
+    json!([[40, 57]]),
+    json!([{"at": [40, 57], "within": [{"at": [13, 32], "iteration": 0}]}]),
+    json!([{"at": [0, 58], "iterations": [0, 1]}]),
+  ] {
+    let failed = explain(expand.clone());
+    assert_eq!(failed["error"]["code"], "invalid-field", "{expand}: {failed}");
+  }
+  assert_eq!(
+    explain(json!([[40, 57]]))["error"]["message"],
+    "'expand' has the node at [40, 57], which is evaluated once for each item of the loop around it: expected \"within\": [{\"at\": [4, 57], \"iteration\": n}], found 0 of them"
+  );
+}

@@ -78,7 +78,7 @@ fn an_explained_evaluation_is_the_evaluation() {
         collect(&read, &mut requests);
       }
     }
-    let (mut explained, mut failed, mut records, mut expanded) = (0usize, 0usize, 0usize, 0usize);
+    let (mut explained, mut failed, mut records, mut expanded, mut iterations) = (0usize, 0usize, 0usize, 0usize, 0usize);
     for (number, request) in requests.values().enumerate() {
       if std::env::var_os("RHEON_EACH").is_some() {
         eprintln!("{number} {}", request.to_string().chars().take(300).collect::<String>());
@@ -148,7 +148,8 @@ fn an_explained_evaluation_is_the_evaluation() {
         }
       }
       let mut all = with("explain", &[("expand", json!(known)), ("maxRecords", json!(10_000))]);
-      // without the places that are those of no node: found one by one
+      // without the places that are those of no node, of a node of a function's body or of a
+      // node inside a loop (those are asked for below, with their iterations): found one by one
       while all["ok"] != true && all["error"]["code"] == "invalid-field" && !known.is_empty() {
         let message = all["error"]["message"].as_str().unwrap_or_default().to_string();
         let before = known.len();
@@ -162,14 +163,44 @@ fn an_explained_evaluation_is_the_evaluation() {
         assert!(from <= to && to as usize <= text.encode_utf16().count(), "{text}: {record}");
         assert!(record["kind"].is_string() && record["value"].is_object(), "{text}: {record}");
       }
+      // the records of the iterations of the loops, each expanded in its iteration: the
+      // predicate of a filter for an item, the body of a loop for an item
+      let inside: Vec<Json> = all["trace"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|record| record.get("within").is_some())
+        .take(40)
+        .map(|record| json!({"at": [record["from"], record["to"]], "within": record["within"]}))
+        .collect();
+      if !inside.is_empty() {
+        let deeper = with("explain", &[("expand", json!(inside)), ("maxRecords", json!(10_000))]);
+        same(&deeper, "with the nodes of iterations expanded");
+        iterations += inside.len();
+        records += deeper["trace"].as_array().unwrap().len();
+        // a record inside an iteration says which
+        for record in deeper["trace"].as_array().unwrap() {
+          if let Some(within) = record.get("within") {
+            assert!(
+              within
+                .as_array()
+                .is_some_and(|steps| !steps.is_empty() && steps.iter().all(|step| step["iteration"].is_u64() && step["at"].is_array())),
+              "{text}: {record}"
+            );
+          }
+        }
+      }
       explained += 1;
       records += all["trace"].as_array().unwrap().len();
       expanded += known.len();
     }
     println!(
-      "{} requests, {explained} explained, {failed} failed as evaluate does, {expanded} nodes expanded, {records} records",
+      "{} requests, {explained} explained, {failed} failed as evaluate does, {expanded} nodes expanded, {iterations} in iterations, {records} records",
       requests.len()
     );
-    assert!(explained > 5_000 && records > 20_000, "{explained} explained, {records} records");
+    assert!(
+      explained > 5_000 && records > 20_000 && iterations > 500,
+      "{explained} explained, {records} records, {iterations} in iterations"
+    );
   });
 }

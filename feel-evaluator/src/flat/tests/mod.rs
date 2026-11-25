@@ -85,9 +85,19 @@ fn agree_case(dialect: Dialect, scope: &FeelScope, node: &AstNode, text: &str) {
   // a program that records the value of every node gives the same value and diagnostics: the
   // recording instructions read, and change nothing
   let every_node = |_: &AstNode| Some(0);
-  let traced = lower(resolve(node), dialect, Some(&every_node)).unwrap_or_else(|malformed| panic!("{node:?}: {}", malformed.message()));
+  let every_loop = |_: &AstNode| Some(0);
+  let tracing = crate::Tracing {
+    node: &every_node,
+    repeat: &every_loop,
+  };
+  let traced = lower(resolve(node), dialect, Some(&tracing)).unwrap_or_else(|malformed| panic!("{node:?}: {}", malformed.message()));
   let traced: Evaluator = Box::new(move |scope: &FeelScope| traced.run(scope));
-  let (traced, trace) = crate::recording(1_000, || outcome(traced, scope));
+  let plan = crate::Plan {
+    wanted: vec![vec![crate::Wanted::default()]],
+    repeats: 1,
+    limit: 1_000,
+  };
+  let (traced, trace) = crate::recording(plan, || outcome(traced, scope));
   assert_eq!(
     (&flat.0, format!("{:?}", flat.1)),
     (&traced.0, format!("{:?}", traced.1)),

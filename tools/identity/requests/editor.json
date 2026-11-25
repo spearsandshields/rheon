@@ -451,5 +451,14 @@
   {"op": "explain", "expression": "1 + \"a\""},
   {"op": "explain", "expression": "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr", "expand": [[1, 2]]},
   {"op": "explain", "expression": "1 +"},
-  {"op": "explain", "expression": "if 1 < 2 then \"a\" + 1 else [1, 2][1]", "expand": [[0, 37]]}
+  {"op": "explain", "expression": "if 1 < 2 then \"a\" + 1 else [1, 2][1]", "expand": [[0, 37]]},
+  {"op": "explain", "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit", "context": {"loans": [{"amount": 100, "rate": 2, "status": "a"}, {"amount": 50, "rate": 4, "status": "b"}, {"amount": 10, "rate": 1, "status": "a"}], "limit": 40}, "expand": [[0, 58]]},
+  {"op": "explain", "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit", "context": {"loans": [{"amount": 100, "rate": 2, "status": "a"}, {"amount": 50, "rate": 4, "status": "b"}, {"amount": 10, "rate": 1, "status": "a"}], "limit": 40}, "expand": [[4, 57]]},
+  {"op": "explain", "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit", "context": {"loans": [{"amount": 100, "rate": 2, "status": "a"}, {"amount": 50, "rate": 4, "status": "b"}, {"amount": 10, "rate": 1, "status": "a"}], "limit": 40}, "expand": [{"at": [40, 57], "within": [{"at": [4, 57], "iteration": 1}]}]},
+  {"op": "explain", "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit", "context": {"loans": [{"amount": 100, "rate": 2, "status": "a"}, {"amount": 50, "rate": 4, "status": "b"}, {"amount": 10, "rate": 1, "status": "a"}], "limit": 40}, "expand": [[13, 32]]},
+  {"op": "explain", "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit", "context": {"loans": [{"amount": 100, "rate": 2, "status": "a"}, {"amount": 50, "rate": 4, "status": "b"}, {"amount": 10, "rate": 1, "status": "a"}], "limit": 40}, "expand": [{"at": [13, 32], "iterations": [1, 2]}]},
+  {"op": "explain", "expression": "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit", "context": {"loans": [{"amount": 100, "rate": 2, "status": "a"}, {"amount": 50, "rate": 4, "status": "b"}, {"amount": 10, "rate": 1, "status": "a"}], "limit": 40}, "expand": [[40, 57]]},
+  {"op": "explain", "expression": "for a in [1, 2] return (for b in [10, 20] return a * b)", "expand": [{"at": [24, 54], "within": [{"at": [0, 55], "iteration": 1}]}, {"at": [49, 54], "within": [{"at": [0, 55], "iteration": 1}, {"at": [24, 54], "iteration": 0}]}]},
+  {"op": "explain", "expression": "some x in [1, 5, 9] satisfies x > 4", "expand": [[0, 35]]},
+  {"op": "explain", "expression": "for i in 1..1000 return i * 2", "expand": [{"at": [0, 29], "iterations": [0, 1000]}], "maxRecords": 50}
 ]
