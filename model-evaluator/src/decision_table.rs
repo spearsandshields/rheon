@@ -1,5 +1,6 @@
 //! Builder for decision table evaluators.
 
+use crate::errors::*;
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics;
@@ -7,7 +8,7 @@ use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, Name, value_null};
 use rheon_feel_evaluator::Dialect;
 use rheon_feel_parser::AstNode;
-use rheon_model::{BuiltinAggregator, DecisionTable, HitPolicy};
+use rheon_model::{BuiltinAggregator, DecisionTable, DecisionTableOrientation, HitPolicy};
 use std::cmp::Ordering;
 
 /// Parsed rule of the decision table.
@@ -241,7 +242,50 @@ impl EvaluatedDecisionTable {
   }
 }
 
+/// Checks that the parts of `decision_table` make a table: one or more outputs, each with a name
+/// when there are several; in every rule an input entry for each input (or none at all: such a
+/// rule is of every input) and an output entry for each output; and a hit policy that the
+/// outputs allow (DMN 1.6 §8.2.11, §10.3.2.10).
+fn check_shape(decision_table: &DecisionTable) -> Result<()> {
+  let (inputs, outputs) = (decision_table.input_clauses().count(), decision_table.output_clauses().count());
+  if outputs == 0 {
+    return Err(err_table_without_output());
+  }
+  if outputs > 1
+    && let Some(unnamed) = decision_table.output_clauses().position(|clause| clause.name.is_none())
+  {
+    return Err(err_table_unnamed_output(unnamed + 1, outputs));
+  }
+  for (index, rule) in decision_table.rules().enumerate() {
+    if !rule.input_entries.is_empty() && rule.input_entries.len() != inputs {
+      return Err(err_table_rule_entries(index + 1, "input", inputs, rule.input_entries.len()));
+    }
+    if rule.output_entries.len() != outputs {
+      return Err(err_table_rule_entries(index + 1, "output", outputs, rule.output_entries.len()));
+    }
+  }
+  if *decision_table.preferred_orientation() == DecisionTableOrientation::CrossTable && decision_table.hit_policy() != HitPolicy::Unique {
+    return Err(err_table_hit_policy("of a crosstab table", "U", "another"));
+  }
+  let several = format!("{outputs} outputs");
+  match decision_table.hit_policy() {
+    HitPolicy::Collect(BuiltinAggregator::Count) if outputs > 1 => Err(err_table_hit_policy("C#", "one output", &several)),
+    HitPolicy::Collect(BuiltinAggregator::Sum) if outputs > 1 => Err(err_table_hit_policy("C+", "one output", &several)),
+    HitPolicy::Collect(BuiltinAggregator::Min) if outputs > 1 => Err(err_table_hit_policy("C<", "one output", &several)),
+    HitPolicy::Collect(BuiltinAggregator::Max) if outputs > 1 => Err(err_table_hit_policy("C>", "one output", &several)),
+    // output order with several outputs is not of §10.3.2.10 ("Output order SHALL be single
+    // output"), and is what the official tests have (0110) and expect a value of: it is built
+    policy @ (HitPolicy::Priority | HitPolicy::OutputOrder) if decision_table.output_clauses().all(|clause| clause.allowed_output_values.is_none()) => Err(err_table_hit_policy(
+      if policy == HitPolicy::Priority { "P" } else { "O" },
+      "output values (they order the outputs)",
+      "none",
+    )),
+    _ => Ok(()),
+  }
+}
+
 fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable, dialect: Dialect) -> Result<ParsedDecisionTable> {
+  check_shape(decision_table)?;
   // parse input expressions and input values
   let mut input_expressions_and_values = vec![];
   for input_clause in decision_table.input_clauses() {
@@ -280,7 +324,9 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable, diale
   for rule in decision_table.rules() {
     // parse input clause
     let mut input_entries_evaluators = vec![];
-    for (i, (input_expression, input_values)) in input_expressions_and_values.iter().enumerate() {
+    // a rule without input entries is of every input
+    let with_entries = if rule.input_entries.is_empty() { 0 } else { input_expressions_and_values.len() };
+    for (i, (input_expression, input_values)) in input_expressions_and_values.iter().enumerate().take(with_entries) {
       let input_entry_node = rheon_feel_parser::parse_unary_tests(scope, &rule.input_entries[i].text)?;
       if let Some(input_values_node) = input_values {
         let left = AstNode::In(Box::new(input_expression.clone()), Box::new(input_values_node.clone()));
@@ -341,14 +387,9 @@ fn evaluate_parsed_decision_table(scope: &FeelScope, parsed_decision_table: &Par
       output_values.append(&mut values.to_owned());
     }
   }
-  // evaluate only non-empty default output values
-  let mut default_output_values = vec![];
-  for evaluator in parsed_decision_table.default_output_values_evaluators.iter().flatten() {
-    if let Value::ExpressionList(values) = evaluator(scope) {
-      default_output_values.append(&mut values.to_owned());
-    }
-  }
-  // evaluate all rules
+  // evaluate all rules: the input entries of each, and the output entries of those that match
+  // (an output entry of a rule that does not match is not a part of the table's value, and
+  // what it would do, an error or the end of the evaluation at a limit, is not either)
   let mut evaluated_rules = vec![];
   for parsed_rule in &parsed_decision_table.rules {
     let mut input_entry_values = vec![];
@@ -361,10 +402,21 @@ fn evaluate_parsed_decision_table(scope: &FeelScope, parsed_decision_table: &Par
       input_entry_values.push(input_value);
     }
     let mut output_entry_values = vec![];
-    for evaluator in &parsed_rule.output_entries_evaluators {
-      output_entry_values.push(evaluator(scope));
+    if matches {
+      for evaluator in &parsed_rule.output_entries_evaluators {
+        output_entry_values.push(evaluator(scope));
+      }
     }
     evaluated_rules.push(EvaluatedRule { matches, output_entry_values })
+  }
+  // the default output values, the non-empty ones, when no rule matches
+  let mut default_output_values = vec![];
+  if evaluated_rules.iter().all(|rule| !rule.matches) {
+    for evaluator in parsed_decision_table.default_output_values_evaluators.iter().flatten() {
+      if let Value::ExpressionList(values) = evaluator(scope) {
+        default_output_values.append(&mut values.to_owned());
+      }
+    }
   }
   EvaluatedDecisionTable {
     component_names: parsed_decision_table.component_names.clone(),

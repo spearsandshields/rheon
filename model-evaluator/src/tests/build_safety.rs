@@ -164,3 +164,100 @@ fn a_decision_service_with_neither_encapsulated_nor_input_decisions_evaluates_wi
   );
   assert_eq!(value(&evaluator, "S"), "2");
 }
+
+/// A decision `T` of a decision table of the attributes `attributes` with the inputs `1 + 0` (one
+/// for each of `inputs`), the outputs given (each its attributes and children) and the rules,
+/// each its input entries and its output entries.
+fn table(attributes: &str, inputs: usize, outputs: &[&str], rules: &[(&[&str], &[&str])]) -> String {
+  let mut xml = format!(r#"<decision name="T" id="_T"><variable name="T"/><decisionTable {attributes}>"#);
+  for _ in 0..inputs {
+    xml.push_str("<input><inputExpression><text>1 + 0</text></inputExpression></input>");
+  }
+  for output in outputs {
+    xml.push_str(&format!("<output {output}</output>"));
+  }
+  for (input_entries, output_entries) in rules {
+    xml.push_str("<rule>");
+    for entry in *input_entries {
+      xml.push_str(&format!("<inputEntry><text>{entry}</text></inputEntry>"));
+    }
+    for entry in *output_entries {
+      xml.push_str(&format!("<outputEntry><text>{entry}</text></outputEntry>"));
+    }
+    xml.push_str("</rule>");
+  }
+  xml.push_str("</decisionTable></decision>");
+  xml
+}
+
+/// What the build says of the table, with a decision beside it that evaluates.
+fn table_error(attributes: &str, inputs: usize, outputs: &[&str], rules: &[(&[&str], &[&str])]) -> String {
+  let (evaluator, said) = built(&(table(attributes, inputs, outputs, rules) + &decision("D", "1 + 1", &[], &[])));
+  assert_eq!(value(&evaluator, "D"), "2");
+  assert_eq!(said.len(), 1, "{said:?}");
+  assert_eq!(value(&evaluator, "T"), format!("null({})", said[0].strip_prefix("invalid-element ").unwrap()));
+  said[0]
+    .strip_prefix("invalid-element decision 'T' can not be built: <DecisionTableError> decision table: ")
+    .unwrap()
+    .to_string()
+}
+
+#[test]
+fn a_decision_table_whose_parts_do_not_make_a_table_is_an_error_of_its_decision() {
+  let one = [">"];
+  let two = [r#"name="a">"#, r#"name="b">"#];
+  // a rule with fewer or more entries than the table has clauses
+  assert_eq!(table_error("", 2, &one, &[(&["1"], &["1"])]), "expected 2 input entries in rule 1, found 1");
+  assert_eq!(
+    table_error("", 1, &one, &[(&["1"], &["1"]), (&["1", "2"], &["1"])]),
+    "expected 1 input entry in rule 2, found 2"
+  );
+  assert_eq!(table_error("", 1, &one, &[(&["1"], &[])]), "expected 1 output entry in rule 1, found 0");
+  assert_eq!(table_error("", 1, &two, &[(&["1"], &["1"])]), "expected 2 output entries in rule 1, found 1");
+  // several outputs, one without a name
+  assert_eq!(
+    table_error(
+      "",
+      1,
+      &[r#"name="a">"#, "><defaultOutputEntry><text>1</text></defaultOutputEntry>"],
+      &[(&["1"], &["1", "2"])]
+    ),
+    "expected a name for each of its 2 outputs, found none for output 2"
+  );
+  // a hit policy that the outputs do not allow
+  assert_eq!(
+    table_error(r#"hitPolicy="COLLECT" aggregation="COUNT""#, 1, &two, &[(&["1"], &["1", "2"])]),
+    "expected one output for the hit policy C#, found 2 outputs"
+  );
+  assert_eq!(
+    table_error(r#"hitPolicy="PRIORITY""#, 1, &one, &[(&["1"], &["1"])]),
+    "expected output values (they order the outputs) for the hit policy P, found none"
+  );
+  assert_eq!(
+    table_error(r#"hitPolicy="FIRST" preferredOrientation="CrossTable""#, 1, &one, &[(&["1"], &["1"])]),
+    "expected U for the hit policy of a crosstab table, found another"
+  );
+}
+
+#[test]
+fn a_rule_without_input_entries_is_of_every_input_and_a_table_without_rules_gives_no_value() {
+  let (evaluator, said) = built(&table("", 1, &[">"], &[(&[], &["7"])]));
+  assert_eq!(said, [] as [&str; 0]);
+  assert_eq!(evaluated(&evaluator, NAMESPACE, NAME, "T", &context("{x: 1}")), "7");
+  let (evaluator, said) = built(&table("", 1, &[">"], &[]));
+  assert_eq!(said, [] as [&str; 0]);
+  assert_eq!(
+    evaluated(&evaluator, NAMESPACE, NAME, "T", &context("{x: 1}")),
+    "null(no rules matched, no output value defined)"
+  );
+}
+
+#[test]
+fn the_output_entries_of_a_rule_that_does_not_match_are_not_evaluated() {
+  // the second rule does not match; its output entry is an error, and would be the table's
+  let rules: [(&[&str], &[&str]); 2] = [(&["1"], &["\"first\""]), (&["2"], &["1 + \"a\""])];
+  let (evaluator, _) = built(&table("", 1, &[">"], &rules));
+  let outcome = evaluator.evaluate_invocable_with_mode(NAMESPACE, NAME, "T", &context("{x: 1}"), rheon_feel::diagnostics::ErrorMode::Strict);
+  let (value, diagnostics) = outcome.into_result().unwrap();
+  assert_eq!((value.to_string().as_str(), diagnostics.first().is_none()), ("\"first\"", true));
+}
