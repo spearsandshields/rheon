@@ -1,6 +1,6 @@
 {
   "name": "@rheon/feel-codemirror",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "CodeMirror 6 support for FEEL from the rheon engine's own parser: highlighting, error marks and completion",
   "keywords": [
     "feel",
@@ -47,7 +47,7 @@
     "@codemirror/lint": "^6.0.0",
     "@codemirror/state": "^6.0.0",
     "@codemirror/view": "^6.0.0",
-    "@rheon/feel-runtime": "0.9.0"
+    "@rheon/feel-runtime": "0.10.0"
   },
   "devDependencies": {
     "jsdom": "^31.0.1",
