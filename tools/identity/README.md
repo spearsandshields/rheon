@@ -66,21 +66,20 @@ measured on; the times below are of Node 26.
 
 | When | What | Time |
 |---|---|---|
-| After every build (the fix and group tiers) | `npm run identity`: the committed sources (17,719 requests) | 2.3 s uncached, 1.2 s cached |
-| Once per group of changes, on demand | `npm run identity:large`: the same with the larger request sets kept outside the repository (`IDENTITY_LARGE_SETS`) | 21 s with `--verify-cache`, 37 s cached (2026-11-26: the cache does not pay for these sets) |
+| After every build (the fix and group tiers) | `npm run identity`: the committed sources (21,688 requests) | 2.3 s uncached, 1.2 s cached |
+| Once per group of changes, on demand | `npm run identity:large`: the same with the larger request sets kept outside the repository (`IDENTITY_LARGE_SETS`) | 13 s with `--verify-cache` (2026-11-26) |
 | On a failure | `--record <entries.json> --why "<basis>"`, then `git bisect start <bad> <good>` and `git bisect run tools/identity/bisect.sh .tools/baseline/feel.wasm <entries.json>` | one wasm build per step |
-| Before a release (the release tier) | `run.sh … --release --verify-cache` and `run.sh … --large --verify-cache` | 24 s and 21 s (2026-11-26) |
+| Before a release (the release tier) | `run.sh … --release --verify-cache` and `run.sh … --large --verify-cache` | 16 s and 13 s (2026-11-26) |
 
-Measured on a MacBook (Apple M2, Node 26) against 0.9.0, with every evaluate request also sent as
-parse: the committed sources are 17,719 requests, with the two sets kept outside the repository
-17,888 (the requests of `release/requests/` that the other sources hold left out with their
-parse twins, 12 in all), and with `--release` 17,731. No committed request traps 0.9.0. The 5 of
-`release/requests/memory-exhausting.json` exhaust its memory and trap (0.1 to 4.2 s each), and
-2 requests of the large sets trap it. One request of the large sets and its parse twin are
-left out by name (`large-left-out.json`): 0.9.0 needs 634 s for each, and with them the large run
-took 27 minutes. A cached trap is evaluated again on every run (see the
-cache section), so the cache cannot save that time. The peak memory is 2.4 GB for the release
-sources and 2.7 GB for the large sets, both with `--verify-cache`.
+Measured on a MacBook (Apple M2, Node 26) against 0.10.0, with every evaluate request also sent as
+parse: the committed sources are 21,688 requests, with the two sets kept outside the repository
+21,848 (the requests of `release/requests/` that the other sources hold left out with their
+parse twins, 12 in all), and with `--release` 21,700. No committed request traps 0.10.0. The 5 of
+`release/requests/memory-exhausting.json` exhaust its memory and trap, and 1 request of the
+large sets traps it. No request of the large sets is left out by name (`large-left-out.json`
+is empty): the one that 0.9.0 needed 634 s for is answered by 0.10.0 in 0.4 s. A cached trap is evaluated again on every run (see the
+cache section), so the cache cannot save that time. The peak memory is 1.9 GB for the release
+sources and 2.0 GB for the large sets, both with `--verify-cache`.
 
 `bisect.sh` builds `dist/feel.wasm` of the checked-out commit and passes the entries as the only
 ledger: a commit that answers every entry's `new` is bad (exit 1), any other is good (exit 0), and
