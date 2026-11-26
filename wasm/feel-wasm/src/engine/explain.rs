@@ -11,8 +11,11 @@
 //! is null says where the null is from: the part that is null (`nullFrom`, which is an entry of
 //! `expand`), or the node itself (`nullOrigin`); a node whose parts have no records says neither,
 //! until it is expanded; with the null that is a node's own stands why (`nullCode`). The node
-//! that a null is from is expanded without being named, by one more evaluation for each node
-//! deeper, so one request says the whole way to the node whose own the null is. With
+//! that a null is from is expanded without being named, so one request says the whole way to
+//! the node whose own the null is: when the evaluation of the request leaves a null at a node
+//! that is not expanded, the text is evaluated once more, and that evaluation keeps the values
+//! on the ways of its nulls ([rheon_feel_evaluator::Follow]); the records on the way are taken
+//! from them. With
 //! `reads` each record has the names that the text of its node reads. Each request
 //! evaluates the text again, with a record of the values of those nodes only: the engine keeps
 //! nothing between requests, and an answer is as long as the request asks, whatever the data is.
@@ -32,10 +35,9 @@ const MAX_RECORDS: usize = 10_000;
 /// The iterations of a loop that have a record when the request does not say which: the first.
 const DEFAULT_ITERATIONS: usize = 20;
 
-/// The most evaluations that follow a null to the node it is from: each expands the nodes that
-/// the nulls of the one before are from, so a null is followed this many nodes deep, and beyond
-/// it the records say what they say of a node that is not expanded.
-const FOLLOW_ROUNDS: usize = 16;
+/// The most values that the evaluation which follows the nulls keeps at one time on the ways
+/// from the nulls to the nodes they are from: with more, no null is followed.
+const FOLLOW_KEPT: usize = 100_000;
 
 /// The longest value, as the text of its JSON, that a record holds whole: a longer one is
 /// summarised.
@@ -105,8 +107,6 @@ struct Asked {
   at: At,
   within: Vec<Step>,
   iterations: Option<(usize, usize)>,
-  /// Not of the request: a node that a null is from, expanded to say where its null is from.
-  followed: bool,
 }
 
 /// A node whose parts are wanted: the node, where it is evaluated, and for a loop which of its
@@ -210,7 +210,7 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
       _ => fail("invalid-field", EXPAND),
     }
   };
-  let mut asked: Vec<Asked> = match req.remove("expand") {
+  let asked: Vec<Asked> = match req.remove("expand") {
     None | Some(Json::Null) => vec![],
     Some(Json::Array(items)) => items
       .iter()
@@ -219,7 +219,6 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
           at: place(item)?,
           within: vec![],
           iterations: None,
-          followed: false,
         }),
         Json::Object(fields) if fields.keys().all(|field| matches!(field.as_str(), "at" | "within" | "iterations")) => {
           let at = place(fields.get("at").unwrap_or(&Json::Null))?;
@@ -246,12 +245,7 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
               _ => return fail("invalid-field", EXPAND),
             },
           };
-          Ok(Asked {
-            at,
-            within,
-            iterations,
-            followed: false,
-          })
+          Ok(Asked { at, within, iterations })
         }
         _ => fail("invalid-field", EXPAND),
       })
@@ -289,11 +283,27 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
   // the nodes that are wanted: the root, its parts, and the parts of the nodes to expand
   let root = positioned.tree();
   let bodies = bodies(root);
-  // a null is followed to the node it is from: an evaluation, then one more for each node deeper
-  // that a null is from, with the parts of those nodes wanted too
-  let (mut rounds, mut added) = (0, 0);
-  // the answer of the evaluation before, which stands when the next cannot be given
+  // a null is followed to the node it is from. The evaluation of the request says whether a
+  // null is from a node whose parts have no records; then one more evaluation keeps the values
+  // on the ways of the nulls, and the records on the way of each such null are taken from them
+  let mut following = false;
+  // the answer of the evaluation of the request, which stands when the other cannot be given
   let mut best: Option<String> = None;
+  // the answer and the trace of the evaluation that the records are of
+  let mut evaluated: Option<(String, rheon_feel_evaluator::Trace)> = None;
+  // every node of the text with its number, for the evaluation that follows the nulls
+  let mut numbering: Option<Numbering> = None;
+  // the values that the evaluation kept on the ways of the nulls, each as a record, by its node
+  // and where it is evaluated, and those one step inside a place
+  let mut pool: Vec<(Wanted, rheon_feel_evaluator::Recorded)> = vec![];
+  let mut pool_bare: Vec<bool> = vec![];
+  let mut pool_at: HashMap<(usize, Vec<Step>), usize> = HashMap::new();
+  let mut pool_inside: HashMap<(usize, Vec<Step>), Vec<usize>> = HashMap::new();
+  // those that are records of the answer, and the nodes that are expanded with them
+  let mut chosen: Vec<usize> = vec![];
+  let mut followed: Vec<(usize, Vec<Step>)> = vec![];
+  // the nodes that a null is from and whose parts were not all kept: not expanded
+  let mut left: HashSet<(usize, Vec<Step>)> = HashSet::new();
   // the evaluations are one evaluation for the budget of steps: following a null takes steps
   // of the request's budget and never more, and where the budget ends the way ends
   let (answer, _) = diagnostics::evaluation_within(max_steps, || -> Result<String, Failure> {
@@ -302,11 +312,8 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
       add(&positioned, root, &[], None, &mut wants);
       // the nodes whose parts are wanted: the node, where it is evaluated, and the iterations of it asked for
       let mut open: Vec<Open> = vec![(root, vec![], None)];
-      for Asked { at, within, iterations, followed } in asked.iter().cloned() {
+      for Asked { at, within, iterations } in asked.iter().cloned() {
         let Some(node) = node_at(&positioned, at) else {
-          if followed {
-            continue;
-          }
           return fail(
             "invalid-field",
             format!(
@@ -397,12 +404,7 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
           }
           Ok(())
         };
-        match leads() {
-          Ok(()) => {}
-          // a node that a null is from and that the steps of its record do not lead to is not expanded
-          Err(_) if followed => continue,
-          Err(failure) => return Err(failure),
-        }
+        leads()?;
         // the node itself has a record too, where it is evaluated
         add(&positioned, node, &within, None, &mut wants);
         open.push((node, within, iterations));
@@ -437,7 +439,11 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
       // the loop or the invocation of a step, by its place
       let mut step_nodes: HashMap<(At, bool), Option<&AstNode>> = HashMap::new();
       let address = |node: &AstNode| node as *const AstNode as usize;
-      let mut plan = Plan { wanted: vec![], limit };
+      let mut plan = Plan {
+        wanted: vec![],
+        limit,
+        follow: None,
+      };
       // the ways of a node, each with the indexes of what is wanted so: an entry of a context
       // literal and its value are one node, wanted in one way, and each has its record
       let mut ways: Vec<Vec<Vec<usize>>> = vec![];
@@ -445,6 +451,24 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
         let next = numbers.len() as u32;
         *numbers.entry(address(node)).or_insert(next)
       };
+      // the evaluation that follows the nulls: every node has a number, every loop and every
+      // invocation its own
+      if following {
+        let numbering = numbering.get_or_insert_with(|| Numbering::of(root, &bodies));
+        for (number, node) in numbering.nodes.iter().enumerate() {
+          let node = valued(node);
+          targets.insert(address(node), number as u32);
+          if repeats(node) {
+            repeat_numbers.insert(address(node), number as u32);
+          }
+          if matches!(node, AstNode::FunctionInvocation(..)) {
+            call_numbers.insert(address(node), number as u32);
+          }
+        }
+        plan.wanted.resize(numbering.nodes.len(), vec![]);
+        ways.resize(numbering.nodes.len(), vec![]);
+        plan.follow = Some(numbering.follow.clone());
+      }
       for (index, wanted) in wanted.iter().enumerate() {
         let node = valued(wanted.node);
         let next = targets.len() as u32;
@@ -488,22 +512,69 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
         repeat: &repeat_number,
         call: &call_number,
       };
-      let evaluator = prepare_traced(positioned.tree(), language, &tracing);
-      let (answer, trace) = recording(plan, || answered(&scope, None, &evaluator, error_mode, max_steps, warnings.clone(), started));
-      let previous = best.take();
-      let mut response = match answer {
-        Ok(response) => response,
-        // a limit that an evaluation after the first meets (the steps left) ends the way
-        Err(failure) => return previous.ok_or(failure),
-      };
-      // the nodes expanded last made the trace longer than the request takes: the answer is the one
-      // without them
-      if trace.truncated
-        && added > 0
-        && let Some(previous) = previous
-      {
-        return Ok(previous);
+      if evaluated.is_none() {
+        let evaluator = prepare_traced(positioned.tree(), language, &tracing);
+        let (answer, trace) = recording(plan, || answered(&scope, None, &evaluator, error_mode, max_steps, warnings.clone(), started));
+        match answer {
+          // a limit that the evaluation which follows the nulls meets (the steps left) leaves
+          // the answer of the evaluation of the request, and so does a trace that is not whole
+          Ok(_) if following && (trace.truncated || trace.overflow) => return best.take().ok_or_else(|| Failure::new("internal", "no answer is kept".to_string(), None)),
+          Ok(response) => evaluated = Some((response, trace)),
+          Err(failure) => return best.take().ok_or(failure),
+        }
+        // the values kept on the ways, as records
+        if let (true, Some(numbering), Some((_, trace))) = (following, numbering.as_ref(), evaluated.as_ref()) {
+          for kept in &trace.followed {
+            let Some(node) = numbering.nodes.get(kept.target as usize).copied() else {
+              continue;
+            };
+            let place_of = |number: u32| numbering.nodes.get(number as usize).and_then(|node| positioned.place(valued(node)));
+            let within: Option<Vec<Step>> = kept
+              .within
+              .iter()
+              .map(|step| match *step {
+                rheon_feel_evaluator::Step::Iteration(repeat, index) => Some(Step::Iteration(place_of(repeat)?, index)),
+                rheon_feel_evaluator::Step::Call(site) => Some(Step::Call(place_of(site)?)),
+              })
+              .collect();
+            let (Some(at), Some(kind), Some(within)) = (positioned.place(node), positioned.kind(node), within) else {
+              continue;
+            };
+            // a part that is evaluated for each item is of the iteration that its last step names
+            let each = numbering.follow.nodes[kept.target as usize].part == rheon_feel_evaluator::FollowPart::Iteration;
+            let iteration = match within.last() {
+              Some(Step::Iteration(_, index)) if each => Some(*index),
+              _ => None,
+            };
+            let key = address(valued(node));
+            pool_at.entry((key, within.clone())).or_insert(pool.len());
+            if let Some((_, before)) = within.split_last() {
+              pool_inside.entry((key, before.to_vec())).or_default().push(pool.len());
+            }
+            pool_bare.push(kept.bare);
+            pool.push((
+              Wanted {
+                node,
+                at,
+                kind,
+                within,
+                each: None,
+              },
+              rheon_feel_evaluator::Recorded {
+                target: kept.target,
+                way: 0,
+                value: kept.value.clone(),
+                iteration,
+                iterations: kept.iterations,
+              },
+            ));
+          }
+        }
       }
+      let Some((answer, trace)) = evaluated.as_ref() else {
+        return fail("internal", "the evaluation has no answer");
+      };
+      let mut response = answer.clone();
       // in the order of the text, a node before the nodes inside it, an iteration before the next
       let mut order: Vec<(&Wanted, &rheon_feel_evaluator::Recorded)> = trace
         .records
@@ -514,6 +585,7 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
           of_way.into_iter().flatten().map(move |index| (&wanted[*index], record))
         })
         .collect();
+      order.extend(chosen.iter().map(|index| (&pool[*index].0, &pool[*index].1)));
       // where each is evaluated: the steps to it, and for the body of a loop its iteration
       let path_of = |wanted: &Wanted, record: &rheon_feel_evaluator::Recorded| -> Vec<Step> {
         let mut within = wanted.within.clone();
@@ -539,10 +611,15 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
           inside.entry((node, before)).or_default().push(index);
         }
       }
-      let opened: HashMap<Evaluated, Option<(usize, usize)>> = open
+      let mut opened: HashMap<Evaluated, Option<(usize, usize)>> = open
         .iter()
         .map(|(node, within, iterations)| ((address(valued(node)), within.as_slice()), *iterations))
         .collect();
+      // a node expanded with the values kept on the way of its null: of its iterations the
+      // first null one was kept, whichever it was
+      for (node, within) in &followed {
+        opened.entry((*node, within.as_slice())).or_insert(Some((0, usize::MAX)));
+      }
       // the node that each node is a part of, when a null name is to be led back to its entry
       let parents = std::cell::OnceCell::new();
       // where the null of the record `index` came from
@@ -610,7 +687,13 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
           let (from, to) = iterations.unwrap_or((0, DEFAULT_ITERATIONS));
           every &= from == 0 && record.iterations.is_none_or(|count| count <= to);
         }
-        if every { here } else { Origin::Unknown }
+        if every {
+          here
+        } else if trace.truncated {
+          Origin::Unknown
+        } else {
+          Origin::Later
+        }
       };
       // why the null of the record `index` is its node's own
       let code = |index: usize| -> &'static str {
@@ -634,9 +717,9 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
           _ => "operator",
         }
       };
-      // the nodes that a null is from and that are not expanded: expanded by one more evaluation
-      let mut more: Vec<Asked> = vec![];
-      if !trace.truncated && rounds < FOLLOW_ROUNDS {
+      // the nodes that a null is from and that are not expanded
+      let mut more: Vec<(At, Vec<Step>)> = vec![];
+      if !trace.truncated {
         for index in (0..order.len()).filter(|index| order[*index].1.value.is_null()) {
           let from = match origin(index) {
             Origin::From(part) => matches!(origin(part), Origin::Closed).then(|| (order[part].0.at, paths[part].clone())),
@@ -645,18 +728,92 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
               let entry = node_at(&positioned, at).and_then(|entry| found.get(&(address(valued(entry)), steps.as_slice())).copied());
               entry.is_none_or(|entry| matches!(origin(entry), Origin::Closed)).then_some((at, steps))
             }
+            // a loop whose null can be from an iteration without a record: the first null
+            // iteration is among the values kept on the ways
+            Origin::Later => Some((order[index].0.at, paths[index].clone())),
             Origin::Here | Origin::Unknown | Origin::Closed => None,
           };
-          if let Some((at, within)) = from
-            && !asked.iter().chain(&more).any(|known| known.at == at && known.within == within)
+          if let Some(from) = from
+            && !more.contains(&from)
           {
-            more.push(Asked {
-              at,
-              within,
-              iterations: None,
-              followed: true,
-            });
+            more.push(from);
           }
+        }
+      }
+      // they are expanded with the values that the evaluation kept on the ways: the node, when
+      // it has no record, and its parts
+      if following {
+        let mut records: Vec<usize> = vec![];
+        let mut nodes: Vec<(usize, Vec<Step>)> = vec![];
+        let mut gone: Vec<(usize, Vec<Step>)> = vec![];
+        // and so are the null parts among them whose own parts were kept: the way goes on
+        // there, and is taken as far as it was kept
+        let mut ahead: Vec<(&AstNode, Vec<Step>)> = more.drain(..).rev().filter_map(|(at, within)| Some((node_at(&positioned, at)?, within))).collect();
+        while let Some((node, within)) = ahead.pop() {
+          let key = (address(valued(node)), within);
+          if left.contains(&key) || nodes.contains(&key) || followed.contains(&key) {
+            continue;
+          }
+          let within = key.1.as_slice();
+          let has = |node: &AstNode| found.contains_key(&(address(valued(node)), within));
+          let kept = |node: &AstNode| pool_at.get(&(address(valued(node)), within.to_vec())).copied();
+          let mut of_node: Vec<usize> = vec![];
+          // the values inside the node were kept: its own value is asked for by the request,
+          // or was kept with what is inside it
+          let whole = match (has(node), kept(node)) {
+            (true, _) => true,
+            (false, Some(index)) if !pool_bare[index] => {
+              of_node.push(index);
+              true
+            }
+            (false, _) => false,
+          };
+          for (part, frame) in parts(valued(node)) {
+            if positioned.place(part).is_none() {
+              continue;
+            }
+            match frame {
+              PartFrame::Same if has(part) => {}
+              // a part that was not evaluated (the branch not taken) has no value
+              PartFrame::Same => of_node.extend(kept(part)),
+              // the iteration that was kept: the first whose value is null
+              PartFrame::Iteration => {
+                let of_loop = |index: &&usize| matches!(pool[**index].0.within.last(), Some(Step::Iteration(at, _)) if Some(*at) == positioned.place(valued(node)));
+                let inside = pool_inside.get(&(address(valued(part)), within.to_vec()));
+                of_node.extend(inside.into_iter().flatten().filter(of_loop).copied());
+              }
+            }
+          }
+          // the body that the invocation ran
+          if let (AstNode::FunctionInvocation(..), Some(site)) = (valued(node), positioned.place(valued(node))) {
+            for body in &bodies {
+              let inside = pool_inside.get(&(address(body), within.to_vec()));
+              let of_site = |index: &&usize| pool[**index].0.within.last() == Some(&Step::Call(site));
+              of_node.extend(inside.into_iter().flatten().filter(of_site).copied());
+            }
+          }
+          of_node.retain(|index| !chosen.contains(index) && !records.contains(index));
+          // a node whose parts were not all kept, or whose records the trace has no room for,
+          // is not expanded: its record says what that of a node that is not expanded says
+          if !whole || order.len() + records.len() + of_node.len() > limit {
+            gone.push(key);
+            continue;
+          }
+          for index in &of_node {
+            let (part, record) = &pool[*index];
+            let inner = valued(part.node);
+            if record.value.is_null() && !pool_bare[*index] && (matches!(inner, AstNode::FunctionInvocation(..)) || !parts(inner).is_empty()) {
+              ahead.push((part.node, part.within.clone()));
+            }
+          }
+          records.extend(of_node);
+          nodes.push(key);
+        }
+        left.extend(gone);
+        if !nodes.is_empty() {
+          chosen.extend(records);
+          followed.extend(nodes);
+          continue;
         }
       }
       // the names that the text of a node reads, by the node
@@ -707,7 +864,7 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
               nulls.push(index);
               None
             }
-            Origin::Unknown | Origin::Closed => None,
+            Origin::Unknown | Origin::Closed | Origin::Later => None,
           };
           if let Some((at, steps)) = from {
             records.push_str(&format!(",\"nullFrom\":{{\"at\":[{},{}]", places.of(at.0), places.of(at.1)));
@@ -750,15 +907,77 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
         Some(at) => response.insert_str(at, &records),
         None => return fail("internal", "the response of the evaluation has no warnings"),
       }
-      if more.is_empty() {
+      if more.is_empty() || following {
         return Ok(response);
       }
-      (rounds, added) = (rounds + 1, more.len());
-      asked.extend(more);
+      // one more evaluation, which keeps the values on the ways of the nulls
       best = Some(response);
+      evaluated = None;
+      following = true;
     }
   });
   answer
+}
+
+/// Every node of a text that is evaluated for a value, with its number: the root expression
+/// with its parts and theirs, then each body of a function in the same way.
+struct Numbering<'t> {
+  /// The nodes, each at its number: as the part of the node around it (an entry of a context
+  /// literal, not the node of its value).
+  nodes: Vec<&'t AstNode>,
+  /// What the evaluation is asked to keep on the ways of the nulls.
+  follow: rheon_feel_evaluator::Follow,
+}
+
+impl<'t> Numbering<'t> {
+  fn of(root: &'t AstNode, bodies: &[&'t AstNode]) -> Self {
+    use rheon_feel_evaluator::{Follow, FollowNode, FollowPart};
+    let address = |node: &AstNode| node as *const AstNode as usize;
+    let mut nodes: Vec<&AstNode> = vec![];
+    let mut table: Vec<FollowNode> = vec![];
+    // a walk with its own stack, a node before its parts and the parts in the order of the text
+    let mut stack: Vec<(&AstNode, Option<u32>, FollowPart, bool)> = bodies.iter().rev().map(|body| (*body, None, FollowPart::Body, true)).collect();
+    stack.push((root, None, FollowPart::Root, true));
+    while let Some((node, parent, part, chain)) = stack.pop() {
+      let number = nodes.len() as u32;
+      nodes.push(node);
+      table.push(FollowNode {
+        parent,
+        part,
+        chain,
+        keeps: matches!(valued(node), AstNode::Context(_)),
+        last: number,
+        link: None,
+      });
+      let condition = matches!(valued(node), AstNode::If(..));
+      let inner = parts(valued(node));
+      for (index, (inner, frame)) in inner.into_iter().enumerate().rev() {
+        let part = if frame == PartFrame::Iteration { FollowPart::Iteration } else { FollowPart::Same };
+        // the null of an `if` is from the branch taken, never from its condition
+        stack.push((inner, Some(number), part, !(condition && index == 0)));
+      }
+    }
+    // the last node inside each: the nodes inside have the numbers after its own
+    for number in (0..table.len()).rev() {
+      if let Some(parent) = table[number].parent {
+        table[parent as usize].last = table[parent as usize].last.max(table[number].last);
+      }
+    }
+    // a name that an entry of a context literal around it gives its value: that entry
+    let numbers: HashMap<usize, u32> = nodes.iter().enumerate().map(|(number, node)| (address(valued(node)), number as u32)).collect();
+    let parents = parents_of(root);
+    for (number, node) in nodes.iter().enumerate() {
+      if let AstNode::Name(name) = valued(node)
+        && let Some((entry, _)) = entry_of(&parents, valued(node), name)
+      {
+        table[number].link = numbers.get(&address(valued(entry))).copied();
+      }
+    }
+    Numbering {
+      nodes,
+      follow: Follow { nodes: table, limit: FOLLOW_KEPT },
+    }
+  }
 }
 
 /// The name of an entry of a context literal.
@@ -912,6 +1131,8 @@ enum Origin {
   Unknown,
   /// Not said by the records: the node is not expanded, so its parts have none.
   Closed,
+  /// Not said by the records: the null can be from an iteration that has no record.
+  Later,
 }
 
 /// Adds `node` to the nodes that are wanted, evaluated at `within` and for each iteration of

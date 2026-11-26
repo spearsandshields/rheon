@@ -4474,10 +4474,35 @@ fn explain_says_where_a_null_is_from() {
   assert_eq!(twice["trace"][2]["nullCode"], "missing-entry", "{twice}");
   let short = req(json!({"op": "explain", "expression": "loan.amount * rate.base + 1", "context": context, "maxRecords": 3}));
   assert_eq!((short["trace"].as_array().unwrap().len(), &short["traceTruncated"]), (3, &json!(false)), "{short}");
-  // a null in an iteration that has no record: not said to be the node's own
+  // a null in an iteration that the request has no record of: the iteration is found without
+  // being asked for, and followed
   let later = req(json!({"op": "explain", "expression": "(every x in [1, 2, null] satisfies x > 0) or false", "expand": [{"at": [1, 40], "iterations": [0, 2]}]}));
   assert_eq!(later["trace"][1]["iterations"], 3, "{later}");
-  assert!(later["trace"][1].get("nullFrom").is_none() && later["trace"][1].get("nullOrigin").is_none(), "{later}");
+  assert_eq!(
+    later["trace"][1]["nullFrom"],
+    json!({"at": [35, 40], "within": [{"at": [1, 40], "iteration": 2}]}),
+    "{later}"
+  );
+  let third = later["trace"].as_array().unwrap().iter().find(|record| record["iteration"] == 2).unwrap();
+  assert_eq!(third["nullFrom"], json!({"at": [35, 36], "within": [{"at": [1, 40], "iteration": 2}]}), "{later}");
+  // a loop whose first null is beyond the iterations that a trace has by default
+  assert_eq!(
+    whole("every i in 1..40 satisfies (if i = 30 then rate.base else i) > 0", context.clone(), none.clone()),
+    ["0..64", "27..64", "28..59", "43..52 missing-entry"]
+  );
+  // a long loop: the first null iteration is the one kept, whatever the others leave, with the
+  // body of the function it invokes and the entry that gives a name of it its value
+  assert_eq!(
+    whole(
+      "{f: function(i) {a: rate.base, b: a + i}.b, r: every i in 1..30000 satisfies (if i = 25000 then f(i) else i) > 0}.r",
+      context.clone(),
+      none.clone()
+    ),
+    ["0..115", "44..112", "77..112", "78..107", "96..100", "16..42", "31..39", "34..35", "17..29 missing-entry"]
+  );
+  // a function that invokes itself: every invocation on the way, however many
+  let deep = whole("{f: function(n) if n = 0 then rate.base else f(n - 1), r: f(40)}.r", context.clone(), none.clone());
+  assert_eq!((deep.len(), deep.last().unwrap().as_str()), (84, "30..39 missing-entry"), "{deep:?}");
 }
 
 #[test]

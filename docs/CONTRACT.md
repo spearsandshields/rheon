@@ -504,15 +504,18 @@ and answers what `evaluate` answers (`result`, `warnings`, `diagnostics`) with
   written). A null is followed without being asked: a node that a `nullFrom` names is
   expanded as if `expand` named it, and so on until a record has `nullOrigin`, so one request
   says the whole way from a null to where it is from, and the trace has the parts of the nodes
-  on that way. Each node deeper costs one more evaluation, at most 16, and all of them are one
-  evaluation for `maxSteps`: following takes steps of the request's budget, never more, and
-  where the budget ends the way ends, with the answer of the evaluations that it covered.
-  Nodes that would make the trace longer than `maxRecords` are not expanded, and the trace is
-  not cut for them. Only
-  the null that `nullFrom` names is followed: another null part says where it is from when it
-  is expanded. A null record has neither field when its node is not expanded (its parts have
-  no records), when the null can be from an iteration that has no record, and when the trace
-  is cut. The way is
+  on that way: through the bodies of the functions invoked, however many invoke one another,
+  and into the first iteration of a loop whose value is null, whichever it is. This costs one
+  more evaluation of the text, whatever the length of the way, and only when a null is from a
+  node that the request does not expand; it is an evaluation that also keeps the values on
+  the ways of its nulls, which takes about twice the time of the evaluation itself. Both are
+  one evaluation for `maxSteps`: following takes steps of the request's budget, never more,
+  and when the budget does not cover it the answer is that of the first evaluation, without
+  the way. Nodes that would make the trace longer than `maxRecords` are not expanded, and the
+  trace is not cut for them: the way ends where the room does. Only the null that `nullFrom`
+  names is followed: another null part says where it is from when it is expanded. A null
+  record has neither field when its node is not expanded (its parts have no records) and
+  when the trace is cut. The way is
   not followed through a value: a null that is an item of a list or an entry of a context
   given by the host, and a name that a loop, a filter or a parameter binds, end it.
 - With `nullOrigin` stands `nullCode`, why the null is the node's own: `missing-entry` (a name

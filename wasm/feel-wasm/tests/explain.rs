@@ -24,7 +24,7 @@ fn collect(value: &Json, found: &mut BTreeMap<String, Json>) {
     Json::Object(fields) => {
       if let Some(Json::String(expression)) = fields.get("expression")
         && expression.len() <= 3_000
-        && fields.get("op").is_none_or(|op| op == "evaluate")
+        && fields.get("op").is_none_or(|op| op == "evaluate" || op == "explain")
         && fields.get("dialect").is_none_or(|dialect| dialect == "expression")
       {
         let mut kept = Map::new();
@@ -113,6 +113,7 @@ fn an_explained_evaluation_is_the_evaluation() {
       }
     }
     let (mut explained, mut failed, mut records, mut expanded, mut iterations, mut calls, mut origins) = (0usize, 0usize, 0usize, 0usize, 0usize, 0usize, 0usize);
+    let mut followed = 0usize;
     for (number, request) in requests.values().enumerate() {
       if std::env::var_os("RHEON_EACH").is_some() {
         eprintln!("{number} {}", request.to_string().chars().take(300).collect::<String>());
@@ -147,6 +148,52 @@ fn an_explained_evaluation_is_the_evaluation() {
       same(&shallow, "by default");
       if number % 4 == 0 {
         assert_eq!(shallow, with("explain", &[]), "{text}: two runs, one answer");
+      }
+      // a null is followed without being asked, with the values that one more evaluation
+      // keeps on its way: every record of the answer is the record that a request has which
+      // names the nodes on the way in `expand`, where the evaluation records what is asked for
+      let way: Vec<Json> = shallow["trace"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|record| record.get("nullFrom").is_some())
+        .map(|record| match record.get("within") {
+          Some(within) => json!({"at": [record["from"], record["to"]], "within": within}),
+          None => json!([record["from"], record["to"]]),
+        })
+        .collect();
+      if !way.is_empty() && !slow {
+        let asked = with("explain", &[("expand", json!(way)), ("maxRecords", json!(10_000))]);
+        same(&asked, "with the nodes on the way of a null expanded");
+        let asked = asked["trace"].as_array().unwrap();
+        for record in shallow["trace"].as_array().unwrap() {
+          let found = asked
+            .iter()
+            .find(|other| other["from"] == record["from"] && other["to"] == record["to"] && other.get("within") == record.get("within"))
+            .unwrap_or_else(|| panic!("{text}: no record of {record} when its node is asked for"));
+          for field in ["kind", "value", "name"] {
+            assert_eq!(found.get(field), record.get(field), "{text}: `{field}` of a record on the way of a null: {record}");
+          }
+          // a node that is asked for by its place has its record without the iteration, which
+          // its `within` names
+          if let Some(iteration) = found.get("iteration") {
+            assert_eq!(Some(iteration), record.get("iteration"), "{text}: the iteration of a record on the way of a null: {record}");
+          }
+          // where the null is from: the same, but for a loop, of which a request has the first
+          // iterations and the way the first null one
+          let says = |record: &Json| ["nullFrom", "nullOrigin", "nullCode"].map(|field| record.get(field).cloned());
+          if says(found) != says(record) {
+            let inside = |from: Option<&Json>| from.and_then(|from| from.get("within")).and_then(Json::as_array).map_or(0, Vec::len);
+            let deeper = inside(record.get("nullFrom")) > record.get("within").and_then(Json::as_array).map_or(0, Vec::len);
+            // and but for the record where the way ends because the trace has no room for more
+            let full = says(record) == [None, None, None] && shallow["trace"].as_array().unwrap().len() + 12 > 200;
+            assert!(
+              full || (says(found) == [None, None, None] && deeper),
+              "{text}: where a null is from: {record} followed, {found} asked for"
+            );
+          }
+          followed += 1;
+        }
       }
       // the record of the root is the result
       let trace = shallow["trace"].as_array().unwrap();
@@ -243,11 +290,11 @@ fn an_explained_evaluation_is_the_evaluation() {
       expanded += known.len();
     }
     println!(
-      "{} requests, {explained} explained, {failed} failed as evaluate does, {expanded} nodes expanded, {iterations} in iterations, {calls} in bodies, {records} records, {origins} nulls with where they are from",
+      "{} requests, {explained} explained, {failed} failed as evaluate does, {expanded} nodes expanded, {iterations} in iterations, {calls} in bodies, {records} records, {origins} nulls with where they are from, {followed} records of nulls followed",
       requests.len()
     );
     assert!(
-      explained > 5_000 && records > 20_000 && iterations > 500 && calls > 500 && origins > 1_000,
+      explained > 5_000 && records > 20_000 && iterations > 500 && calls > 500 && origins > 1_000 && followed > 1_000,
       "{explained} explained, {records} records, {iterations} in iterations, {calls} in bodies"
     );
   });

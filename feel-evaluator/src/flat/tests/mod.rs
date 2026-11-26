@@ -97,6 +97,7 @@ fn agree_case(dialect: Dialect, scope: &FeelScope, node: &AstNode, text: &str) {
   let plan = crate::Plan {
     wanted: vec![vec![crate::Wanted::default()]],
     limit: 1_000,
+    follow: None,
   };
   let (traced, trace) = crate::recording(plan, || outcome(traced, scope));
   assert_eq!(
