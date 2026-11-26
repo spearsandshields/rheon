@@ -434,6 +434,29 @@ impl FeelContext {
     Self::of(FeelContextEntries::from(Store::Map(BTreeMap::from_iter(entries))))
   }
 
+  /// [FeelContext::from_ascending_entries] for entries that were written in another order:
+  /// `places[i]` is the place among `entries` of the entry written at `i`. The order of
+  /// writing is taken when `places` has every place once and no two entries have one name: the
+  /// names at the places are then the names of the context, each once. That is checked on the
+  /// places and the number of entries, without a comparison of names; other places leave the
+  /// order of the names.
+  pub fn from_ascending_entries_written(entries: Vec<(Name, Value)>, places: &[u32]) -> Self {
+    let count = entries.len();
+    let mut seen = vec![false; count];
+    let each_once = places.len() == count && places.iter().all(|place| seen.get_mut(*place as usize).is_some_and(|seen| !std::mem::replace(seen, true)));
+    let by_name = places.iter().enumerate().all(|(index, place)| *place as usize == index);
+    let names: Vec<Name> = if each_once && !by_name {
+      places.iter().filter_map(|place| entries.get(*place as usize).map(|entry| entry.0.clone())).collect()
+    } else {
+      vec![]
+    };
+    let mut built = FeelContextEntries::from(Store::Map(BTreeMap::from_iter(entries)));
+    if names.len() == count && built.len() == count {
+      built.written = Written::Names(names);
+    }
+    Self::of(built)
+  }
+
   /// Builds a context of the entries `names[i]: values[i]`. The names are shared: the records
   /// of a list that have the same names hold one list of them, and each its values. The names
   /// must be ascending, each once, and as many as the values; a context of other names and

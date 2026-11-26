@@ -1228,29 +1228,35 @@ impl<'a, 'w> Reader<'a, 'w> {
         None => context,
       });
     }
-    // the names in the order they are written in
-    let written: Option<Vec<Name>> = written.map(|written| {
-      let entries = &self.entries[first_entry..];
-      written.iter().filter_map(|place| entries.get(*place as usize).map(|entry| entry.0.clone())).collect()
-    });
+    // a context of many entries is told the places its entries were written at, which costs no
+    // comparison of names; one of few is told their names
     let context = if first_entry == 0 && self.entries.len() > DIRECT_ENTRIES {
       // the outermost object takes the buffer as it is, without a copy of its entries
-      FeelContext::from_ascending_entries(std::mem::take(&mut self.entries))
+      let entries = std::mem::take(&mut self.entries);
+      match &written {
+        Some(written) => FeelContext::from_ascending_entries_written(entries, written),
+        None => FeelContext::from_ascending_entries(entries),
+      }
+    } else if self.entries.len() - first_entry <= DIRECT_ENTRIES {
+      // the names in the order they are written in
+      let names: Option<Vec<Name>> = written.map(|written| {
+        let entries = &self.entries[first_entry..];
+        written.iter().filter_map(|place| entries.get(*place as usize).map(|entry| entry.0.clone())).collect()
+      });
+      let mut context = FeelContext::default();
+      for (name, value) in self.entries.drain(first_entry..) {
+        context.insert(name, value);
+      }
+      match names {
+        Some(names) => context.with_written_names(names),
+        None => context,
+      }
     } else {
       let entries = self.entries.drain(first_entry..);
-      if entries.len() <= DIRECT_ENTRIES {
-        let mut context = FeelContext::default();
-        for (name, value) in entries {
-          context.insert(name, value);
-        }
-        context
-      } else {
-        FeelContext::from_ascending_entries(entries)
+      match &written {
+        Some(written) => FeelContext::from_ascending_entries_written(entries.collect(), written),
+        None => FeelContext::from_ascending_entries(entries),
       }
-    };
-    let context = match written {
-      Some(written) => context.with_written_names(written),
-      None => context,
     };
     Ok(context.with_other_key_forms(other_forms))
   }

@@ -784,6 +784,44 @@ fn a_context_keeps_the_order_its_entries_were_written_in() {
   assert_eq!("{a: 1, b: 2, c: 1}", ascending.to_string());
 }
 
+/// A map built from its entries with the places they were written at has that order, as one
+/// told the names has; places that are not every place once, or entries of one name, leave the
+/// order of the names. It is changed as any context is.
+#[test]
+fn a_context_built_with_places_has_the_order_of_writing() {
+  let name = |text: &str| Name::from(text);
+  let number = |n: i64| Value::Number(FeelNumber::new(n, 0));
+  let entries = || [("a", 1), ("b", 2), ("c", 3)].into_iter().map(|(key, n)| (name(key), number(n))).collect::<Vec<_>>();
+  let written = FeelContext::from_ascending_entries_written(entries(), &[2, 0, 1]);
+  assert_eq!("{c: 3, a: 1, b: 2}", written.to_string());
+  assert_eq!(
+    FeelContext::from_ascending_entries(entries()).with_written_names(vec![name("c"), name("a"), name("b")]),
+    written
+  );
+  assert_eq!(Some(&number(2)), written.get_entry(&name("b")));
+  let mut changed = written.clone();
+  changed.set_entry(&name("a"), number(10));
+  changed.set_entry(&name("0"), number(0));
+  changed.remove_entry(&name("c"));
+  assert_eq!("{a: 10, b: 2, 0: 0}", changed.to_string());
+  // the places of the names in their own order
+  assert_eq!("{a: 1, b: 2, c: 3}", FeelContext::from_ascending_entries_written(entries(), &[0, 1, 2]).to_string());
+  // not every place once: too few, one twice, one that is no place
+  for places in [&[2, 0][..], &[2, 2, 1], &[3, 0, 1], &[2, 0, 1, 1]] {
+    assert_eq!(
+      "{a: 1, b: 2, c: 3}",
+      FeelContext::from_ascending_entries_written(entries(), places).to_string(),
+      "{places:?}"
+    );
+  }
+  // two entries of one name are one entry, so the places are not those of the context
+  let doubled = vec![(name("a"), number(1)), (name("a"), number(2)), (name("b"), number(3))];
+  let context = FeelContext::from_ascending_entries_written(doubled, &[2, 0, 1]);
+  assert_eq!(2, context.get_entries().len());
+  assert!(context.to_string().starts_with("{a: "), "{context}");
+  assert_eq!("{}", FeelContext::from_ascending_entries_written(vec![], &[]).to_string());
+}
+
 /// The order of writing that is said for a context built at once: of a map by its names, of a
 /// record by the places of its names; a record that is changed keeps it.
 #[test]
