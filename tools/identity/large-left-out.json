@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "name": "a context literal of 100,000 entries, each a context that holds the entry before",
+    "sha256": "259a9691ddc07a84ebe56a92c5b9f0b5605e00791f7466f096714ef2fd66bb8a",
+    "why": "Both modules stop it with the value-depth error at 501 levels (docs/CONTRACT.md §2), but 0.9.0 needs 634 s for it, and as much again for its parse twin, where the candidate needs 0.4 s: it alone took the large-set run from seconds to 27 minutes. The request is 2 MB, too large to commit; its 501-level form, the chain of context literals in requests/value-depth.json, is compared."
+  }
+]

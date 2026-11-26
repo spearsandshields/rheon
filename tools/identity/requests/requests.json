@@ -3,5 +3,11 @@
   {"op": "explode", "dialect": "boxed"},
   {"op": "evaluate"},
   {"expression": "1"},
-  {"op": "info"}
+  {"op": "info"},
+  {"op": "evaluate", "expression": "1", "dialect": "boxed"},
+  {"op": "evaluate", "expression": "1", "dialect": 1},
+  {"op": "evaluate", "dialect": "boxed"},
+  {"op": "evaluate", "dialect": "boxed", "language": "x"},
+  {"op": "parse", "dialect": "boxed"},
+  {"op": "parse", "expression": "1", "context": [1], "dialect": "boxed"}
 ]
