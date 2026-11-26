@@ -206,7 +206,7 @@ export interface TraceRecord {
   iterations?: number;
   /** Where it is evaluated, outermost first; absent for a node evaluated once at the root. Pass it back in `expand`. */
   within?: TraceStep[];
-  /** Of a null: the part of the node that the null is from, as an entry of `expand`. */
+  /** Of a null: the part of the node that the null is from, as an entry of `expand`; the trace has its record, and follows it to the record with `nullOrigin`. */
   nullFrom?: { at: [number, number]; within?: TraceStep[] };
   /** Of a null: the null is the node's own (its parts are not null, or it has none). */
   nullOrigin?: true;
