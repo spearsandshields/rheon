@@ -179,7 +179,7 @@ pub fn format(scope: &FeelScope, input: &str, unary_tests: bool, width: usize) -
   format_start(scope, input, if unary_tests { StartRule::UnaryTests } else { StartRule::Expression }, width)
 }
 
-/// [format] of the start rule `rule`.
+/// [format()] of the start rule `rule`.
 pub fn format_start(scope: &FeelScope, input: &str, rule: StartRule, width: usize) -> Formatted {
   let frames = scope.frames();
   format::format(&|| ParsingScope::new(frames.iter().map(|frame| &**frame)), input, rule, width)

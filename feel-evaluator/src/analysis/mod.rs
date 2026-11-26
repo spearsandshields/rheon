@@ -280,7 +280,7 @@ impl<'s> Typing<'s> {
   /// The type `id` as an item of an editor shows it: the kind of the value, without the entries
   /// of a context (`context`, `list<context>`, `list<number>`), and a function with its
   /// signature when the types of its parameters or of its result are known (of at most
-  /// [MAX_SHOWN] types: what is beyond is written `Any`). None when the type is not known.
+  /// `MAX_SHOWN` types: what is beyond is written `Any`). None when the type is not known.
   pub fn shown(&self, id: TypeId) -> Option<String> {
     self.shown_at(id, 0)
   }

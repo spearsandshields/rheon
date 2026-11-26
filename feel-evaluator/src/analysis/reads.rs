@@ -94,7 +94,7 @@ pub struct Reads {
   /// makes. Each with the path of the context as text (empty for a context of the text), the
   /// name, and the places of the paths that read it.
   pub missing: Vec<MissingEntry>,
-  /// Whether the walk ended: when it did not ([MAX_STEPS], [MAX_DEPTH]), the expression can
+  /// Whether the walk ended: when it did not (`MAX_STEPS`, `MAX_DEPTH`), the expression can
   /// read more than `paths` lists.
   pub complete: bool,
 }
