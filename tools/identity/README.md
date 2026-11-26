@@ -67,16 +67,18 @@ measured on; the times below are of Node 26.
 | When | What | Time |
 |---|---|---|
 | After every build (the fix and group tiers) | `npm run identity`: the committed sources (17,719 requests) | 2.3 s uncached, 1.2 s cached |
-| Once per group of changes, on demand | `npm run identity:large`: the same with the larger request sets kept outside the repository (`IDENTITY_LARGE_SETS`) | 11.5 s uncached, 7.2 s cached |
+| Once per group of changes, on demand | `npm run identity:large`: the same with the larger request sets kept outside the repository (`IDENTITY_LARGE_SETS`) | 21 s with `--verify-cache`, 37 s cached (2026-11-26: the cache does not pay for these sets) |
 | On a failure | `--record <entries.json> --why "<basis>"`, then `git bisect start <bad> <good>` and `git bisect run tools/identity/bisect.sh .tools/baseline/feel.wasm <entries.json>` | one wasm build per step |
-| Before a release (the release tier) | `run.sh … --release --verify-cache` and `run.sh … --large --verify-cache` | 16 s and 11.5 s |
+| Before a release (the release tier) | `run.sh … --release --verify-cache` and `run.sh … --large --verify-cache` | 24 s and 21 s (2026-11-26) |
 
 Measured on a MacBook (Apple M2, Node 26) against 0.9.0, with every evaluate request also sent as
 parse: the committed sources are 17,719 requests, with the two sets kept outside the repository
 17,888 (the requests of `release/requests/` that the other sources hold left out with their
 parse twins, 12 in all), and with `--release` 17,731. No committed request traps 0.9.0. The 5 of
 `release/requests/memory-exhausting.json` exhaust its memory and trap (0.1 to 4.2 s each), and
-2 requests of the large sets trap it. A cached trap is evaluated again on every run (see the
+2 requests of the large sets trap it. One request of the large sets and its parse twin are
+left out by name (`large-left-out.json`): 0.9.0 needs 634 s for each, and with them the large run
+took 27 minutes. A cached trap is evaluated again on every run (see the
 cache section), so the cache cannot save that time. The peak memory is 2.4 GB for the release
 sources and 2.7 GB for the large sets, both with `--verify-cache`.
 
