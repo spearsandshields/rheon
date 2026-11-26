@@ -470,19 +470,22 @@ test('real worker: explain follows a null to the node it is from', async (t) => 
   assert.equal(first.ok, true);
   assert.equal(first.result.isNull, true);
   assert.equal(first.traceTruncated, false);
-  assert.deepEqual(first.trace.map((r) => [r.kind, r.from, r.to]), [['Path', 0, 42], ['Context', 0, 35]]);
-  // what each null record names is expanded, to the record whose null is its own
+  assert.deepEqual(first.trace.slice(0, 2).map((r) => [r.kind, r.from, r.to]), [['Path', 0, 42], ['Context', 0, 35]]);
+  // the one answer has the way from the null to the record whose null is its own
   const way = [];
-  let expand = [];
   let from = first.trace[0].nullFrom;
   while (from) {
-    expand = [...expand, from];
-    const next = await engine.explain({ ...request, expand });
-    const record = next.trace.find((r) => r.from === from.at[0] && r.to === from.at[1]);
+    const record = first.trace.find((r) => r.from === from.at[0] && r.to === from.at[1]);
     way.push([record.kind, record.name ?? null, record.nullCode ?? false]);
     from = record.nullFrom;
   }
   assert.deepEqual(way, [['Entry', 'result', false], ['Name', null, false], ['Entry', 'base', 'missing-entry']]);
+  // a value that is not null is asked about by the place of its record
+  const filled = { expression: '(a + 1) * 2', context: { a: 1 } };
+  const top = await engine.explain(filled);
+  const sum = top.trace.find((r) => r.kind === 'Addition');
+  const parts = await engine.explain({ ...filled, expand: [[sum.from, sum.to]] });
+  assert.deepEqual(parts.trace.filter((r) => r.kind === 'Name').map((r) => r.value.display), ['1']);
   // a request that the module refuses is its failure
   const refused = await engine.explain({ ...request, expand: [[3, 4]] });
   assert.equal(refused.ok, false);

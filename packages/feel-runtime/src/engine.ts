@@ -183,7 +183,9 @@ export class FeelEngine {
   /**
    * Evaluates an expression as `evaluate` does and says how its value came about: the values of
    * the root of the text and of its parts, and of the parts of the nodes that `expand` names.
-   * Each call evaluates again; a record's `within` and `nullFrom` are passed back in `expand`.
+   * A null is followed to the node it is from without being asked: the record with `nullOrigin`
+   * is in the answer. Each call evaluates again; a record's place and `within` are passed back
+   * in `expand` to see the parts of its node.
    */
   explain(req: ExplainRequest, opts: RequestOptions = {}): Promise<ExplainResponse> {
     return this.built(() => buildExplainJson(req), opts.signal);

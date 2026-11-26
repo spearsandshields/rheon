@@ -4401,10 +4401,67 @@ fn explain_says_where_a_null_is_from() {
     chain("{k: null, f: function(a) a + k, r: f(1)}.r", json!({}))[2..],
     ["a + k in [{\"at\":[35,39],\"call\":true}]", "k in [{\"at\":[35,39],\"call\":true}]: here"]
   );
-  // a node that is not expanded does not say: its parts have no records
-  let closed = req(json!({"op": "explain", "expression": "loan.amount * rate.base + 1", "context": context}));
-  assert_eq!(closed["trace"][0]["nullFrom"], json!({"at": [0, 23]}));
-  assert!(closed["trace"][1].get("nullFrom").is_none() && closed["trace"][1].get("nullOrigin").is_none(), "{closed}");
+  // one request says the whole way: the nodes that a null is from are expanded without being
+  // named, until a record says that the null is its node's own
+  let whole = |text: &str, context: Json, more: Json| -> Vec<String> {
+    let mut request = json!({"op": "explain", "expression": text, "context": context});
+    request.as_object_mut().unwrap().extend(more.as_object().unwrap().clone());
+    let response = req(request);
+    assert_eq!(response["ok"], true, "{response}");
+    let records = response["trace"].as_array().unwrap();
+    let mut way = vec![];
+    let mut record = &records[0];
+    loop {
+      let place = format!("{}..{}", record["from"], record["to"]);
+      match (record.get("nullFrom"), record.get("nullCode")) {
+        (Some(from), None) => {
+          way.push(place);
+          record = records
+            .iter()
+            .find(|record| json!([record["from"], record["to"]]) == from["at"] && record.get("within") == from.get("within"))
+            .unwrap_or_else(|| panic!("no record of {from} in {response}"));
+        }
+        (None, Some(code)) => {
+          way.push(format!("{place} {}", code.as_str().unwrap()));
+          return way;
+        }
+        (None, None) => {
+          way.push(format!("{place} ?"));
+          return way;
+        }
+        other => panic!("{other:?}"),
+      }
+    }
+  };
+  let none = json!({});
+  assert_eq!(
+    whole("loan.amount * rate.base + 1", context.clone(), none.clone()),
+    ["0..27", "0..23", "14..23 missing-entry"]
+  );
+  assert_eq!(
+    whole("loan.amount * rate.base + 1", json!({"loan": {"amount": 1}, "rate": {"base": null}}), none.clone()),
+    ["0..27", "0..23", "14..23 null-input"]
+  );
+  assert_eq!(
+    whole("{base: rate.base, scaled: base * 2, result: scaled + loan.amount}.result", context.clone(), none.clone()),
+    ["0..72", "36..64", "44..50", "18..34", "26..30", "1..16 missing-entry"]
+  );
+  assert_eq!(
+    whole("{f: function(x) x.y + 1, r: f(rate)}.r", context.clone(), none.clone()),
+    ["0..38", "25..35", "16..23", "16..19 missing-entry"]
+  );
+  assert_eq!(
+    whole("every x in [1, null, 3] satisfies x > 0", none.clone(), none.clone()),
+    ["0..39", "34..39", "34..35 null-input"]
+  );
+  // the first null part is followed, the others are not: they say when they are expanded
+  let first = req(json!({"op": "explain", "expression": "rate.base + rate.other", "context": context}));
+  assert_eq!(first["trace"][1]["nullCode"], "missing-entry", "{first}");
+  assert!(first["trace"][3].get("nullFrom").is_none() && first["trace"][3].get("nullOrigin").is_none(), "{first}");
+  // a way that makes the trace longer than the request takes is followed as far as it fits
+  assert_eq!(whole("loan.amount * rate.base + 1", context.clone(), json!({"maxRecords": 3})), ["0..27", "0..23 ?"]);
+  let short = req(json!({"op": "explain", "expression": "loan.amount * rate.base + 1", "context": context, "maxRecords": 3}));
+  assert_eq!((short["trace"].as_array().unwrap().len(), &short["traceTruncated"]), (3, &json!(false)), "{short}");
   // a null in an iteration that has no record: not said to be the node's own
   let later = req(json!({"op": "explain", "expression": "(every x in [1, 2, null] satisfies x > 0) or false", "expand": [{"at": [1, 40], "iterations": [0, 2]}]}));
   assert_eq!(later["trace"][1]["iterations"], 3, "{later}");
@@ -4475,7 +4532,12 @@ fn explain_says_why_a_null_is_a_nodes_own_and_what_a_node_reads() {
       "Path 0..94 [\"revenue\",\"opex\",\"debt\",\"debt.total\",\"loans\",\"loans[].amount\",\"rate\"]",
       "Context 0..89 [\"revenue\",\"opex\",\"debt\",\"debt.total\",\"loans\",\"loans[].amount\",\"rate\"]",
       "Entry 1..20 [\"revenue\",\"opex\"]",
+      // the value is null, from `revenue`: the nodes on the way there are expanded
+      "Name 6..13 [\"revenue\"]",
+      "Name 16..20 [\"opex\"]",
       "Entry 22..44 [\"noi\",\"debt\",\"debt.total\"]",
+      "Name 28..31 [\"noi\"]",
+      "Path 34..44 [\"debt\",\"debt.total\"]",
       "Entry 46..88 [\"loans\",\"loans[].amount\",\"rate\"]",
       "For 51..88 [\"loans\",\"loans[].amount\",\"rate\"]",
       "Name 60..65 [\"loans\"]",

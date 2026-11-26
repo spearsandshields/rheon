@@ -1,0 +1,225 @@
+[
+  {
+    "op": "explain",
+    "expression": "loan.amount * rate.base + 1",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  },
+  {
+    "op": "explain",
+    "expression": "loan.amount * loan.fee + 1",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  },
+  {
+    "op": "explain",
+    "expression": "rate.base + rate.other",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  },
+  {
+    "op": "explain",
+    "expression": "empty + 1",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  },
+  {
+    "op": "explain",
+    "expression": "(loan.amount + 1) * 2",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  },
+  {
+    "op": "explain",
+    "expression": "{base: rate.base, scaled: base * 2, result: scaled + loan.amount}.result",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  },
+  {
+    "op": "explain",
+    "expression": "{f: function(x) x.y + 1, r: f(rate)}.r",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  },
+  {
+    "op": "explain",
+    "expression": "every x in [1, null, 3] satisfies x > 0",
+    "context": {}
+  },
+  {
+    "op": "explain",
+    "expression": "for x in [1, 2] return x + rate.base",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  },
+  {
+    "op": "explain",
+    "expression": "if loan.amount > 50 then rate.base * 2 else 0",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  },
+  {
+    "op": "explain",
+    "expression": "[1, 2][loan.fee]",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  },
+  {
+    "op": "explain",
+    "expression": "date(\"x\") + missing",
+    "context": {}
+  },
+  {
+    "op": "explain",
+    "expression": "sum([1, rate.base]) + 1",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  },
+  {
+    "op": "explain",
+    "expression": "loan.amount * rate.base + 1",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    },
+    "maxRecords": 3
+  },
+  {
+    "op": "explain",
+    "expression": "loan.amount * rate.base + 1",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    },
+    "maxRecords": 4
+  },
+  {
+    "op": "explain",
+    "expression": "loan.amount * rate.base + 1",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    },
+    "expand": [
+      [
+        0,
+        23
+      ]
+    ]
+  },
+  {
+    "op": "explain",
+    "expression": "loan.amount * rate.base + 1",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    },
+    "reads": true
+  },
+  {
+    "op": "explain",
+    "expression": "{f: function(n) if n = 0 then rate.base else f(n - 1), r: f(20)}.r",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  },
+  {
+    "op": "explain",
+    "expression": "{f: function(n) if n = 0 then rate.base else f(n - 1), r: f(3)}.r",
+    "context": {
+      "loan": {
+        "amount": 100,
+        "fee": null
+      },
+      "rate": {},
+      "empty": null
+    }
+  }
+]
