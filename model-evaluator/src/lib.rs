@@ -19,6 +19,7 @@ mod item_definition_type;
 mod model_builder;
 mod model_definitions;
 mod model_evaluator;
+mod requirements;
 mod type_ref;
 mod variable;
 
@@ -27,3 +28,4 @@ mod tests;
 
 pub use decision_table::build_decision_table_evaluator;
 pub use model_evaluator::ModelEvaluator;
+pub use requirements::{BuildDiagnostic, BuildSeverity, ElementKind};

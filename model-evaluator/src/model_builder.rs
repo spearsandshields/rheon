@@ -8,6 +8,7 @@ use crate::item_definition_context::ItemDefinitionContextEvaluator;
 use crate::item_definition_graph;
 use crate::item_definition_type::{InformationItemTypes, ItemDefinitionTypeEvaluator};
 use crate::model_definitions::{DefDefinitions, DefKey, Invocables};
+use crate::requirements::Requirements;
 use dsntk_common::Result;
 use rheon_feel::Name;
 use rheon_feel_evaluator::Dialect;
@@ -23,6 +24,7 @@ pub struct EvaluatorBuilders {
   pub decision_service_evaluator: DecisionServiceEvaluator,
   pub invocables: Invocables,
   pub information_item_types: InformationItemTypes,
+  pub requirements: Requirements,
 }
 
 /// Model builder.
@@ -50,6 +52,8 @@ pub struct ModelBuilder {
   invocables: RefCell<Invocables>,
   /// Expression language (FEEL or B-FEEL) of each model, by model namespace.
   dialects: HashMap<String, Dialect>,
+  /// The requirements of the elements, and the elements that are not built.
+  requirements: RefCell<Requirements>,
 }
 
 impl ModelBuilder {
@@ -79,10 +83,27 @@ impl ModelBuilder {
     self.item_definition_type_evaluator = ItemDefinitionTypeEvaluator::new(&self.model_definitions)?;
     // the evaluators above only hold the references; everything below follows them
     item_definition_graph::check(&self.model_definitions)?;
+    // an element whose requirements are not well formed is not built; the others are, and an
+    // element that can not be built takes with it those that require it, one kind after the other
+    self.requirements = RefCell::new(Requirements::new(&self.model_definitions));
     self.business_knowledge_model_evaluator = BusinessKnowledgeModelEvaluator::new(&self.model_definitions, self)?;
+    self.requirements.borrow_mut().spread();
     self.decision_evaluator = DecisionEvaluator::new(&self.model_definitions, self)?;
+    self.requirements.borrow_mut().spread();
     self.decision_service_evaluator = DecisionServiceEvaluator::new(&self.model_definitions, self)?;
+    self.requirements.borrow_mut().spread();
     Ok(())
+  }
+
+  /// Whether the element `key` is not built: its requirements are not well formed, or it
+  /// requires an element that is not built.
+  pub fn is_unbuilt(&self, key: &DefKey) -> bool {
+    self.requirements.borrow().is_unbuilt(key)
+  }
+
+  /// The element `key` could not be built, for `error`.
+  pub fn failed(&self, key: &DefKey, error: impl std::fmt::Display) {
+    self.requirements.borrow_mut().failed(key, "invalid-element", error);
   }
 
   pub fn input_data_evaluator(&self) -> &InputDataEvaluator {
@@ -135,6 +156,7 @@ impl From<ModelBuilder> for EvaluatorBuilders {
       decision_service_evaluator: value.decision_service_evaluator,
       invocables: value.invocables.into_inner(),
       information_item_types: value.item_definition_type_evaluator.information_item_types(),
+      requirements: value.requirements.into_inner(),
     }
   }
 }
