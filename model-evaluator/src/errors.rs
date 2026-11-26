@@ -15,10 +15,6 @@ pub fn err_empty_literal_expression() -> DsntkError {
   ModelEvaluatorError("empty literal expression".into()).into()
 }
 
-pub fn err_empty_encapsulated_logic() -> DsntkError {
-  ModelEvaluatorError("empty encapsulated logic in business knowledge model".into()).into()
-}
-
 pub fn err_invalid_item_definition_type(s: &str) -> DsntkError {
   ModelEvaluatorError(format!("invalid item definition type for '{}'", arg(s))).into()
 }

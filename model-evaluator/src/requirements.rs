@@ -156,6 +156,23 @@ impl Requirements {
         requirements: vec![],
       };
       for requirement in decision.information_requirements() {
+        // "references a requiredDecision or a requiredInput, but not both" (§6.3.13)
+        let found = match (requirement.required_decision(), requirement.required_input()) {
+          (Some(_), Some(_)) => Some("both"),
+          (None, None) => Some("neither"),
+          _ => None,
+        };
+        if let Some(found) = found {
+          let message = format!(
+            "decision '{}': expected a required decision or a required input in each of its information requirements, found {found} in one",
+            element.name
+          );
+          requirements.unbuilt.entry(key.clone()).or_insert_with(|| Reason {
+            code: "invalid-element",
+            root: message.clone(),
+            message,
+          });
+        }
         if let Some(href) = requirement.required_decision() {
           refer(&mut requirements, &key, &mut element, "required decision", href, &[Decision], true);
         }
@@ -180,6 +197,7 @@ impl Requirements {
         let kinds = [BusinessKnowledgeModel, DecisionService];
         refer(&mut requirements, &key, &mut element, "required knowledge", requirement.required_knowledge(), &kinds, true);
       }
+      requirements.named(&key, &element, &knowledge.variable().name().to_string());
       requirements.elements.insert(place(&key), element);
     }
     for service in definitions.decision_services() {
@@ -201,6 +219,16 @@ impl Requirements {
       for href in service.input_data() {
         refer(&mut requirements, &key, &mut element, "input data", href, &[InputData], false);
       }
+      // "outputDecisions: Decision [1..*]" (§6.3.10, Table 17)
+      if service.output_decisions().is_empty() {
+        let message = format!("decision service '{}': expected one or more output decisions, found none", element.name);
+        requirements.unbuilt.entry(key.clone()).or_insert_with(|| Reason {
+          code: "invalid-element",
+          root: message.clone(),
+          message,
+        });
+      }
+      requirements.named(&key, &element, &service.variable().name().to_string());
       let name = element.name.clone();
       requirements.elements.insert(place(&key), element);
       // "at least one of the encapsulatedDecisions and inputDecisions SHALL be specified"
@@ -213,6 +241,26 @@ impl Requirements {
     requirements.cycles();
     requirements.spread();
     requirements
+  }
+
+  /// Checks that the variable of the invocable `element` has its name: "the name of the
+  /// variable and the name of the invocable SHALL be the same" (§6.3.9, §6.3.10). The function
+  /// is known to the expressions by the name of the variable, so with another name an expression
+  /// that names the element finds nothing. Compared without their spaces: a name is written
+  /// with any.
+  fn named(&mut self, key: &DefKey, element: &Element, variable: &str) {
+    let plain = |name: &str| name.split_whitespace().collect::<String>();
+    if plain(variable) != plain(&element.name) {
+      let message = format!(
+        "{} '{}': expected its variable to have the name '{}', found '{variable}'",
+        element.kind, element.name, element.name
+      );
+      self.unbuilt.entry(key.clone()).or_insert_with(|| Reason {
+        code: "invalid-element",
+        root: message.clone(),
+        message,
+      });
+    }
   }
 
   /// The elements that an evaluation of the element at `at` evaluates.

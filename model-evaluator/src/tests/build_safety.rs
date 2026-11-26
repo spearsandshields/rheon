@@ -261,3 +261,50 @@ fn the_output_entries_of_a_rule_that_does_not_match_are_not_evaluated() {
   let (value, diagnostics) = outcome.into_result().unwrap();
   assert_eq!((value.to_string().as_str(), diagnostics.first().is_none()), ("\"first\"", true));
 }
+
+#[test]
+fn a_business_knowledge_model_without_logic_is_a_function_that_gives_null() {
+  let empty = r#"<businessKnowledgeModel name="F" id="_F"><variable name="F"/></businessKnowledgeModel>"#;
+  let (evaluator, said) = built(&(decision("A", "F()", &[], &["_F"]) + empty + &decision("D", "1 + 1", &[], &[])));
+  assert_eq!(said, [] as [&str; 0]);
+  assert_eq!(value(&evaluator, "D"), "2");
+  assert_eq!(value(&evaluator, "A"), "null(business knowledge model 'F' has no encapsulated logic)");
+  assert_eq!(value(&evaluator, "F"), "null(business knowledge model 'F' has no encapsulated logic)");
+}
+
+#[test]
+fn requirements_and_invocables_of_a_wrong_shape_are_errors_of_their_elements() {
+  let both = r##"<decision name="A" id="_A"><variable name="A"/><informationRequirement id="_r"><requiredDecision href="#_D"/><requiredInput href="#_I"/></informationRequirement><literalExpression><text>1</text></literalExpression></decision>"##;
+  let input = r#"<inputData name="I" id="_I"><variable name="I"/></inputData>"#;
+  let renamed = r#"<businessKnowledgeModel name="F" id="_F"><variable name="G"/><encapsulatedLogic><literalExpression><text>1</text></literalExpression></encapsulatedLogic></businessKnowledgeModel>"#;
+  let no_output = r##"<decisionService name="S" id="_S"><variable name="S"/><encapsulatedDecision href="#_D"/></decisionService>"##;
+  let (evaluator, said) = built(&(both.to_string() + input + renamed + no_output + &decision("D", "2", &[], &[])));
+  assert_eq!(
+    said,
+    [
+      "invalid-element decision 'A': expected a required decision or a required input in each of its information requirements, found both in one",
+      "invalid-element business knowledge model 'F': expected its variable to have the name 'F', found 'G'",
+      "invalid-element decision service 'S': expected one or more output decisions, found none",
+    ]
+  );
+  assert_eq!(value(&evaluator, "D"), "2");
+}
+
+#[test]
+fn a_decision_of_dmn_1_6_can_have_a_label() {
+  let xml = format!(
+    r#"<definitions namespace="{NAMESPACE}" name="{NAME}" id="_m" xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/"><decision name="D" id="_D" label="Short"><variable name="D"/><literalExpression><text>1 + 1</text></literalExpression></decision></definitions>"#
+  );
+  let evaluator = ModelEvaluator::new(&[rheon_model::parse(&xml).unwrap_or_else(|e| panic!("{e}"))]).unwrap();
+  assert_eq!(value(&evaluator, "D"), "2");
+}
+
+#[test]
+fn a_shared_style_without_an_id_is_read() {
+  let xml = format!(
+    r#"<definitions namespace="{NAMESPACE}" name="{NAME}" id="_m" xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"><decision name="D" id="_D"><variable name="D"/><literalExpression><text>1</text></literalExpression></decision><dmndi:DMNDI><dmndi:DMNStyle fontFamily="Arial"/><dmndi:DMNStyle id="_s" fontFamily="Times"/></dmndi:DMNDI></definitions>"#
+  );
+  let definitions = rheon_model::parse(&xml).unwrap_or_else(|e| panic!("{e}"));
+  let styles = &definitions.dmndi().as_ref().unwrap().styles;
+  assert_eq!(styles.iter().map(|style| style.id.as_deref()).collect::<Vec<_>>(), [None, Some("_s")]);
+}

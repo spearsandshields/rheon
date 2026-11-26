@@ -45,7 +45,22 @@ impl BusinessKnowledgeModelEvaluator {
       }
       let built = match business_knowledge_model.encapsulated_logic().as_ref() {
         Some(function_definition) => build_bkm_evaluator(definitions, business_knowledge_model, function_definition, model_builder),
-        None => Err(err_empty_encapsulated_logic()),
+        // without encapsulated logic it is a business knowledge model all the same (DMN 1.6
+        // §6.3.9: the logic is optional): a function whose invocation is null with the reason
+        None => {
+          let name = business_knowledge_model.name().to_string();
+          let evaluator: rheon_feel::Evaluator =
+            Box::new(move |_: &FeelScope| rheon_feel::value_null!("business knowledge model '{}' has no encapsulated logic", rheon_feel::message::arg(&name)));
+          let function = Value::from(rheon_feel::FunctionDefinition::new(
+            vec![],
+            FunctionBody::LiteralExpression(Arc::new(evaluator)),
+            false,
+            Closure::default(),
+            FeelContext::default(),
+            FeelType::Any,
+          ));
+          build_bkm_evaluator_from_function_definition(business_knowledge_model.variable().name().clone(), function, vec![])
+        }
       };
       match built {
         Ok(evaluator) => {

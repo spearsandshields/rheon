@@ -4487,3 +4487,15 @@ fn explain_says_why_a_null_is_a_nodes_own_and_what_a_node_reads() {
   assert!(plain["trace"].as_array().unwrap().iter().all(|record| record.get("reads").is_none()));
   assert_eq!(req(json!({"op": "explain", "expression": "1", "reads": 1}))["error"]["code"], "invalid-field");
 }
+
+/// DMN 1.6 grammar rules 33 and 64 do not say what an escape outside rule 64 is; the official
+/// tests (0067, 1109, 1111) need it kept as written, so `"\s"` is a backslash and an `s`
+/// (docs/LIMITATIONS.md, unknown string escapes).
+#[test]
+fn an_unknown_string_escape_is_kept_and_a_known_one_is_its_character() {
+  let length = |text: &str| req(json!({"op": "evaluate", "expression": format!("string length({text})")}))["result"]["display"].clone();
+  assert_eq!(length(r#""\s""#), "2");
+  assert_eq!(length(r#""\q""#), "2");
+  assert_eq!(length(r#""\n""#), "1");
+  assert_eq!(length(r#""\t\\""#), "2");
+}

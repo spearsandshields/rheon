@@ -1170,7 +1170,7 @@ impl ModelParser {
   /// Parses single style.
   fn parse_style(&self, node: &Node) -> Result<DmnStyle> {
     Ok(DmnStyle {
-      id: required_attribute(node, ATTR_ID)?,
+      id: optional_attribute(node, ATTR_ID),
       fill_color: self.parse_optional_color(node, NODE_DMNDI_FILL_COLOR)?,
       stroke_color: self.parse_optional_color(node, NODE_DMNDI_STROKE_COLOR)?,
       font_color: self.parse_optional_color(node, NODE_DMNDI_FONT_COLOR)?,

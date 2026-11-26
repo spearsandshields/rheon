@@ -1740,9 +1740,10 @@ pub struct TextAnnotation {}
 /// [DmnStyle] is used to keep some non-normative visual attributes such as color and font.
 #[derive(Debug, Clone)]
 pub struct DmnStyle {
-  /// A unique identifier for this style so it can be referenced.
+  /// A unique identifier for this style so it can be referenced: optional (DMNDI13.xsd, DC.xsd
+  /// `Style`), a style without one can not be.
   /// Only styles defined in the [Dmndi] can be referenced by [DmnDiagramElement] and [DmnDiagram].
-  pub id: String,
+  pub id: Option<String>,
   /// The color use to fill the shape.Does not apply to [DmnEdge]. Default is `white`.
   pub fill_color: Option<DcColor>,
   /// The color use to draw the shape borders. Default is `black`.
