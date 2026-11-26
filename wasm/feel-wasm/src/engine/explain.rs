@@ -291,460 +291,474 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
   let bodies = bodies(root);
   // a null is followed to the node it is from: an evaluation, then one more for each node deeper
   // that a null is from, with the parts of those nodes wanted too
-  let (mut rounds, mut follow, mut added) = (0, true, 0);
-  loop {
-    let mut wants = Wants::default();
-    add(&positioned, root, &[], None, &mut wants);
-    // the nodes whose parts are wanted: the node, where it is evaluated, and the iterations of it asked for
-    let mut open: Vec<Open> = vec![(root, vec![], None)];
-    for Asked { at, within, iterations, followed } in asked.iter().cloned() {
-      let Some(node) = node_at(&positioned, at) else {
-        if followed {
-          continue;
-        }
-        return fail(
-          "invalid-field",
-          format!(
-            "'expand' has the place {}, which is the place of no node of the text (the places are those of the records, and of the nodes of `syntax`)",
-            shown(at)
-          ),
-        );
-      };
-      // the steps lead to the node: from the end, the loops around it, then for a node of a body
-      // the invocation that runs the body, which the steps before lead to
-      let leads = || -> Result<(), Failure> {
-        let (mut reached, mut steps) = (node, within.as_slice());
-        loop {
-          let Some((in_body, loops)) = around(root, reached) else {
-            return fail(
-              "invalid-field",
-              format!("'expand' has the place {}, a node that is not evaluated for a value: it has no parts", shown(at)),
-            );
-          };
-          let expected: Vec<At> = loops.iter().filter_map(|repeat| positioned.place(repeat)).collect();
-          let (before, last) = steps.split_at(steps.len().saturating_sub(expected.len()));
-          let fits =
-            expected.len() == loops.len() && last.len() == expected.len() && last.iter().zip(&expected).all(|(step, at)| matches!(step, Step::Iteration(found, _) if found == at));
-          let site = match before.split_last() {
-            Some((Step::Call(site), _)) if in_body => step_node(&positioned, *site, true),
-            _ => None,
-          };
-          if fits
-            && in_body
-            && site.is_none()
-            && let Some((Step::Call(site), _)) = before.split_last()
-          {
-            return fail(
-              "invalid-field",
-              format!(
-                "'expand' has the node at {}, whose \"within\" has {{\"at\": {}, \"call\": true}}: expected the place of an invocation, found the place of none",
-                shown(at),
-                shown(*site)
-              ),
-            );
+  let (mut rounds, mut added) = (0, 0);
+  // the answer of the evaluation before, which stands when the next cannot be given
+  let mut best: Option<String> = None;
+  // the evaluations are one evaluation for the budget of steps: following a null takes steps
+  // of the request's budget and never more, and where the budget ends the way ends
+  let (answer, _) = diagnostics::evaluation_within(max_steps, || -> Result<String, Failure> {
+    loop {
+      let mut wants = Wants::default();
+      add(&positioned, root, &[], None, &mut wants);
+      // the nodes whose parts are wanted: the node, where it is evaluated, and the iterations of it asked for
+      let mut open: Vec<Open> = vec![(root, vec![], None)];
+      for Asked { at, within, iterations, followed } in asked.iter().cloned() {
+        let Some(node) = node_at(&positioned, at) else {
+          if followed {
+            continue;
           }
-          if !fits || (in_body && site.is_none()) || (!in_body && !before.is_empty()) {
-            let mut wants: Vec<String> = expected.iter().map(|at| format!("{{\"at\": {}, \"iteration\": n}}", shown(*at))).collect();
-            if in_body {
-              wants.insert(0, "{\"at\": [the place of the invocation that runs the body], \"call\": true}".to_string());
-            }
-            let stands = match (in_body, expected.len()) {
-              (false, 0) => "is in no loop and in no body of a function".to_string(),
-              (false, 1) => "is evaluated once for each item of the loop around it".to_string(),
-              (false, count) => format!("is evaluated once for each item of the {count} loops around it"),
-              (true, 0) => "is in the body of a function".to_string(),
-              (true, 1) => "is in the body of a function, and evaluated once for each item of the loop around it there".to_string(),
-              (true, count) => format!("is in the body of a function, and evaluated once for each item of the {count} loops around it there"),
-            };
-            return fail(
-              "invalid-field",
-              if std::ptr::eq(reached, node) {
-                format!(
-                  "'expand' has the node at {}, which {stands}: expected \"within\"{} [{}], found {} of them",
-                  shown(at),
-                  if in_body { " to end with" } else { ":" },
-                  wants.join(", "),
-                  steps.len()
-                )
-              } else {
-                format!(
-                  "'expand' has the node at {}, whose \"within\" has the invocation at {}, which {stands}: expected the steps before it{} [{}], found {} of them",
-                  shown(at),
-                  positioned.place(reached).map_or_else(String::new, &shown),
-                  if in_body { " to end with" } else { ":" },
-                  wants.join(", "),
-                  steps.len()
-                )
-              },
-            );
-          }
-          match site {
-            Some(site) => (reached, steps) = (site, &before[..before.len() - 1]),
-            None => break,
-          }
-        }
-        if iterations.is_some() && !repeats(valued(node)) {
           return fail(
             "invalid-field",
-            format!("'expand' has \"iterations\" for the node at {}, which is no loop and no filter", shown(at)),
+            format!(
+              "'expand' has the place {}, which is the place of no node of the text (the places are those of the records, and of the nodes of `syntax`)",
+              shown(at)
+            ),
           );
+        };
+        // the steps lead to the node: from the end, the loops around it, then for a node of a body
+        // the invocation that runs the body, which the steps before lead to
+        let leads = || -> Result<(), Failure> {
+          let (mut reached, mut steps) = (node, within.as_slice());
+          loop {
+            let Some((in_body, loops)) = around(root, reached) else {
+              return fail(
+                "invalid-field",
+                format!("'expand' has the place {}, a node that is not evaluated for a value: it has no parts", shown(at)),
+              );
+            };
+            let expected: Vec<At> = loops.iter().filter_map(|repeat| positioned.place(repeat)).collect();
+            let (before, last) = steps.split_at(steps.len().saturating_sub(expected.len()));
+            let fits = expected.len() == loops.len()
+              && last.len() == expected.len()
+              && last.iter().zip(&expected).all(|(step, at)| matches!(step, Step::Iteration(found, _) if found == at));
+            let site = match before.split_last() {
+              Some((Step::Call(site), _)) if in_body => step_node(&positioned, *site, true),
+              _ => None,
+            };
+            if fits
+              && in_body
+              && site.is_none()
+              && let Some((Step::Call(site), _)) = before.split_last()
+            {
+              return fail(
+                "invalid-field",
+                format!(
+                  "'expand' has the node at {}, whose \"within\" has {{\"at\": {}, \"call\": true}}: expected the place of an invocation, found the place of none",
+                  shown(at),
+                  shown(*site)
+                ),
+              );
+            }
+            if !fits || (in_body && site.is_none()) || (!in_body && !before.is_empty()) {
+              let mut wants: Vec<String> = expected.iter().map(|at| format!("{{\"at\": {}, \"iteration\": n}}", shown(*at))).collect();
+              if in_body {
+                wants.insert(0, "{\"at\": [the place of the invocation that runs the body], \"call\": true}".to_string());
+              }
+              let stands = match (in_body, expected.len()) {
+                (false, 0) => "is in no loop and in no body of a function".to_string(),
+                (false, 1) => "is evaluated once for each item of the loop around it".to_string(),
+                (false, count) => format!("is evaluated once for each item of the {count} loops around it"),
+                (true, 0) => "is in the body of a function".to_string(),
+                (true, 1) => "is in the body of a function, and evaluated once for each item of the loop around it there".to_string(),
+                (true, count) => format!("is in the body of a function, and evaluated once for each item of the {count} loops around it there"),
+              };
+              return fail(
+                "invalid-field",
+                if std::ptr::eq(reached, node) {
+                  format!(
+                    "'expand' has the node at {}, which {stands}: expected \"within\"{} [{}], found {} of them",
+                    shown(at),
+                    if in_body { " to end with" } else { ":" },
+                    wants.join(", "),
+                    steps.len()
+                  )
+                } else {
+                  format!(
+                    "'expand' has the node at {}, whose \"within\" has the invocation at {}, which {stands}: expected the steps before it{} [{}], found {} of them",
+                    shown(at),
+                    positioned.place(reached).map_or_else(String::new, &shown),
+                    if in_body { " to end with" } else { ":" },
+                    wants.join(", "),
+                    steps.len()
+                  )
+                },
+              );
+            }
+            match site {
+              Some(site) => (reached, steps) = (site, &before[..before.len() - 1]),
+              None => break,
+            }
+          }
+          if iterations.is_some() && !repeats(valued(node)) {
+            return fail(
+              "invalid-field",
+              format!("'expand' has \"iterations\" for the node at {}, which is no loop and no filter", shown(at)),
+            );
+          }
+          Ok(())
+        };
+        match leads() {
+          Ok(()) => {}
+          // a node that a null is from and that the steps of its record do not lead to is not expanded
+          Err(_) if followed => continue,
+          Err(failure) => return Err(failure),
         }
-        Ok(())
-      };
-      match leads() {
-        Ok(()) => {}
-        // a node that a null is from and that the steps of its record do not lead to is not expanded
-        Err(_) if followed => continue,
-        Err(failure) => return Err(failure),
+        // the node itself has a record too, where it is evaluated
+        add(&positioned, node, &within, None, &mut wants);
+        open.push((node, within, iterations));
       }
-      // the node itself has a record too, where it is evaluated
-      add(&positioned, node, &within, None, &mut wants);
-      open.push((node, within, iterations));
-    }
-    for (node, within, iterations) in &open {
-      let node = valued(node);
-      for (part, frame) in parts(node) {
-        match frame {
-          PartFrame::Same => add(&positioned, part, within, None, &mut wants),
-          // once for each item: a record for each of the iterations asked for
-          PartFrame::Iteration => {
-            let (from, to) = iterations.unwrap_or((0, DEFAULT_ITERATIONS));
-            add(&positioned, part, within, Some((node, from, to)), &mut wants);
+      for (node, within, iterations) in &open {
+        let node = valued(node);
+        for (part, frame) in parts(node) {
+          match frame {
+            PartFrame::Same => add(&positioned, part, within, None, &mut wants),
+            // once for each item: a record for each of the iterations asked for
+            PartFrame::Iteration => {
+              let (from, to) = iterations.unwrap_or((0, DEFAULT_ITERATIONS));
+              add(&positioned, part, within, Some((node, from, to)), &mut wants);
+            }
+          }
+        }
+        // the body that an invocation runs: whichever of the text its function has, which only the
+        // evaluation says, so every body is wanted for this invocation and one has a record
+        if let (AstNode::FunctionInvocation(..), Some(site)) = (node, positioned.place(node)) {
+          let mut within = within.clone();
+          within.push(Step::Call(site));
+          for body in &bodies {
+            add(&positioned, body, &within, None, &mut wants);
           }
         }
       }
-      // the body that an invocation runs: whichever of the text its function has, which only the
-      // evaluation says, so every body is wanted for this invocation and one has a record
-      if let (AstNode::FunctionInvocation(..), Some(site)) = (node, positioned.place(node)) {
-        let mut within = within.clone();
-        within.push(Step::Call(site));
-        for body in &bodies {
-          add(&positioned, body, &within, None, &mut wants);
-        }
-      }
-    }
-    let wanted = wants.list;
-    // the numbers of the nodes and of the loops that the program records
-    let mut targets: HashMap<usize, u32> = HashMap::new();
-    let mut repeat_numbers: HashMap<usize, u32> = HashMap::new();
-    let mut call_numbers: HashMap<usize, u32> = HashMap::new();
-    // the loop or the invocation of a step, by its place
-    let mut step_nodes: HashMap<(At, bool), Option<&AstNode>> = HashMap::new();
-    let address = |node: &AstNode| node as *const AstNode as usize;
-    let mut plan = Plan { wanted: vec![], limit };
-    // the ways of a node, each with the indexes of what is wanted so: an entry of a context
-    // literal and its value are one node, wanted in one way, and each has its record
-    let mut ways: Vec<Vec<Vec<usize>>> = vec![];
-    let number_of = |node: &AstNode, numbers: &mut HashMap<usize, u32>| -> u32 {
-      let next = numbers.len() as u32;
-      *numbers.entry(address(node)).or_insert(next)
-    };
-    for (index, wanted) in wanted.iter().enumerate() {
-      let node = valued(wanted.node);
-      let next = targets.len() as u32;
-      let target = *targets.entry(address(node)).or_insert(next) as usize;
-      if plan.wanted.len() <= target {
-        plan.wanted.resize(target + 1, vec![]);
-        ways.resize(target + 1, vec![]);
-      }
-      let mut within = vec![];
-      for step in &wanted.within {
-        let (at, invocation) = match step {
-          Step::Iteration(at, _) => (*at, false),
-          Step::Call(at) => (*at, true),
-        };
-        let Some(found) = *step_nodes.entry((at, invocation)).or_insert_with(|| step_node(&positioned, at, invocation)) else {
-          return fail("internal", "a step of a record leads to no node");
-        };
-        within.push(match step {
-          Step::Iteration(_, iteration) => rheon_feel_evaluator::Step::Iteration(number_of(found, &mut repeat_numbers), *iteration),
-          Step::Call(_) => rheon_feel_evaluator::Step::Call(number_of(found, &mut call_numbers)),
-        });
-      }
-      let way = rheon_feel_evaluator::Wanted {
-        within,
-        each: wanted.each.map(|(repeat, from, to)| (number_of(repeat, &mut repeat_numbers), from, to)),
-        repeat: repeats(node).then(|| number_of(node, &mut repeat_numbers)),
+      let wanted = wants.list;
+      // the numbers of the nodes and of the loops that the program records
+      let mut targets: HashMap<usize, u32> = HashMap::new();
+      let mut repeat_numbers: HashMap<usize, u32> = HashMap::new();
+      let mut call_numbers: HashMap<usize, u32> = HashMap::new();
+      // the loop or the invocation of a step, by its place
+      let mut step_nodes: HashMap<(At, bool), Option<&AstNode>> = HashMap::new();
+      let address = |node: &AstNode| node as *const AstNode as usize;
+      let mut plan = Plan { wanted: vec![], limit };
+      // the ways of a node, each with the indexes of what is wanted so: an entry of a context
+      // literal and its value are one node, wanted in one way, and each has its record
+      let mut ways: Vec<Vec<Vec<usize>>> = vec![];
+      let number_of = |node: &AstNode, numbers: &mut HashMap<usize, u32>| -> u32 {
+        let next = numbers.len() as u32;
+        *numbers.entry(address(node)).or_insert(next)
       };
-      match plan.wanted[target].iter().position(|known| *known == way) {
-        Some(known) => ways[target][known].push(index),
-        None => {
-          plan.wanted[target].push(way);
-          ways[target].push(vec![index]);
+      for (index, wanted) in wanted.iter().enumerate() {
+        let node = valued(wanted.node);
+        let next = targets.len() as u32;
+        let target = *targets.entry(address(node)).or_insert(next) as usize;
+        if plan.wanted.len() <= target {
+          plan.wanted.resize(target + 1, vec![]);
+          ways.resize(target + 1, vec![]);
         }
-      }
-    }
-    let node_number = |node: &AstNode| targets.get(&address(node)).copied();
-    let repeat_number = |node: &AstNode| repeat_numbers.get(&address(node)).copied();
-    let call_number = |node: &AstNode| call_numbers.get(&address(node)).copied();
-    let tracing = Tracing {
-      node: &node_number,
-      repeat: &repeat_number,
-      call: &call_number,
-    };
-    let evaluator = prepare_traced(positioned.tree(), language, &tracing);
-    let (answer, trace) = recording(plan, || answered(&scope, None, &evaluator, error_mode, max_steps, warnings.clone(), started));
-    let mut response = answer?;
-    // in the order of the text, a node before the nodes inside it, an iteration before the next
-    let mut order: Vec<(&Wanted, &rheon_feel_evaluator::Recorded)> = trace
-      .records
-      .iter()
-      .flat_map(|record| {
-        let wanted = &wanted;
-        let of_way = ways.get(record.target as usize).and_then(|ways| ways.get(record.way));
-        of_way.into_iter().flatten().map(move |index| (&wanted[*index], record))
-      })
-      .collect();
-    // where each is evaluated: the steps to it, and for the body of a loop its iteration
-    let path_of = |wanted: &Wanted, record: &rheon_feel_evaluator::Recorded| -> Vec<Step> {
-      let mut within = wanted.within.clone();
-      if let (Some((repeat, ..)), Some(iteration)) = (wanted.each, record.iteration)
-        && let Some(at) = positioned.place(repeat)
-      {
-        within.push(Step::Iteration(at, iteration));
-      }
-      within
-    };
-    order.sort_by_cached_key(|(wanted, record)| (wanted.at.0, std::cmp::Reverse(wanted.at.1), path_of(wanted, record)));
-    // a node that is wanted in two ways for one evaluation (as a part, and expanded) has one record
-    let mut once: HashSet<(usize, Vec<Step>)> = HashSet::new();
-    order.retain(|(wanted, record)| once.insert((address(wanted.node), path_of(wanted, record))));
-    let paths: Vec<Vec<Step>> = order.iter().map(|(wanted, record)| path_of(wanted, record)).collect();
-    // the records by their node and where it is evaluated, and those one step inside a place
-    let mut found: HashMap<(usize, &[Step]), usize> = HashMap::new();
-    let mut inside: HashMap<(usize, &[Step]), Vec<usize>> = HashMap::new();
-    for (index, ((wanted, _), path)) in order.iter().zip(&paths).enumerate() {
-      let node = address(valued(wanted.node));
-      found.entry((node, path.as_slice())).or_insert(index);
-      if let Some((_, before)) = path.split_last() {
-        inside.entry((node, before)).or_default().push(index);
-      }
-    }
-    let opened: HashMap<Evaluated, Option<(usize, usize)>> = open
-      .iter()
-      .map(|(node, within, iterations)| ((address(valued(node)), within.as_slice()), *iterations))
-      .collect();
-    // the node that each node is a part of, when a null name is to be led back to its entry
-    let parents = std::cell::OnceCell::new();
-    // where the null of the record `index` came from
-    let origin = |index: usize| -> Origin {
-      let ((wanted, record), path) = (order[index], paths[index].as_slice());
-      let node = valued(wanted.node);
-      let node_parts = parts(node);
-      let invocation = matches!(node, AstNode::FunctionInvocation(..));
-      // the value of a name that an entry of a context literal around it gives is that entry's
-      if let AstNode::Name(name) = node {
-        return match entry_of(parents.get_or_init(|| parents_of(root)), node, name) {
-          Some((entry, loops)) => match (positioned.place(entry), path.len().checked_sub(loops)) {
-            (Some(at), Some(steps)) => Origin::At(at, path[..steps].to_vec()),
-            _ => Origin::Here,
-          },
-          None => Origin::Here,
-        };
-      }
-      // and so is the value of that entry read from the literal itself
-      if let AstNode::Path(base, name) = node
-        && let (AstNode::Context(entries), AstNode::Name(name)) = (base.as_ref(), name.as_ref())
-        && distinct(entries)
-        && let Some(entry) = entries.iter().find(|entry| key_of(entry) == Some(name))
-        && let Some(at) = positioned.place(entry)
-      {
-        return Origin::At(at, path.to_vec());
-      }
-      if node_parts.is_empty() && !invocation {
-        return Origin::Here;
-      }
-      // the parts have records when the node is expanded where this record is evaluated
-      let Some(iterations) = opened.get(&(address(node), path)) else {
-        return Origin::Closed;
-      };
-      let null = |index: &usize| order[*index].1.value.is_null();
-      let same = |part: &AstNode| found.get(&(address(valued(part)), path)).copied().filter(null);
-      let here = if trace.truncated { Origin::Unknown } else { Origin::Here };
-      if let AstNode::If(_, then, otherwise) = node {
-        // the value is that of the branch taken, whatever the condition is
-        return [then, otherwise].into_iter().find_map(|branch| same(branch)).map_or(here, Origin::From);
-      }
-      // the value of an invocation is that of the body it runs
-      if invocation
-        && let Some(site) = positioned.place(node)
-        && let Some(body) = bodies.iter().find_map(|body| {
-          let records = inside.get(&(address(body), path))?;
-          records.iter().copied().find(|index| paths[*index].last() == Some(&Step::Call(site)) && null(index))
-        })
-      {
-        return Origin::From(body);
-      }
-      if let Some(part) = node_parts.iter().filter(|(_, frame)| *frame == PartFrame::Same).find_map(|(part, _)| same(part)) {
-        return Origin::From(part);
-      }
-      let mut every = true;
-      for (part, _) in node_parts.iter().filter(|(_, frame)| *frame == PartFrame::Iteration) {
-        let of_node = |index: &usize| matches!(paths[*index].last(), Some(Step::Iteration(at, _)) if Some(*at) == positioned.place(node));
-        if let Some(found) = inside
-          .get(&(address(valued(part)), path))
-          .and_then(|records| records.iter().copied().find(|index| of_node(index) && null(index)))
-        {
-          return Origin::From(found);
-        }
-        // an iteration without a record can be where the null is from
-        let (from, to) = iterations.unwrap_or((0, DEFAULT_ITERATIONS));
-        every &= from == 0 && record.iterations.is_none_or(|count| count <= to);
-      }
-      if every { here } else { Origin::Unknown }
-    };
-    // why the null of the record `index` is its node's own
-    let code = |index: usize| -> &'static str {
-      let ((wanted, _), path) = (order[index], paths[index].as_slice());
-      let node = valued(wanted.node);
-      match node {
-        AstNode::Name(name) => match given(parents.get_or_init(|| parents_of(root)), node, name) {
-          Some(true) => "null-input",
-          Some(false) if scope.get_value(name).is_some() => "null-input",
-          Some(false) => "missing-entry",
-          None => "other",
-        },
-        AstNode::Path(base, name) => match (found.get(&(address(valued(base)), path)).map(|base| &order[*base].1.value), name.as_ref()) {
-          (Some(Value::Context(context)), AstNode::Name(name)) if context.contains_entry(name) => "null-input",
-          (Some(_), _) => "missing-entry",
-          (None, _) => "other",
-        },
-        AstNode::FunctionInvocation(..) => "function",
-        AstNode::If(..) | AstNode::For(..) | AstNode::Some(..) | AstNode::Every(..) | AstNode::Context(_) | AstNode::List(_) | AstNode::FunctionDefinition(..) => "other",
-        node if parts(node).is_empty() => "other",
-        _ => "operator",
-      }
-    };
-    // the nodes that a null is from and that are not expanded are expanded by one more evaluation
-    if follow && !trace.truncated && rounds < FOLLOW_ROUNDS {
-      let mut more: Vec<Asked> = vec![];
-      for index in (0..order.len()).filter(|index| order[*index].1.value.is_null()) {
-        let from = match origin(index) {
-          Origin::From(part) => matches!(origin(part), Origin::Closed).then(|| (order[part].0.at, paths[part].clone())),
-          // an entry of a context literal: expanded when it has no record yet, too
-          Origin::At(at, steps) => {
-            let entry = node_at(&positioned, at).and_then(|entry| found.get(&(address(valued(entry)), steps.as_slice())).copied());
-            entry.is_none_or(|entry| matches!(origin(entry), Origin::Closed)).then_some((at, steps))
-          }
-          Origin::Here | Origin::Unknown | Origin::Closed => None,
-        };
-        if let Some((at, within)) = from
-          && !asked.iter().chain(&more).any(|known| known.at == at && known.within == within)
-        {
-          more.push(Asked {
-            at,
-            within,
-            iterations: None,
-            followed: true,
+        let mut within = vec![];
+        for step in &wanted.within {
+          let (at, invocation) = match step {
+            Step::Iteration(at, _) => (*at, false),
+            Step::Call(at) => (*at, true),
+          };
+          let Some(found) = *step_nodes.entry((at, invocation)).or_insert_with(|| step_node(&positioned, at, invocation)) else {
+            return fail("internal", "a step of a record leads to no node");
+          };
+          within.push(match step {
+            Step::Iteration(_, iteration) => rheon_feel_evaluator::Step::Iteration(number_of(found, &mut repeat_numbers), *iteration),
+            Step::Call(_) => rheon_feel_evaluator::Step::Call(number_of(found, &mut call_numbers)),
           });
         }
-      }
-      if !more.is_empty() {
-        (rounds, added) = (rounds + 1, more.len());
-        asked.extend(more);
-        continue;
-      }
-    }
-    // the nodes expanded last made the trace longer than the request takes: the answer is the one
-    // without them
-    if trace.truncated && added > 0 {
-      asked.truncate(asked.len() - added);
-      (follow, added) = (false, 0);
-      continue;
-    }
-    // the names that the text of a node reads, by the node
-    let mut typing = Typing::new(&scope);
-    let mut read: HashMap<usize, Vec<String>> = HashMap::new();
-    let write_steps = |steps: &[Step], records: &mut String| {
-      records.push('[');
-      for (index, step) in steps.iter().enumerate() {
-        if index > 0 {
-          records.push(',');
-        }
-        match step {
-          Step::Iteration(at, iteration) => records.push_str(&format!("{{\"at\":[{},{}],\"iteration\":{iteration}}}", places.of(at.0), places.of(at.1))),
-          Step::Call(at) => records.push_str(&format!("{{\"at\":[{},{}],\"call\":true}}", places.of(at.0), places.of(at.1))),
-        }
-      }
-      records.push(']');
-    };
-    // the records as text, the keys of each in alphabetical order as in every response
-    let mut records = String::from(",\"trace\":[");
-    // the records whose null is their node's own
-    let mut nulls: Vec<usize> = vec![];
-    for (index, (wanted, record)) in order.iter().copied().enumerate() {
-      if index > 0 {
-        records.push(',');
-      }
-      records.push_str(&format!("{{\"from\":{}", places.of(wanted.at.0)));
-      if let Some(iteration) = record.iteration {
-        records.push_str(&format!(",\"iteration\":{iteration}"));
-      }
-      if let Some(iterations) = record.iterations {
-        records.push_str(&format!(",\"iterations\":{iterations}"));
-      }
-      records.push_str(&format!(",\"kind\":\"{}\"", wanted.kind));
-      if let AstNode::ContextEntry(key, _) = wanted.node
-        && let AstNode::ContextEntryKey(name) = key.as_ref()
-      {
-        records.push_str(",\"name\":");
-        crate::output::write_string(&name.to_string(), &mut records);
-      }
-      // a null: the part it is from, or that it is of this node
-      if record.value.is_null() {
-        let from = match origin(index) {
-          Origin::From(part) => Some((order[part].0.at, paths[part].clone())),
-          Origin::At(at, steps) => Some((at, steps)),
-          Origin::Here => {
-            records.push_str(&format!(",\"nullCode\":\"{}\"", code(index)));
-            nulls.push(index);
-            None
-          }
-          Origin::Unknown | Origin::Closed => None,
+        let way = rheon_feel_evaluator::Wanted {
+          within,
+          each: wanted.each.map(|(repeat, from, to)| (number_of(repeat, &mut repeat_numbers), from, to)),
+          repeat: repeats(node).then(|| number_of(node, &mut repeat_numbers)),
         };
-        if let Some((at, steps)) = from {
-          records.push_str(&format!(",\"nullFrom\":{{\"at\":[{},{}]", places.of(at.0), places.of(at.1)));
-          if !steps.is_empty() {
-            records.push_str(",\"within\":");
-            write_steps(&steps, &mut records);
+        match plan.wanted[target].iter().position(|known| *known == way) {
+          Some(known) => ways[target][known].push(index),
+          None => {
+            plan.wanted[target].push(way);
+            ways[target].push(vec![index]);
           }
-          records.push('}');
-        }
-        if nulls.last() == Some(&index) {
-          records.push_str(",\"nullOrigin\":true");
         }
       }
-      if reads {
+      let node_number = |node: &AstNode| targets.get(&address(node)).copied();
+      let repeat_number = |node: &AstNode| repeat_numbers.get(&address(node)).copied();
+      let call_number = |node: &AstNode| call_numbers.get(&address(node)).copied();
+      let tracing = Tracing {
+        node: &node_number,
+        repeat: &repeat_number,
+        call: &call_number,
+      };
+      let evaluator = prepare_traced(positioned.tree(), language, &tracing);
+      let (answer, trace) = recording(plan, || answered(&scope, None, &evaluator, error_mode, max_steps, warnings.clone(), started));
+      let previous = best.take();
+      let mut response = match answer {
+        Ok(response) => response,
+        // a limit that an evaluation after the first meets (the steps left) ends the way
+        Err(failure) => return previous.ok_or(failure),
+      };
+      // the nodes expanded last made the trace longer than the request takes: the answer is the one
+      // without them
+      if trace.truncated
+        && added > 0
+        && let Some(previous) = previous
+      {
+        return Ok(previous);
+      }
+      // in the order of the text, a node before the nodes inside it, an iteration before the next
+      let mut order: Vec<(&Wanted, &rheon_feel_evaluator::Recorded)> = trace
+        .records
+        .iter()
+        .flat_map(|record| {
+          let wanted = &wanted;
+          let of_way = ways.get(record.target as usize).and_then(|ways| ways.get(record.way));
+          of_way.into_iter().flatten().map(move |index| (&wanted[*index], record))
+        })
+        .collect();
+      // where each is evaluated: the steps to it, and for the body of a loop its iteration
+      let path_of = |wanted: &Wanted, record: &rheon_feel_evaluator::Recorded| -> Vec<Step> {
+        let mut within = wanted.within.clone();
+        if let (Some((repeat, ..)), Some(iteration)) = (wanted.each, record.iteration)
+          && let Some(at) = positioned.place(repeat)
+        {
+          within.push(Step::Iteration(at, iteration));
+        }
+        within
+      };
+      order.sort_by_cached_key(|(wanted, record)| (wanted.at.0, std::cmp::Reverse(wanted.at.1), path_of(wanted, record)));
+      // a node that is wanted in two ways for one evaluation (as a part, and expanded) has one record
+      let mut once: HashSet<(usize, Vec<Step>)> = HashSet::new();
+      order.retain(|(wanted, record)| once.insert((address(wanted.node), path_of(wanted, record))));
+      let paths: Vec<Vec<Step>> = order.iter().map(|(wanted, record)| path_of(wanted, record)).collect();
+      // the records by their node and where it is evaluated, and those one step inside a place
+      let mut found: HashMap<(usize, &[Step]), usize> = HashMap::new();
+      let mut inside: HashMap<(usize, &[Step]), Vec<usize>> = HashMap::new();
+      for (index, ((wanted, _), path)) in order.iter().zip(&paths).enumerate() {
+        let node = address(valued(wanted.node));
+        found.entry((node, path.as_slice())).or_insert(index);
+        if let Some((_, before)) = path.split_last() {
+          inside.entry((node, before)).or_default().push(index);
+        }
+      }
+      let opened: HashMap<Evaluated, Option<(usize, usize)>> = open
+        .iter()
+        .map(|(node, within, iterations)| ((address(valued(node)), within.as_slice()), *iterations))
+        .collect();
+      // the node that each node is a part of, when a null name is to be led back to its entry
+      let parents = std::cell::OnceCell::new();
+      // where the null of the record `index` came from
+      let origin = |index: usize| -> Origin {
+        let ((wanted, record), path) = (order[index], paths[index].as_slice());
         let node = valued(wanted.node);
-        let names = read.entry(address(node)).or_insert_with(|| {
-          let found = typing.reads(node, &|node| positioned.place(node), false, false);
-          found.paths.iter().map(|path| path_text(&path.segments)).collect()
-        });
-        records.push_str(",\"reads\":[");
-        for (index, name) in names.iter().enumerate() {
+        let node_parts = parts(node);
+        let invocation = matches!(node, AstNode::FunctionInvocation(..));
+        // the value of a name that an entry of a context literal around it gives is that entry's
+        if let AstNode::Name(name) = node {
+          return match entry_of(parents.get_or_init(|| parents_of(root)), node, name) {
+            Some((entry, loops)) => match (positioned.place(entry), path.len().checked_sub(loops)) {
+              (Some(at), Some(steps)) => Origin::At(at, path[..steps].to_vec()),
+              _ => Origin::Here,
+            },
+            None => Origin::Here,
+          };
+        }
+        // and so is the value of that entry read from the literal itself
+        if let AstNode::Path(base, name) = node
+          && let (AstNode::Context(entries), AstNode::Name(name)) = (base.as_ref(), name.as_ref())
+          && distinct(entries)
+          && let Some(entry) = entries.iter().find(|entry| key_of(entry) == Some(name))
+          && let Some(at) = positioned.place(entry)
+        {
+          return Origin::At(at, path.to_vec());
+        }
+        if node_parts.is_empty() && !invocation {
+          return Origin::Here;
+        }
+        // the parts have records when the node is expanded where this record is evaluated
+        let Some(iterations) = opened.get(&(address(node), path)) else {
+          return Origin::Closed;
+        };
+        let null = |index: &usize| order[*index].1.value.is_null();
+        let same = |part: &AstNode| found.get(&(address(valued(part)), path)).copied().filter(null);
+        let here = if trace.truncated { Origin::Unknown } else { Origin::Here };
+        if let AstNode::If(_, then, otherwise) = node {
+          // the value is that of the branch taken, whatever the condition is
+          return [then, otherwise].into_iter().find_map(|branch| same(branch)).map_or(here, Origin::From);
+        }
+        // the value of an invocation is that of the body it runs
+        if invocation
+          && let Some(site) = positioned.place(node)
+          && let Some(body) = bodies.iter().find_map(|body| {
+            let records = inside.get(&(address(body), path))?;
+            records.iter().copied().find(|index| paths[*index].last() == Some(&Step::Call(site)) && null(index))
+          })
+        {
+          return Origin::From(body);
+        }
+        if let Some(part) = node_parts.iter().filter(|(_, frame)| *frame == PartFrame::Same).find_map(|(part, _)| same(part)) {
+          return Origin::From(part);
+        }
+        let mut every = true;
+        for (part, _) in node_parts.iter().filter(|(_, frame)| *frame == PartFrame::Iteration) {
+          let of_node = |index: &usize| matches!(paths[*index].last(), Some(Step::Iteration(at, _)) if Some(*at) == positioned.place(node));
+          if let Some(found) = inside
+            .get(&(address(valued(part)), path))
+            .and_then(|records| records.iter().copied().find(|index| of_node(index) && null(index)))
+          {
+            return Origin::From(found);
+          }
+          // an iteration without a record can be where the null is from
+          let (from, to) = iterations.unwrap_or((0, DEFAULT_ITERATIONS));
+          every &= from == 0 && record.iterations.is_none_or(|count| count <= to);
+        }
+        if every { here } else { Origin::Unknown }
+      };
+      // why the null of the record `index` is its node's own
+      let code = |index: usize| -> &'static str {
+        let ((wanted, _), path) = (order[index], paths[index].as_slice());
+        let node = valued(wanted.node);
+        match node {
+          AstNode::Name(name) => match given(parents.get_or_init(|| parents_of(root)), node, name) {
+            Some(true) => "null-input",
+            Some(false) if scope.get_value(name).is_some() => "null-input",
+            Some(false) => "missing-entry",
+            None => "other",
+          },
+          AstNode::Path(base, name) => match (found.get(&(address(valued(base)), path)).map(|base| &order[*base].1.value), name.as_ref()) {
+            (Some(Value::Context(context)), AstNode::Name(name)) if context.contains_entry(name) => "null-input",
+            (Some(_), _) => "missing-entry",
+            (None, _) => "other",
+          },
+          AstNode::FunctionInvocation(..) => "function",
+          AstNode::If(..) | AstNode::For(..) | AstNode::Some(..) | AstNode::Every(..) | AstNode::Context(_) | AstNode::List(_) | AstNode::FunctionDefinition(..) => "other",
+          node if parts(node).is_empty() => "other",
+          _ => "operator",
+        }
+      };
+      // the nodes that a null is from and that are not expanded: expanded by one more evaluation
+      let mut more: Vec<Asked> = vec![];
+      if !trace.truncated && rounds < FOLLOW_ROUNDS {
+        for index in (0..order.len()).filter(|index| order[*index].1.value.is_null()) {
+          let from = match origin(index) {
+            Origin::From(part) => matches!(origin(part), Origin::Closed).then(|| (order[part].0.at, paths[part].clone())),
+            // an entry of a context literal: expanded when it has no record yet, too
+            Origin::At(at, steps) => {
+              let entry = node_at(&positioned, at).and_then(|entry| found.get(&(address(valued(entry)), steps.as_slice())).copied());
+              entry.is_none_or(|entry| matches!(origin(entry), Origin::Closed)).then_some((at, steps))
+            }
+            Origin::Here | Origin::Unknown | Origin::Closed => None,
+          };
+          if let Some((at, within)) = from
+            && !asked.iter().chain(&more).any(|known| known.at == at && known.within == within)
+          {
+            more.push(Asked {
+              at,
+              within,
+              iterations: None,
+              followed: true,
+            });
+          }
+        }
+      }
+      // the names that the text of a node reads, by the node
+      let mut typing = Typing::new(&scope);
+      let mut read: HashMap<usize, Vec<String>> = HashMap::new();
+      let write_steps = |steps: &[Step], records: &mut String| {
+        records.push('[');
+        for (index, step) in steps.iter().enumerate() {
           if index > 0 {
             records.push(',');
           }
-          crate::output::write_string(name, &mut records);
+          match step {
+            Step::Iteration(at, iteration) => records.push_str(&format!("{{\"at\":[{},{}],\"iteration\":{iteration}}}", places.of(at.0), places.of(at.1))),
+            Step::Call(at) => records.push_str(&format!("{{\"at\":[{},{}],\"call\":true}}", places.of(at.0), places.of(at.1))),
+          }
         }
         records.push(']');
+      };
+      // the records as text, the keys of each in alphabetical order as in every response
+      let mut records = String::from(",\"trace\":[");
+      // the records whose null is their node's own
+      let mut nulls: Vec<usize> = vec![];
+      for (index, (wanted, record)) in order.iter().copied().enumerate() {
+        if index > 0 {
+          records.push(',');
+        }
+        records.push_str(&format!("{{\"from\":{}", places.of(wanted.at.0)));
+        if let Some(iteration) = record.iteration {
+          records.push_str(&format!(",\"iteration\":{iteration}"));
+        }
+        if let Some(iterations) = record.iterations {
+          records.push_str(&format!(",\"iterations\":{iterations}"));
+        }
+        records.push_str(&format!(",\"kind\":\"{}\"", wanted.kind));
+        if let AstNode::ContextEntry(key, _) = wanted.node
+          && let AstNode::ContextEntryKey(name) = key.as_ref()
+        {
+          records.push_str(",\"name\":");
+          crate::output::write_string(&name.to_string(), &mut records);
+        }
+        // a null: the part it is from, or that it is of this node
+        if record.value.is_null() {
+          let from = match origin(index) {
+            Origin::From(part) => Some((order[part].0.at, paths[part].clone())),
+            Origin::At(at, steps) => Some((at, steps)),
+            Origin::Here => {
+              records.push_str(&format!(",\"nullCode\":\"{}\"", code(index)));
+              nulls.push(index);
+              None
+            }
+            Origin::Unknown | Origin::Closed => None,
+          };
+          if let Some((at, steps)) = from {
+            records.push_str(&format!(",\"nullFrom\":{{\"at\":[{},{}]", places.of(at.0), places.of(at.1)));
+            if !steps.is_empty() {
+              records.push_str(",\"within\":");
+              write_steps(&steps, &mut records);
+            }
+            records.push('}');
+          }
+          if nulls.last() == Some(&index) {
+            records.push_str(",\"nullOrigin\":true");
+          }
+        }
+        if reads {
+          let node = valued(wanted.node);
+          let names = read.entry(address(node)).or_insert_with(|| {
+            let found = typing.reads(node, &|node| positioned.place(node), false, false);
+            found.paths.iter().map(|path| path_text(&path.segments)).collect()
+          });
+          records.push_str(",\"reads\":[");
+          for (index, name) in names.iter().enumerate() {
+            if index > 0 {
+              records.push(',');
+            }
+            crate::output::write_string(name, &mut records);
+          }
+          records.push(']');
+        }
+        records.push_str(&format!(",\"to\":{},\"value\":", places.of(wanted.at.1)));
+        write_value(&record.value, &mut records);
+        if !paths[index].is_empty() {
+          records.push_str(",\"within\":");
+          write_steps(&paths[index], &mut records);
+        }
+        records.push('}');
       }
-      records.push_str(&format!(",\"to\":{},\"value\":", places.of(wanted.at.1)));
-      write_value(&record.value, &mut records);
-      if !paths[index].is_empty() {
-        records.push_str(",\"within\":");
-        write_steps(&paths[index], &mut records);
+      records.push_str(if trace.truncated { "],\"traceTruncated\":true" } else { "],\"traceTruncated\":false" });
+      // before the warnings, the last field of the response of an evaluation
+      match response.rfind(",\"warnings\":") {
+        Some(at) => response.insert_str(at, &records),
+        None => return fail("internal", "the response of the evaluation has no warnings"),
       }
-      records.push('}');
+      if more.is_empty() {
+        return Ok(response);
+      }
+      (rounds, added) = (rounds + 1, more.len());
+      asked.extend(more);
+      best = Some(response);
     }
-    records.push_str(if trace.truncated { "],\"traceTruncated\":true" } else { "],\"traceTruncated\":false" });
-    // before the warnings, the last field of the response of an evaluation
-    match response.rfind(",\"warnings\":") {
-      Some(at) => response.insert_str(at, &records),
-      None => return fail("internal", "the response of the evaluation has no warnings"),
-    }
-    return Ok(response);
-  }
+  });
+  answer
 }
 
 /// The name of an entry of a context literal.

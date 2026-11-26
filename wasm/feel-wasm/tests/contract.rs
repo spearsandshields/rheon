@@ -4460,6 +4460,18 @@ fn explain_says_where_a_null_is_from() {
   assert!(first["trace"][3].get("nullFrom").is_none() && first["trace"][3].get("nullOrigin").is_none(), "{first}");
   // a way that makes the trace longer than the request takes is followed as far as it fits
   assert_eq!(whole("loan.amount * rate.base + 1", context.clone(), json!({"maxRecords": 3})), ["0..27", "0..23 ?"]);
+  // the evaluations that follow a null take steps of the one budget of the request: where it
+  // ends the way ends, and the answer is that of the evaluations that it covered
+  let steps = |budget: u64| req(json!({"op": "explain", "expression": "sum(for i in 1..100 return i) + rate.base", "context": context, "maxSteps": budget}));
+  assert_eq!(steps(50)["error"]["code"], "limit-steps");
+  let (once, twice) = (steps(150), steps(250));
+  assert_eq!(
+    (&once["ok"], once["trace"].as_array().unwrap().len(), &once["traceTruncated"]),
+    (&json!(true), 3, &json!(false)),
+    "{once}"
+  );
+  assert!(once["trace"][2].get("nullOrigin").is_none(), "{once}");
+  assert_eq!(twice["trace"][2]["nullCode"], "missing-entry", "{twice}");
   let short = req(json!({"op": "explain", "expression": "loan.amount * rate.base + 1", "context": context, "maxRecords": 3}));
   assert_eq!((short["trace"].as_array().unwrap().len(), &short["traceTruncated"]), (3, &json!(false)), "{short}");
   // a null in an iteration that has no record: not said to be the node's own
