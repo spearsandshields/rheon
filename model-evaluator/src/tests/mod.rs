@@ -6,6 +6,7 @@ use rheon_feel_evaluator::Outcome;
 use rheon_model::DmnElement;
 use std::sync::{Arc, LazyLock};
 
+mod build_safety;
 mod compatibility;
 mod exhaustive;
 mod host_calls;

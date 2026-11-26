@@ -727,6 +727,47 @@ fn mul_v(a: V, b: V) -> V {
   }
 }
 
+/// The quotient of the magnitudes `ca · 10^ea` and `cb · 10^eb` when both coefficients are small
+/// and the quotient is a decimal fraction of few digits (`x / 100`, `7 / 2`, `1 / 8`): the result
+/// that [div_fin] gives for it, by long division in 64 bits. `None` for any other division.
+///
+/// The quotient ends when the part of `cb` without its factors 2 and 5 divides `ca`. Its digits
+/// after the integer part are then produced one at a time until no remainder is left, so the last
+/// one is not zero and the exponent is the largest not above `ea - eb` at which the quotient is
+/// an integer: the form that [div_fin] gives an exact quotient.
+fn div_exact_small(ca: u128, ea: i32, cb: u128, eb: i32) -> Option<V> {
+  // a remainder below 2^60 times ten fits in 64 bits
+  const SMALL: u128 = 1 << 60;
+  if ca >= SMALL || cb >= SMALL {
+    return None;
+  }
+  let (ca, cb) = (ca as u64, cb as u64);
+  let mut exponent = i64::from(ea) - i64::from(eb);
+  if !(EXP_MIN..=EXP_MAX).contains(&exponent) {
+    return None;
+  }
+  let (mut quotient, mut rest) = (ca / cb, ca % cb);
+  if rest != 0 {
+    let mut odd = cb >> cb.trailing_zeros();
+    while odd.is_multiple_of(5) {
+      odd /= 5;
+    }
+    if !ca.is_multiple_of(odd) {
+      return None;
+    }
+    while rest != 0 {
+      rest *= 10;
+      quotient = quotient.checked_mul(10)?.checked_add(rest / cb)?;
+      rest %= cb;
+      exponent -= 1;
+    }
+    if exponent < EXP_MIN {
+      return None;
+    }
+  }
+  Some(round_pack_u128(false, u128::from(quotient), exponent).0)
+}
+
 /// The quotient of the magnitudes `ca · 10^ea` and `cb · 10^eb`, both coefficients not zero,
 /// rounded once, and whether it is inexact.
 ///
@@ -737,6 +778,9 @@ fn mul_v(a: V, b: V) -> V {
 /// which is then neither 0 nor 5: that digit is always among the digits dropped, below the one
 /// that decides the rounding, so the quotient rounds as the exact value does.
 fn div_fin(ca: u128, ea: i32, cb: u128, eb: i32) -> (V, bool) {
+  if let Some(exact) = div_exact_small(ca, ea, cb, eb) {
+    return (exact, false);
+  }
   let k = PRECISION as u32 + 2 + digit_count(cb) - digit_count(ca);
   // below 10^70, which fits in 256 bits
   let Some(dividend) = U256::from_u128(ca).checked_mul_pow10(k) else {
@@ -1580,6 +1624,40 @@ fn pow_v(x: V, y: V) -> V {
 impl PartialEq<FeelNumber> for FeelNumber {
   fn eq(&self, rhs: &Self) -> bool {
     eq_v(self.v(), rhs.v())
+  }
+}
+
+/// Agrees with equality: numbers that are equal have one hash, whatever their cohort (`1.0` and
+/// `1.00`). The hash is taken of the value with the trailing zeros of its coefficient removed.
+impl std::hash::Hash for FeelNumber {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    match self.v() {
+      V::Fin(_, 0, _) => state.write_u8(0),
+      V::Fin(negative, mut coefficient, mut exponent) => {
+        if let Ok(mut small) = u64::try_from(coefficient) {
+          // the usual case, in 64-bit steps
+          for (step, power) in [(16, 10_000_000_000_000_000u64), (8, 100_000_000), (4, 10_000), (2, 100), (1, 10)] {
+            if small.is_multiple_of(power) {
+              small /= power;
+              exponent += step;
+            }
+          }
+          coefficient = u128::from(small);
+        } else {
+          for step in [32u32, 16, 8, 4, 2, 1] {
+            if coefficient.is_multiple_of(pow10(step)) {
+              coefficient /= pow10(step);
+              exponent += step as i32;
+            }
+          }
+        }
+        state.write_u8(1 + u8::from(negative));
+        state.write_u128(coefficient);
+        state.write_i32(exponent);
+      }
+      V::Inf(negative) => state.write_u8(3 + u8::from(negative)),
+      V::NaN => state.write_u8(5),
+    }
   }
 }
 

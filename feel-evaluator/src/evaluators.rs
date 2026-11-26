@@ -28,6 +28,20 @@ pub fn prepare_with_dialect(node: &AstNode, dialect: Dialect) -> Evaluator {
   diagnostics::one_evaluation(build(node, dialect))
 }
 
+/// Builds the evaluator of an expression as [prepare_with_dialect] does, with a record of the
+/// value of each node that `targets` gives a number for ([Tracing](crate::Tracing)): an evaluation inside
+/// [recording](crate::recording) keeps the values of those nodes, each with its number. The
+/// evaluation is that of [prepare_with_dialect]: its value, its errors and its steps.
+pub fn prepare_traced(node: &AstNode, dialect: Dialect, targets: &crate::Tracing<'_>) -> Evaluator {
+  diagnostics::one_evaluation(match crate::flat::lower_traced(node, dialect, targets) {
+    Ok(evaluator) => evaluator,
+    Err(malformed) => {
+      let message = malformed.message();
+      Box::new(move |_: &FeelScope| value_null!(message))
+    }
+  })
+}
+
 /// The evaluator of `node` in `dialect`, the flat evaluator's. A malformed tree (of a shape that
 /// the parser never produces) evaluates to null with one error, recorded at every evaluation.
 pub(crate) fn build(node: &AstNode, dialect: Dialect) -> Evaluator {

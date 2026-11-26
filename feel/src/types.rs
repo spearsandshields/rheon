@@ -75,6 +75,16 @@ pub enum FeelType {
 
   /// Type representing a `years and months duration` value.
   YearsAndMonthsDuration,
+
+  /// The abstract type `comparable` of DMN 1.7 (Figure 10-26): numbers, strings, the temporal
+  /// values and the durations, the values that have an order.
+  Comparable,
+
+  /// The abstract type `temporal` of DMN 1.7 (Figure 10-26): dates, times and dates and times.
+  Temporal,
+
+  /// The abstract type `duration` of DMN 1.7 (Figure 10-26): both kinds of duration.
+  Duration,
 }
 
 impl fmt::Display for FeelType {
@@ -97,6 +107,9 @@ impl fmt::Display for FeelType {
       FeelType::String => write!(f, "{FEEL_TYPE_NAME_STRING}"),
       FeelType::Time => write!(f, "{FEEL_TYPE_NAME_TIME}"),
       FeelType::YearsAndMonthsDuration => write!(f, "{FEEL_TYPE_NAME_YEARS_AND_MONTHS_DURATION}"),
+      FeelType::Comparable => write!(f, "comparable"),
+      FeelType::Temporal => write!(f, "temporal"),
+      FeelType::Duration => write!(f, "duration"),
     }
   }
 }
@@ -278,6 +291,10 @@ impl FeelType {
           return Ok(value.clone());
         }
       }
+      // the abstract types of DMN 1.7: a value of a type below them
+      FeelType::Comparable | FeelType::Temporal | FeelType::Duration if value.is_conformant(self) => {
+        return Ok(value.clone());
+      }
       _ => {}
     }
     Err(err_invalid_value_for_retrieving_using_feel_type(self, value))
@@ -332,6 +349,12 @@ impl FeelType {
       FeelType::DateTime => return matches!(self, FeelType::DateTime),
       FeelType::DaysAndTimeDuration => return matches!(self, FeelType::DaysAndTimeDuration),
       FeelType::YearsAndMonthsDuration => return matches!(self, FeelType::YearsAndMonthsDuration),
+      // the abstract types of DMN 1.7 (Figure 10-26)
+      FeelType::Duration => return matches!(self, FeelType::Duration | FeelType::DaysAndTimeDuration | FeelType::YearsAndMonthsDuration),
+      FeelType::Temporal => return matches!(self, FeelType::Temporal | FeelType::Date | FeelType::Time | FeelType::DateTime),
+      FeelType::Comparable => {
+        return matches!(self, FeelType::Comparable | FeelType::Number | FeelType::String) || self.is_conformant(&FeelType::Temporal) || self.is_conformant(&FeelType::Duration);
+      }
       FeelType::Range(type_other) => {
         if let FeelType::Range(type_self) = self {
           return type_self.is_conformant(type_other);
@@ -361,15 +384,13 @@ impl FeelType {
         if let FeelType::Function(parameters_self, result_self) = self
           && parameters_self.len() == parameters_other.len()
         {
-          for (i, parameter_other) in parameters_other.iter().enumerate() {
-            if !parameter_other.is_conformant(&parameters_self[i]) {
-              return false;
-            }
-            if !result_self.is_conformant(result_other) {
-              return false;
-            }
-          }
-          return true;
+          // the parameters are contravariant and the result covariant (10.3.2.9.2); the result
+          // is checked also when there are no parameters
+          return parameters_other
+            .iter()
+            .zip(parameters_self)
+            .all(|(parameter_other, parameter_self)| parameter_other.is_conformant(parameter_self))
+            && result_self.is_conformant(result_other);
         }
         return false;
       }

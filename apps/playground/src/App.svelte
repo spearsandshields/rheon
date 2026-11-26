@@ -186,7 +186,7 @@
         roundTripMs = performance.now() - t0;
       }
     } catch (err) {
-      if (!abort.signal.aborted) response = { ok: false, error: { kind: 'internal', message: String(err) } };
+      if (!abort.signal.aborted) response = { ok: false, error: { kind: 'internal', code: 'internal', message: String(err) } };
     } finally {
       pending--;
       checkUnavailable();

@@ -256,32 +256,62 @@ fn _0039() {
 
 #[test]
 fn _0040() {
-  te_null(false, &scope!(), r#"includes(range: [1..20],p: 20)"#, "[named::includes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"includes(range: [1..20],p: 20)"#,
+    "expected the parameters of one of includes(range, point): boolean, includes(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0041() {
-  te_null(false, &scope!(), r#"includes(r: [1..20],point: 20)"#, "[named::includes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"includes(r: [1..20],point: 20)"#,
+    "expected the parameters of one of includes(range, point): boolean, includes(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
 fn _0042() {
-  te_null(false, &scope!(), r#"includes(r: [1..20],p: 20)"#, "[named::includes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"includes(r: [1..20],p: 20)"#,
+    "expected the parameters of one of includes(range, point): boolean, includes(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
 fn _0043() {
-  te_null(false, &scope!(), r#"includes(range1: [1..20],r2: [1..20])"#, "[named::includes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"includes(range1: [1..20],r2: [1..20])"#,
+    "expected the parameters of one of includes(range, point): boolean, includes(range1, range2): boolean, found the parameter name 'r2'",
+  );
 }
 
 #[test]
 fn _0044() {
-  te_null(false, &scope!(), r#"includes(r1: [1..20],range2: [1..20])"#, "[named::includes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"includes(r1: [1..20],range2: [1..20])"#,
+    "expected the parameters of one of includes(range, point): boolean, includes(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
 fn _0045() {
-  te_null(false, &scope!(), r#"includes(r1: [1..20],r2: [1..20])"#, "[named::includes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"includes(r1: [1..20],r2: [1..20])"#,
+    "expected the parameters of one of includes(range, point): boolean, includes(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
@@ -300,7 +330,7 @@ fn _0047() {
     false,
     &scope!(),
     r#"includes([1..20],["a".."b"])"#,
-    "[core::includes] invalid argument type, expected range<number>, actual type is range<string>",
+    "[core::includes] invalid argument type, expected number or range<number>, actual type is range<string>",
   );
 }
 
@@ -310,7 +340,7 @@ fn _0048() {
     false,
     &scope!(),
     r#"includes(["a".."b"],[1..20])"#,
-    "[core::includes] invalid argument type, expected scalar or range<scalar>, actual type is range<string>",
+    "[core::includes] invalid argument type, expected string or range<string>, actual type is range<number>",
   );
 }
 
@@ -320,7 +350,7 @@ fn _0049() {
     false,
     &scope!(),
     r#"includes("a",[1..20])"#,
-    "[core::includes] invalid argument type, expected range<scalar>, actual type is string",
+    "[core::includes] invalid argument type, expected range of scalars, actual type is string",
   );
 }
 
@@ -340,7 +370,7 @@ fn _0051() {
     false,
     &scope!(),
     r#"includes([date("2022-12-01")..date("2022-12-31")],[1..31])"#,
-    "[core::includes] invalid argument type, expected range<date>, actual type is range<number>",
+    "[core::includes] invalid argument type, expected date or range<date>, actual type is range<number>",
   );
 }
 
@@ -360,7 +390,7 @@ fn _0053() {
     false,
     &scope!(),
     r#"includes([time("00:00:00")..time("23:59:59")],[1..31])"#,
-    "[core::includes] invalid argument type, expected range<time>, actual type is range<number>",
+    "[core::includes] invalid argument type, expected time or range<time>, actual type is range<number>",
   );
 }
 
@@ -380,7 +410,7 @@ fn _0055() {
     false,
     &scope!(),
     r#"includes([date and time("2022-12-01T00:00:00")..date and time("2022-12-31T23:59:59")],[1..31])"#,
-    "[core::includes] invalid argument type, expected range<date and time>, actual type is range<number>",
+    "[core::includes] invalid argument type, expected date and time or range<date and time>, actual type is range<number>",
   );
 }
 
@@ -400,7 +430,7 @@ fn _0057() {
     false,
     &scope!(),
     r#"includes([duration("P1D")..duration("P10D")],[1..31])"#,
-    "[core::includes] invalid argument type, expected range<days and time duration>, actual type is range<number>",
+    "[core::includes] invalid argument type, expected days and time duration or range<days and time duration>, actual type is range<number>",
   );
 }
 
@@ -420,6 +450,6 @@ fn _0059() {
     false,
     &scope!(),
     r#"includes([duration("P1Y")..duration("P10Y")],[1..31])"#,
-    "[core::includes] invalid argument type, expected range<years and months duration>, actual type is range<number>",
+    "[core::includes] invalid argument type, expected years and months duration or range<years and months duration>, actual type is range<number>",
   );
 }

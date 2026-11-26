@@ -281,7 +281,8 @@ fn _0051() {
 
 #[test]
 fn _0052() {
-  satisfies(false, &scope!(), "5", "", "not(!=4,!=5,!=6)", true);
+  // not(tests) negates the or of the tests: 5 != 4 is true, so the negation is false
+  satisfies(false, &scope!(), "5", "", "not(!=4,!=5,!=6)", false);
 }
 
 #[test]
@@ -350,7 +351,14 @@ fn a_boolean_test_using_the_tested_value_is_its_own_answer() {
 fn tests_of_another_kind_than_the_tested_value_have_no_answer() {
   let scope = scope!();
   satisfies_null(false, &scope, r#""a""#, "", "1, 2", r#"equal err '"a"' =?= '1'"#);
-  satisfies_null(false, &scope, r#""a""#, "", "< 10", "eval_in_unary_less");
+  satisfies_null(
+    false,
+    &scope,
+    r#""a""#,
+    "",
+    "< 10",
+    "comparison '<' expected string on the right, as on the left, found number",
+  );
   satisfies_null(false, &scope, r#""a""#, "", "not(1, 2)", r#"equal err '"a"' =?= '1'"#);
   satisfies(false, &scope, r#""a""#, "", r#"1, "a""#, true);
   satisfies(false, &scope, "3", "", "1, 2", false);

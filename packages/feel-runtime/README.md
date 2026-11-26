@@ -37,6 +37,9 @@ await engine.evaluate({ expression: 'b * 2', context: '{a: 1, b: a + 1}' });
 // Unary tests: the input is bound to `?`; the result is `? in (<tests>)`
 await engine.evaluate({ dialect: 'unaryTests', expression: '[1..10], > 20', input: 25 });
 
+// S-FEEL (DMN 9.2): a construct it has not, such as `if` or `and`, is a syntax error
+await engine.evaluate({ dialect: 'simpleExpression', expression: 'Age + 1 >= 18', context: { Age: 20 } });
+
 // Several expressions over one context: the context is sent and read once.
 // results[i] is what evaluate answers for evaluations[i], with its id; one that fails is a failure in its place.
 await engine.evaluateAll({
@@ -77,10 +80,22 @@ How the engine works:
 
 - **Loading.** The wasm is fetched and compiled once, on the main thread. `compileStreaming` is used when the server sends `application/wasm`. The compiled `WebAssembly.Module` is posted to each worker, so a restart only re-instantiates it. You can also pass `wasmModule` or `wasmBytes` instead of `wasmUrl`.
 - **Time zone.** `tzOffsetMinutes` defaults to `-new Date().getTimezoneOffset()` on every request, so `now()` and `today()` follow the host's local time. Set it on the request to override. It is a fixed offset with no DST rules.
+- **Fixed clock.** `now` (an ISO 8601 instant with its offset or `Z`, such as `"2026-01-01T10:00:00Z"`) pins the instant that `now()` and `today()` read for that request, so an evaluation that uses them is repeatable; without it they read the system clock.
 - **Worker bundling.** The worker is created with `new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })`. Vite, webpack 5 and Parcel bundle this form automatically. Two cases need attention:
   - If Vite pre-bundles the package from `node_modules`, the `new URL` form breaks. Add `optimizeDeps: { exclude: ['@rheon/feel-runtime'] }`. A linked workspace package (`file:` or `workspace:` dependency) is not pre-bundled.
   - Use `worker: { format: 'es' }` if your Vite config sets a non-ES worker format.
 - **Custom workers.** `createWorker: () => WorkerLike` replaces worker creation, for example with your own `new Worker(...)` call or a `worker_threads` adapter (see `test/helpers.mjs` and `test/worker-bootstrap.mjs`). The worker script is also exported as `@rheon/feel-runtime/worker`. Keep a custom worker's stack at Node's default 4 MiB or more (`resourceLimits.stackSizeMb`); a smaller stack lets a nested recursion trap earlier.
+
+## Which way to run it
+
+| You have | Use | Why |
+|---|---|---|
+| Input you do not control, or expressions that may run long | `FeelEngine` (a worker) | A timeout ends the worker, a trap or an exhausted memory costs one request, and the calling thread never blocks. |
+| Trusted expressions in Node, short ones, called often | `instantiateFeel` (in-thread) with `maxSteps` on each request | No message passing per call. `maxSteps` bounds the work of an evaluation, so a mistake ends as an error and not as a blocked thread. It does not bound memory. |
+| Several expressions over one context | `evaluateAll` | The context is read once. |
+| One expression over many contexts (the rows of a table) | `evaluateEach` | The expression is parsed once, and the request is one message. |
+
+A step of `maxSteps` is a function call or an item that a loop or a filter visits, so a budget follows from the size of the data an expression should see: a rule over a few hundred rows is far below 1,000,000. The engine keeps nothing between requests in any of these. `FeelEngine` starts a Web Worker; in Node, pass your own worker through `createWorker` (see "Custom workers").
 
 ## Usage in Node (in-thread)
 

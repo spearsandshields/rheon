@@ -50,7 +50,7 @@ fn _0006() {
     false,
     &scope!(),
     r#"years and months duration()"#,
-    r#"expected 2 parameters, actual number of parameters is 0"#,
+    r#"expected 1 or 2 parameters, actual number of parameters is 0"#,
   );
 }
 
@@ -60,7 +60,7 @@ fn _0007() {
     false,
     &scope!(),
     r#"years and months duration(date("2013-08-24"))"#,
-    r#"expected 2 parameters, actual number of parameters is 1"#,
+    r#"[core::years and months duration] invalid argument type, expected string, actual type is date"#,
   );
 }
 
@@ -70,7 +70,7 @@ fn _0008() {
     false,
     &scope!(),
     r#"years and months duration(f: date("2013-08-24"),to: date("2017-12-15"))"#,
-    r#"parameter 'from' not found"#,
+    r#"expected the parameters of one of years and months duration(from): years and months duration, years and months duration(from, to): years and months duration, found the parameter name 'f'"#,
   );
 }
 
@@ -80,7 +80,7 @@ fn _0009() {
     false,
     &scope!(),
     r#"years and months duration(from: date("2013-08-24"),t: date("2017-12-15"))"#,
-    r#"parameter 'to' not found"#,
+    r#"expected the parameters of one of years and months duration(from): years and months duration, years and months duration(from, to): years and months duration, found the parameter name 't'"#,
   );
 }
 

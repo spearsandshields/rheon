@@ -1,5 +1,5 @@
 /** Builds the wasm request JSON (CONTRACT §2) from runtime requests, splicing `RawJson` verbatim. */
-import type { EditorOptions, EvaluateAllRequest, EvaluateEachRequest, EvaluateRequest, EvaluationAnswer, FeelError, ParseOptions, RawJson } from './types.js';
+import type { EditorOptions, EvaluateAllRequest, EvaluateEachRequest, EvaluateRequest, EvaluationAnswer, ExplainRequest, FeelError, ParseOptions, RawJson } from './types.js';
 
 /**
  * Private brand of `RawJson` values. `Symbol.for` so that values made by another copy of this
@@ -24,6 +24,9 @@ export function isRawJson(v: unknown): v is RawJson {
 
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
+/** The start of an escape that may be one of a surrogate. */
+const SURROGATE_ESCAPE = /\\u[dD]/;
+
 /** `true` when `text` is valid Unicode (no unpaired UTF-16 surrogate). */
 function isWellFormed(text: string): boolean {
   const native = (text as { isWellFormed?: () => boolean }).isWellFormed;
@@ -37,6 +40,9 @@ function isWellFormed(text: string): boolean {
  */
 export function hasLoneSurrogate(json: string): boolean {
   if (!isWellFormed(json)) return true;
+  // an escape of a surrogate is `\ud…` or `\uD…`: a text without these has none, and the
+  // search for them is the JavaScript engine's own, not a walk over every character
+  if (!SURROGATE_ESCAPE.test(json)) return false;
   for (let i = 0; i < json.length; i++) {
     if (json[i] !== '\\') continue;
     if (json[i + 1] !== 'u') {
@@ -94,20 +100,20 @@ export function serializeRequest(req: Record<string, unknown>): string {
       try {
         parsed = JSON.parse(value.rawJson);
       } catch (e) {
-        throw new RequestError({ kind: 'context', message: `invalid JSON in ${key}: ${(e as Error).message}` });
+        throw new RequestError({ kind: 'context', code: 'invalid-context', message: `invalid JSON in ${key}: ${(e as Error).message}` });
       }
       if (key === 'context' && (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed))) {
-        throw new RequestError({ kind: 'context', message: 'context JSON must be an object' });
+        throw new RequestError({ kind: 'context', code: 'invalid-context', message: 'context JSON must be an object' });
       }
       if (hasLoneSurrogate(value.rawJson)) {
-        throw new RequestError({ kind: fieldKind(key), message: `${key} JSON ${UNPAIRED}` });
+        throw new RequestError({ kind: fieldKind(key), code: fieldKind(key) === 'context' ? 'invalid-context' : 'invalid-field', message: `${key} JSON ${UNPAIRED}` });
       }
       parts.push(`${JSON.stringify(key)}:${value.rawJson.trim()}`);
     } else {
       const text = JSON.stringify(value);
       if (text === undefined) continue; // functions, symbols
       if (hasLoneSurrogate(text)) {
-        throw new RequestError({ kind: fieldKind(key), message: `${key} ${UNPAIRED}` });
+        throw new RequestError({ kind: fieldKind(key), code: fieldKind(key) === 'context' ? 'invalid-context' : 'invalid-field', message: `${key} ${UNPAIRED}` });
       }
       parts.push(`${JSON.stringify(key)}:${text}`);
     }
@@ -115,13 +121,33 @@ export function serializeRequest(req: Record<string, unknown>): string {
   return `{${parts.join(',')}}`;
 }
 
+/**
+ * The fields of a request object that its builder does not write, sent with the value null: the
+ * module names a field that it does not read (a misspelt `errormode`) in a warning, as it does
+ * for a request sent as JSON text, and needs only its name. The value is not sent: it may hold
+ * what JSON can not (a cycle, a BigInt) or be large.
+ */
+function unwritten(req: object, written: readonly string[]): Record<string, null> {
+  const rest: Record<string, null> = {};
+  for (const [key, value] of Object.entries(req)) {
+    if (value !== undefined && !written.includes(key)) rest[key] = null;
+  }
+  return rest;
+}
+
+const EVALUATE_WRITTEN = ['op', 'dialect', 'expression', 'context', 'contextFormat', 'input', 'tzOffsetMinutes', 'now', 'language', 'errorMode', 'maxSteps'] as const;
+const EVALUATE_ALL_WRITTEN = ['op', 'context', 'contextFormat', 'tzOffsetMinutes', 'now', 'language', 'evaluations'] as const;
+const EVALUATE_EACH_WRITTEN = ['op', 'dialect', 'expression', 'contextFormat', 'tzOffsetMinutes', 'now', 'language', 'errorMode', 'maxSteps', 'entries'] as const;
+const ENTRY_WRITTEN = ['id', 'context', 'input'] as const;
+const EVALUATION_WRITTEN = ['id', 'dialect', 'expression', 'input', 'errorMode', 'maxSteps'] as const;
+
 function contextFields(context: ParseOptions['context'], contextFormat: ParseOptions['contextFormat']) {
   if (context === undefined) return {};
   if (typeof context === 'string') {
     return { context, contextFormat: contextFormat ?? 'feel' };
   }
   if (isRawJson(context) && contextFormat === 'feel') {
-    throw new RequestError({ kind: 'context', message: "rawJson context requires contextFormat 'json'" });
+    throw new RequestError({ kind: 'context', code: 'invalid-context', message: "rawJson context requires contextFormat 'json'" });
   }
   return { context, contextFormat: contextFormat ?? 'json' };
 }
@@ -136,9 +162,31 @@ export function buildEvaluateJson(req: EvaluateRequest, defaultTz: number | unde
     ...contextFields(req.context, req.contextFormat),
     input: dialect === 'unaryTests' ? req.input : undefined,
     tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
+    now: req.now,
     language: req.language,
     errorMode: req.errorMode,
     maxSteps: req.maxSteps,
+    ...unwritten(req, EVALUATE_WRITTEN),
+  });
+}
+
+const EXPLAIN_WRITTEN = ['op', 'expression', 'context', 'contextFormat', 'tzOffsetMinutes', 'now', 'language', 'errorMode', 'maxSteps', 'expand', 'maxRecords', 'reads'] as const;
+
+/** `explain` request → JSON text. */
+export function buildExplainJson(req: ExplainRequest, defaultTz: number | undefined = localTzOffsetMinutes()): string {
+  return serializeRequest({
+    op: 'explain',
+    expression: req.expression,
+    ...contextFields(req.context, req.contextFormat),
+    tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
+    now: req.now,
+    language: req.language,
+    errorMode: req.errorMode,
+    maxSteps: req.maxSteps,
+    expand: req.expand,
+    maxRecords: req.maxRecords,
+    reads: req.reads,
+    ...unwritten(req, EXPLAIN_WRITTEN),
   });
 }
 
@@ -165,7 +213,9 @@ export function buildEvaluateAllJson(req: EvaluateAllRequest, defaultTz: number 
     op: 'evaluateAll',
     ...contextFields(req.context, req.contextFormat),
     tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
+    now: req.now,
     language: req.language,
+    ...unwritten(req, EVALUATE_ALL_WRITTEN),
   };
   const evaluations: unknown = req.evaluations;
   if (!Array.isArray(evaluations)) return { json: serializeRequest({ ...head, evaluations }), failures };
@@ -174,12 +224,22 @@ export function buildEvaluateAllJson(req: EvaluateAllRequest, defaultTz: number 
     try {
       if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
         const text = JSON.stringify(entry);
-        if (text === undefined || hasLoneSurrogate(text)) throw new RequestError({ kind: 'request', message: 'an evaluation must be an object' });
+        if (text === undefined || hasLoneSurrogate(text)) throw new RequestError({ kind: 'request', code: 'invalid-field', message: 'an evaluation must be an object' });
         entries.push(text);
       } else {
         // as for `evaluate`, the input is sent for unary tests only
         const fields = entry as Record<string, unknown>;
-        entries.push(serializeRequest(fields.dialect === 'unaryTests' ? fields : { ...fields, input: undefined }));
+        entries.push(
+          serializeRequest({
+            id: fields.id,
+            dialect: fields.dialect,
+            expression: fields.expression,
+            input: fields.dialect === 'unaryTests' ? fields.input : undefined,
+            errorMode: fields.errorMode,
+            maxSteps: fields.maxSteps,
+            ...unwritten(fields, EVALUATION_WRITTEN),
+          }),
+        );
       }
     } catch (e) {
       if (!(e instanceof RequestError)) throw e;
@@ -210,9 +270,11 @@ export function buildEvaluateEachJson(req: EvaluateEachRequest, defaultTz: numbe
     expression: req.expression,
     contextFormat,
     tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
+    now: req.now,
     language: req.language,
     errorMode: req.errorMode,
     maxSteps: req.maxSteps,
+    ...unwritten(req, EVALUATE_EACH_WRITTEN),
   };
   if (!Array.isArray(list)) return { json: serializeRequest({ ...head, entries: list }), failures };
   const entries: string[] = [];
@@ -220,15 +282,17 @@ export function buildEvaluateEachJson(req: EvaluateEachRequest, defaultTz: numbe
     try {
       if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
         const text = JSON.stringify(entry);
-        if (text === undefined || hasLoneSurrogate(text)) throw new RequestError({ kind: 'request', message: 'an entry must be an object' });
+        if (text === undefined || hasLoneSurrogate(text)) throw new RequestError({ kind: 'request', code: 'invalid-field', message: 'an entry must be an object' });
         entries.push(text);
       } else {
         const fields = entry as Record<string, unknown>;
         if (isRawJson(fields.context) && contextFormat === 'feel') {
-          throw new RequestError({ kind: 'context', message: "rawJson context requires contextFormat 'json'" });
+          throw new RequestError({ kind: 'context', code: 'invalid-context', message: "rawJson context requires contextFormat 'json'" });
         }
         // as for `evaluate`, the input is sent for unary tests only
-        entries.push(serializeRequest({ id: fields.id, context: fields.context, input: dialect === 'unaryTests' ? fields.input : undefined }));
+        entries.push(
+          serializeRequest({ id: fields.id, context: fields.context, input: dialect === 'unaryTests' ? fields.input : undefined, ...unwritten(fields, ENTRY_WRITTEN) }),
+        );
       }
     } catch (e) {
       if (!(e instanceof RequestError)) throw e;
@@ -265,19 +329,29 @@ export function buildParseJson(dialect: EvaluateRequest['dialect'], expression: 
 /** The fields of an editor request that say which names are in scope. */
 function editorFields(opts: EditorOptions) {
   if (opts.outline !== undefined && opts.context !== undefined) {
-    throw new RequestError({ kind: 'request', message: "give 'context' or 'outline', not both" });
+    throw new RequestError({ kind: 'request', code: 'conflicting-fields', message: "give 'context' or 'outline', not both" });
   }
   return opts.outline !== undefined ? { outline: opts.outline } : contextFields(opts.context, opts.contextFormat);
 }
 
 /** `syntax` request → JSON text. */
-export function buildSyntaxJson(expression: string, opts: EditorOptions & { tree?: boolean } = {}): string {
-  return serializeRequest({ op: 'syntax', dialect: opts.dialect ?? 'expression', expression, tree: opts.tree, ...editorFields(opts) });
+export function buildSyntaxJson(expression: string, opts: EditorOptions & { tree?: boolean; check?: boolean } = {}): string {
+  return serializeRequest({ op: 'syntax', dialect: opts.dialect ?? 'expression', expression, tree: opts.tree, check: opts.check, ...editorFields(opts) });
 }
 
 /** `complete` request → JSON text; `cursor` is a UTF-16 offset in `expression`. */
 export function buildCompleteJson(expression: string, cursor: number, opts: EditorOptions = {}): string {
   return serializeRequest({ op: 'complete', dialect: opts.dialect ?? 'expression', expression, cursor, ...editorFields(opts) });
+}
+
+/** `paths` request → JSON text. */
+export function buildPathsJson(expression: string, opts: EditorOptions = {}): string {
+  return serializeRequest({ op: 'paths', dialect: opts.dialect ?? 'expression', expression, ...editorFields(opts) });
+}
+
+/** `hover` request → JSON text; `at` is a UTF-16 offset in `expression`. */
+export function buildHoverJson(expression: string, at: number, opts: EditorOptions = {}): string {
+  return serializeRequest({ op: 'hover', dialect: opts.dialect ?? 'expression', expression, at, ...editorFields(opts) });
 }
 
 /** `format` request → JSON text; `width` is the most characters of a line (default 80). */

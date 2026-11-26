@@ -13,12 +13,17 @@ fn _0002() {
 
 #[test]
 fn _0003() {
-  te_null(false, &scope!(), "max(l:[])", r#"parameter 'list' not found"#);
+  te_null(false, &scope!(), "max(l:[])", r#"expected the parameters of max(list): Any, found the parameter name 'l'"#);
 }
 
 #[test]
 fn _0004() {
-  te_null(false, &scope!(), "max(l:[1,2,3])", r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    "max(l:[1,2,3])",
+    r#"expected the parameters of max(list): Any, found the parameter name 'l'"#,
+  );
 }
 
 #[test]
@@ -117,6 +122,32 @@ fn _0021() {
     false,
     &scope!(),
     r#"max(true, "a","b","c",1,2)"#,
-    r#"[core::max] invalid argument type, expected number, string, actual type is boolean"#,
+    r#"[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is boolean"#,
   );
+}
+
+#[test]
+fn _0022() {
+  // over FEEL's order: dates, times, date and times and durations too (10.3.4.4)
+  let scope = &scope!();
+  te_date(false, scope, r#"max([date("2020-01-01"), date("2021-01-01")])"#, 2021, 1, 1);
+  te_be_value(false, scope, r#"max([duration("P1D"), duration("PT1H")])"#, r#"duration("P1D")"#);
+  te_be_value(false, scope, r#"max(["a", "b"])"#, r#""b""#);
+  // a null item is outside the domain wherever it is
+  te_null(false, scope, r#"max([1, null])"#, "[core::max] invalid argument type, expected number, actual type is Null");
+  te_null(
+    false,
+    scope,
+    r#"max([null, 1])"#,
+    "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null",
+  );
+  // items of two types
+  te_null(
+    false,
+    scope,
+    r#"max([1, "a"])"#,
+    "[core::max] invalid argument type, expected number, actual type is string",
+  );
+  // a time without an offset takes the offset of the other (Table 55)
+  te_string(false, scope, r#"string(max([time("10:00:00"), time("11:00:00+01:00")]))"#, "11:00:00+01:00");
 }

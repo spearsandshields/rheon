@@ -82,27 +82,52 @@ fn _0014() {
 
 #[test]
 fn _0015() {
-  te_null(false, &scope!(), r#"matches(i: "foobar", pattern: "^fo*b")"#, "parameter 'input' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"matches(i: "foobar", pattern: "^fo*b")"#,
+    "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'i'",
+  );
 }
 
 #[test]
 fn _0016() {
-  te_null(false, &scope!(), r#"matches(input: "foobar", p: "^fo*b")"#, "parameter 'pattern' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"matches(input: "foobar", p: "^fo*b")"#,
+    "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0017() {
-  te_null(false, &scope!(), r#"matches(i: "foobar", pattern: "^fo*b", flags: "s")"#, "parameter 'input' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"matches(i: "foobar", pattern: "^fo*b", flags: "s")"#,
+    "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'i'",
+  );
 }
 
 #[test]
 fn _0018() {
-  te_null(false, &scope!(), r#"matches(input: "foobar", p: "^fo*b", flags: "s")"#, "parameter 'pattern' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"matches(input: "foobar", p: "^fo*b", flags: "s")"#,
+    "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0019() {
-  te_null(false, &scope!(), r#"matches(input: "foobar", pattern: "^fo*b", f: "s")"#, "parameter 'flags' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"matches(input: "foobar", pattern: "^fo*b", f: "s")"#,
+    "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'f'",
+  );
 }
 
 #[test]
@@ -111,7 +136,7 @@ fn _0020() {
     false,
     &scope!(),
     r#"matches(input: "abc", pattern: "a", flags: "x", other: "c")"#,
-    "expected 2,3 parameters, actual number of parameters is 4",
+    "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'other'",
   );
 }
 
@@ -216,7 +241,13 @@ fn _0036() {
 
 #[test]
 fn _0037() {
-  te_bool(false, &scope!(), r#"matches("O", "[A-Z--O]", "i")"#, false);
+  // XML Schema regular expressions: no class subtraction `--`, no block IsLatin (Q-R2)
+  te_null(
+    false,
+    &scope!(),
+    r#"matches("O", "[A-Z--O]", "i")"#,
+    r#"<FeelRegexError> invalid regex pattern '[A-Z--O]': expected a character or a range, not '--' (a class is subtracted with '-[') at character 5"#,
+  );
 }
 
 #[test]
@@ -246,17 +277,35 @@ fn _0041() {
 
 #[test]
 fn _0042() {
-  te_bool(false, &scope!(), r#"matches("hello world", "\p{ IsLatin}+", "x")"#, true);
+  // XML Schema regular expressions: no class subtraction `--`, no block IsLatin (Q-R2)
+  te_null(
+    false,
+    &scope!(),
+    r#"matches("hello world", "\p{ IsLatin}+", "x")"#,
+    r#"<FeelRegexError> invalid regex pattern '\p{ IsLatin}+': expected the name of a Unicode block known to XML Schema"#,
+  );
 }
 
 #[test]
 fn _0043() {
-  te_bool(false, &scope!(), r#"matches("hello world", "\p{IsLatin}+")"#, true);
+  // XML Schema regular expressions: no class subtraction `--`, no block IsLatin (Q-R2)
+  te_null(
+    false,
+    &scope!(),
+    r#"matches("hello world", "\p{IsLatin}+")"#,
+    r#"<FeelRegexError> invalid regex pattern '\p{IsLatin}+': expected the name of a Unicode block known to XML Schema at character 4"#,
+  );
 }
 
 #[test]
 fn _0044() {
-  te_bool(false, &scope!(), r#"matches("hello world", "\p{ I s L a t i n }+", "x")"#, true);
+  // XML Schema regular expressions: no class subtraction `--`, no block IsLatin (Q-R2)
+  te_null(
+    false,
+    &scope!(),
+    r#"matches("hello world", "\p{ I s L a t i n }+", "x")"#,
+    r#"<FeelRegexError> invalid regex pattern '\p{ I s L a t i n }+': expected the name of a Unicode block known to XML Schema"#,
+  );
 }
 
 #[test]
@@ -297,7 +346,7 @@ fn the_reason_of_a_long_invalid_pattern_holds_at_most_1000_characters() {
     panic!("a null with a reason")
   };
   assert_eq!(1000, reason.chars().count(), "{} characters", reason.chars().count());
-  assert!(reason.starts_with("<FeelRegexError> invalid regex pattern: '(aaa"), "{reason}");
+  assert!(reason.starts_with("<FeelRegexError> invalid regex pattern '(aaa"), "{reason}");
   assert!(reason.ends_with('…'), "{reason}");
 }
 
@@ -323,7 +372,12 @@ fn an_engine_limit_stops_the_evaluation() {
   );
   // a pattern within the limits matches, and an invalid pattern is null with its reason
   te_bool(false, &scope!(), &format!(r#"matches("a", "{}")"#, crate::tests::nested_groups(60)), true);
-  te_null(false, &scope!(), r#"matches("a", "[a-z")"#, "<FeelRegexError> invalid regex pattern: '[a-z'");
+  te_null(
+    false,
+    &scope!(),
+    r#"matches("a", "[a-z")"#,
+    "<FeelRegexError> invalid regex pattern '[a-z': expected ']' to close a character class at character 5",
+  );
 }
 
 #[test]
@@ -363,5 +417,10 @@ fn q_takes_every_character_of_the_pattern_as_itself() {
 
 #[test]
 fn an_invalid_pattern_is_quoted_as_written() {
-  te_null(false, &scope!(), r#"matches("a", "[a-z", "i")"#, "<FeelRegexError> invalid regex pattern: '[a-z'");
+  te_null(
+    false,
+    &scope!(),
+    r#"matches("a", "[a-z", "i")"#,
+    "<FeelRegexError> invalid regex pattern '[a-z': expected ']' to close a character class at character 5",
+  );
 }

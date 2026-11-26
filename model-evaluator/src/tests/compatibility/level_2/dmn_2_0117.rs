@@ -5,7 +5,7 @@ from_examples!(DMN_2_0117);
 #[test]
 fn _0001() {
   let ctx = context(r#"{Age: 19,RiskCategory: "Low",isAffordable: true}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "Approval", &ctx, r#"{Rate: "Best", Status: "Approved"}"#);
+  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "Approval", &ctx, r#"{Status: "Approved", Rate: "Best"}"#);
 }
 
 #[test]
@@ -17,7 +17,7 @@ fn _0002() {
     &MODEL_NAME,
     "Approval",
     &ctx,
-    r#"{Rate: "Standard", Status: "Declined"}"#,
+    r#"{Status: "Declined", Rate: "Standard"}"#,
   );
 }
 
@@ -30,6 +30,6 @@ fn _0003() {
     &MODEL_NAME,
     "Approval",
     &ctx,
-    r#"{Rate: "Standard", Status: "Approved"}"#,
+    r#"{Status: "Approved", Rate: "Standard"}"#,
   );
 }

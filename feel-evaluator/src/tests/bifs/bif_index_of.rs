@@ -38,20 +38,26 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  te_null(
-    false,
-    &scope!(),
-    r#"index of(10,2)"#,
-    r#"[core::index of] invalid argument type, expected list, actual type is number"#,
-  );
+  // a value that is no list is the list of it where a list is taken (10.3.2.9.4)
+  te_be_value(false, &scope!(), r#"index of(10,2)"#, r#"[]"#);
 }
 
 #[test]
 fn _0009() {
-  te_null(false, &scope!(), r#"index of(l:[10,11,12],match:11)"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"index of(l:[10,11,12],match:11)"#,
+    r#"expected the parameters of index of(list, match): list<number>, found the parameter name 'l'"#,
+  );
 }
 
 #[test]
 fn _0010() {
-  te_null(false, &scope!(), r#"index of(list:[10,11,12],m:11)"#, r#"parameter 'match' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"index of(list:[10,11,12],m:11)"#,
+    r#"expected the parameters of index of(list, match): list<number>, found the parameter name 'm'"#,
+  );
 }

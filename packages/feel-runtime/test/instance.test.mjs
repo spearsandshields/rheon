@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { instantiateFeel, createWasiShim, rawJson, isRawJson, trapMessage } from '../dist/index.js';
+import { instantiateFeel, createWasiShim, rawJson, isRawJson, trapMessage, buildEvaluateJson, buildEvaluateAllJson, buildEvaluateEachJson } from '../dist/index.js';
 import { wasmBytes, trappingModuleBytes } from './helpers.mjs';
 
 const feel = await instantiateFeel(await wasmBytes(), { tzOffsetMinutes: -240 });
@@ -56,7 +56,7 @@ test('context with spaced names, FEEL context string, nested output', () => {
   const f = ev('b * 2', { context: '{a: 1, b: a + 1}', contextFormat: 'feel' });
   assert.equal(f.result.display, '4');
   const l = ev('{total: sum(items), avg: mean(items)}', { context: { items: [1, 2, 4] } });
-  assert.equal(l.result.display, '{"avg": 2.333333333333333333333333333333333, "total": 7}');
+  assert.equal(l.result.display, '{"total": 7, "avg": 2.333333333333333333333333333333333}');
   assert.match(l.result.type, /^context</);
 });
 
@@ -108,6 +108,43 @@ test('tzOffsetMinutes: env default and per-request override', () => {
   const t = ev('now()').result.feel; // env tz -240 applied
   assert.match(t, /-04:00|T/);
   assert.equal(ev('1', { tzOffsetMinutes: 5000 }).error.kind, 'request');
+});
+
+test('now: a fixed instant for now() and today() of one request', () => {
+  const pinned = { now: '2001-02-03T04:05:06Z', tzOffsetMinutes: 0 };
+  assert.equal(ev('string(today())', pinned).result.feel, '"2001-02-03"');
+  assert.equal(ev('string(now())', { ...pinned, tzOffsetMinutes: 120 }).result.feel, '"2001-02-03T06:05:06"');
+  assert.equal(ev('1', { now: '2001-02-03' }).error.kind, 'request');
+  assert.notEqual(ev('string(today())', { tzOffsetMinutes: 0 }).result.feel, '"2001-02-03"');
+});
+
+test('a field the runtime does not write reaches the module, which names it in a warning', () => {
+  // review of v0.9.0..feel/f1: the builders made the request of the fields they know only
+  const messages = (warnings) => (warnings ?? []).map((w) => w.message).join('\n');
+  const each = feel.call({ op: 'evaluateEach', expression: '1', errormode: 'strict', entries: [{ context: {}, maxsteps: 1 }] });
+  assert.match(messages(each.results[0].warnings), /found 'errormode', which is not read/);
+  assert.match(messages(each.results[0].warnings), /an entry of 'entries' \(id, context, input\), found 'maxsteps'/);
+  const all = feel.call({ op: 'evaluateAll', contxt: { a: 1 }, evaluations: [{ expression: '1', errormode: 'strict' }] });
+  assert.match(messages(all.contextWarnings), /found 'contxt', which is not read/);
+  assert.match(messages(all.results[0].warnings), /found 'errormode', which is not read/);
+  // the builders of FeelEngine send them too
+  assert.match(buildEvaluateJson({ expression: '1', errormode: 'strict' }), /"errormode":null/);
+  assert.match(buildEvaluateAllJson({ evaluations: [], contxt: 1 }).json, /"contxt":null/);
+  assert.match(buildEvaluateEachJson({ expression: '1', entries: [{ context: {}, maxsteps: 1 }] }).json, /"maxsteps":null/);
+  // their names only: a value JSON can not hold, or a large one, is not sent
+  const circular = {}; circular.self = circular;
+  const built = buildEvaluateEachJson({ expression: 'a', entries: [{ id: 1, context: { a: 1 }, row: circular }], trace: 10n }, 0);
+  assert.match(built.json, /"row":null/);
+  assert.match(built.json, /"trace":null/);
+  const answered = feel.call({ op: 'evaluateEach', expression: 'a', entries: [{ id: 1, context: { a: 1 }, row: circular }] });
+  assert.equal(answered.results[0].result.display, '1');
+  assert.match(messages(answered.results[0].warnings), /found 'row', which is not read/);
+  assert.match(buildEvaluateAllJson({ evaluations: [{ expression: '1', meta: circular }] }).json, /"meta":null/);
+  // and nothing else: the fields they write stay as they were
+  const written = JSON.parse(buildEvaluateJson({ expression: '1', dialect: 'expression', input: 5 }, 0));
+  assert.deepEqual(Object.keys(written).sort(), ['dialect', 'expression', 'op', 'tzOffsetMinutes']);
+  const evaluation = JSON.parse(buildEvaluateAllJson({ evaluations: [{ id: 'a', dialect: 'unaryTests', expression: '> 1', input: 2, errorMode: 'strict', maxSteps: 9 }] }, 0).json).evaluations[0];
+  assert.deepEqual(evaluation, { id: 'a', dialect: 'unaryTests', expression: '> 1', input: 2, errorMode: 'strict', maxSteps: 9 });
 });
 
 test('deep nesting is a syntax error, deep recursion an evaluation error (no crash)', () => {
@@ -268,4 +305,39 @@ test('functions that see their own context leave no memory behind', async () => 
     for (let i = 0; i < 300; i++) raw.callJson(json);
     assert.ok(raw.memoryBytes - before < 8 * 1024 * 1024, `${expression}: grew by ${raw.memoryBytes - before} bytes`);
   }
+});
+
+test('the check for unpaired surrogates in JSON text reads every escape as a walk over all characters does', async () => {
+  const { hasLoneSurrogate } = await import('../dist/request.js');
+  // the walk over every character: the definition
+  const byCharacter = (json) => {
+    if (!json.isWellFormed()) return true;
+    for (let i = 0; i < json.length; i++) {
+      if (json[i] !== '\\') continue;
+      if (json[i + 1] !== 'u') { i++; continue; }
+      const code = parseInt(json.slice(i + 2, i + 6), 16);
+      if (code >= 0xd800 && code <= 0xdbff) {
+        if (json[i + 6] === '\\' && json[i + 7] === 'u') {
+          const low = parseInt(json.slice(i + 8, i + 12), 16);
+          if (low >= 0xdc00 && low <= 0xdfff) { i += 11; continue; }
+        }
+        return true;
+      }
+      if (code >= 0xdc00 && code <= 0xdfff) return true;
+      i += 5;
+    }
+    return false;
+  };
+  const pieces = ['a', '"', ' ', '\\\\', '\\"', '\\n', '\\u0041', '\\ud83d', '\\uD83D', '\\ude00', '\\uDE00', '\\ud83d\\ude00', '\\', 'u', 'd83d', '\\u', '\\ud8', '😀', '\ud83d', 'é'];
+  let state = 0x9e3779b9;
+  const next = (below) => { state ^= state << 13; state >>>= 0; state ^= state >>> 17; state ^= state << 5; state >>>= 0; return state % below; };
+  let unpaired = 0;
+  const cases = 40000;
+  for (let n = 0; n < cases; n++) {
+    const text = Array.from({ length: next(9) }, () => pieces[next(pieces.length)]).join('');
+    const expected = byCharacter(text);
+    unpaired += expected ? 1 : 0;
+    assert.equal(hasLoneSurrogate(text), expected, JSON.stringify(text));
+  }
+  assert.ok(unpaired > cases / 10 && unpaired < cases - cases / 10, `${unpaired} of ${cases} texts have an unpaired surrogate`);
 });

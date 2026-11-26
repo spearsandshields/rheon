@@ -349,6 +349,6 @@ fn _0049() {
 #[test]
 fn _0050() {
   let invocable = "named_params_004";
-  let expected = "null(expected 2 parameters, actual number of parameters is 3)";
+  let expected = "null(expected the parameters of is(value1, value2): boolean, found the parameter name 'value3')";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }

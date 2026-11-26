@@ -7,6 +7,7 @@ use crate::input_data::InputDataEvaluator;
 use crate::item_definition::ItemDefinitionEvaluator;
 use crate::model_builder::{EvaluatorBuilders, ModelBuilder};
 use crate::model_definitions::{DefKey, InvocableType, Invocables};
+use crate::requirements::{BuildDiagnostic, Requirements};
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, Diagnostics, ErrorMode};
@@ -33,6 +34,8 @@ pub struct ModelEvaluator {
   invocables: Invocables,
   /// Map of global information item types defined in this model evaluator.
   global_context: FeelContext,
+  /// The requirements of the elements, and the elements that are not built.
+  requirements: Requirements,
 }
 
 impl From<ModelBuilder> for ModelEvaluator {
@@ -51,6 +54,7 @@ impl From<ModelBuilder> for ModelEvaluator {
       decision_service_evaluator: builders.decision_service_evaluator,
       invocables: builders.invocables,
       global_context,
+      requirements: builders.requirements,
     }
   }
 }
@@ -71,6 +75,15 @@ impl ModelEvaluator {
     let model_evaluator: Arc<ModelEvaluator> = Arc::new(model_builder.into());
     model_evaluator.decision_service_evaluator.build_function_definitions(&Arc::clone(&model_evaluator));
     Ok(model_evaluator)
+  }
+
+  /// What the build said of the elements of the models: an error for each decision, business
+  /// knowledge model and decision service that is not built (its requirements are not well
+  /// formed, it can not be built, or it requires an element that is not built), and the
+  /// warnings. Every other element evaluates; the evaluation of one that is not built is null
+  /// with the message of its error.
+  pub fn build_diagnostics(&self) -> Vec<BuildDiagnostic> {
+    self.requirements.diagnostics()
   }
 
   /// Returns a reference to input data evaluator.
@@ -136,6 +149,10 @@ impl ModelEvaluator {
     let Some(invocable) = self.invocables.by_name(model_namespace, model_name, invocable_name) else {
       return value_null!("invocable '{}' not found in namespace '{}'", arg(&invocable_name), arg(&model_namespace));
     };
+    let (InvocableType::Decision(def_key) | InvocableType::BusinessKnowledgeModel(def_key, _) | InvocableType::DecisionService(def_key)) = invocable;
+    if let Some(reason) = self.requirements.reason(def_key) {
+      return value_null!("{}", reason);
+    }
     match invocable {
       InvocableType::Decision(def_key) => {
         // evaluate a decision

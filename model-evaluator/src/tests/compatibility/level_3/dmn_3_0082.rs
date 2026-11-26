@@ -21,7 +21,7 @@ fn _0003() {
     &MODEL_NAME,
     "decision_004",
     &CTX,
-    r#"{age: 10, name: "foo", surname: "bar"}"#,
+    r#"{name: "foo", surname: "bar", age: 10}"#,
   );
 }
 

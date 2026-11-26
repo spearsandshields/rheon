@@ -14,9 +14,9 @@
 
 use crate::bifs;
 use crate::kernels::Arithmetic;
-use rheon_feel::FeelNumber;
 use rheon_feel::bif::Bif;
 use rheon_feel::values::Value;
+use rheon_feel::{FeelNumber, diagnostics};
 use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelOffset, FeelTime, FeelYearsAndMonthsDuration, FeelZone};
 
 /// The expression language of an expression: FEEL (the default) or B-FEEL.
@@ -28,11 +28,12 @@ pub enum Dialect {
 }
 
 impl Dialect {
-  /// The dialect selected by an `expressionLanguage` URI: B-FEEL for the DMN 1.6 B-FEEL URI (and
-  /// the version-less form of DMN 1.7 beta), FEEL for anything else.
+  /// The dialect selected by an `expressionLanguage` URI: B-FEEL for the DMN 1.6 B-FEEL URI, the
+  /// version-less form of DMN 1.7 and its versioned form for other languages such as BPMN
+  /// (`https://www.omg.org/spec/DMN/B-FEEL/1.7`, DMN 1.7 Beta 1, 11.1), FEEL for anything else.
   pub fn from_expression_language(uri: &str) -> Self {
     match uri.trim().trim_end_matches('/') {
-      "https://www.omg.org/spec/DMN/20240513/B-FEEL" | "https://www.omg.org/spec/DMN/B-FEEL" => Dialect::BFeel,
+      "https://www.omg.org/spec/DMN/20240513/B-FEEL" | "https://www.omg.org/spec/DMN/B-FEEL" | "https://www.omg.org/spec/DMN/B-FEEL/1.7" => Dialect::BFeel,
       _ => Dialect::Feel,
     }
   }
@@ -52,6 +53,7 @@ pub fn bif_default(bif: &Bif) -> Option<Value> {
     DateAndTime | Now => epoch_date_time(),
     Time => epoch_time(),
     Duration | YearsAndMonthsDuration => zero_ym_duration(),
+    DaysAndTimeDuration => Value::DaysAndTimeDuration(rheon_feel_temporal::FeelDaysAndTimeDuration::default()),
     Append | Concatenate | DistinctValues | Flatten | GetEntries | IndexOf | InsertAfter | InsertBefore | Intersection | ListReplace | Mode | Remove | Reverse | Sort | Split
     | Sublist | Union => Value::List(vec![].into()),
     Range => empty_range(),
@@ -59,10 +61,15 @@ pub fn bif_default(bif: &Bif) -> Option<Value> {
   })
 }
 
+/// Whether B-FEEL's `bif` ignores the items that are no numbers (11.3, 11.7).
+fn takes_numbers_only(bif: &Bif) -> bool {
+  matches!(bif, Bif::Mean | Bif::Median | Bif::Product | Bif::Stddev | Bif::Sum | Bif::Mode)
+}
+
 /// Arguments of a positional built-in call as B-FEEL passes them: the list-number functions drop
 /// non-numeric items (from a single list argument, or from the arguments themselves).
 pub fn positional_arguments(bif: &Bif, args: Vec<Value>) -> Vec<Value> {
-  if !matches!(bif, Bif::Mean | Bif::Median | Bif::Product | Bif::Stddev | Bif::Sum | Bif::Mode) {
+  if !takes_numbers_only(bif) {
     return args;
   }
   let numbers = |items: &[Value]| items.iter().filter(|v| matches!(v, Value::Number(_))).cloned().collect::<Vec<Value>>();
@@ -75,17 +82,60 @@ pub fn positional_arguments(bif: &Bif, args: Vec<Value>) -> Vec<Value> {
 /// Evaluates a positional built-in call in B-FEEL.
 pub fn evaluate_positional_bif(bif: Bif, args: Vec<Value>) -> Value {
   let args = positional_arguments(&bif, args);
-  let result = bifs::positional::evaluate_bif(bif.clone(), &args);
-  default_if_null(&bif, result)
+  defaulted(|| bifs::positional::evaluate_bif(bif.clone(), &args), |null| default_if_null(&bif, null))
 }
 
 /// Evaluates a named built-in call in B-FEEL.
 pub fn evaluate_named_bif(bif: Bif, args: &Value) -> Value {
-  let result = bifs::named::evaluate_bif(bif.clone(), args);
-  default_if_null(&bif, result)
+  let filtered = named_arguments(&bif, args);
+  let args = filtered.as_ref().unwrap_or(args);
+  defaulted(|| bifs::named::evaluate_bif(bif.clone(), args), |null| default_if_null(&bif, null))
 }
 
-fn default_if_null(bif: &Bif, result: Value) -> Value {
+/// The arguments of a named built-in call as B-FEEL passes them: the list-number functions drop
+/// the items of their `list` that are no numbers, as by position (11.3, 11.7: `sum(list: [1,
+/// null, 3])` is 4); `None` when nothing is dropped.
+fn named_arguments(bif: &Bif, args: &Value) -> Option<Value> {
+  if !takes_numbers_only(bif) {
+    return None;
+  }
+  let Value::NamedParameters(given) = args else {
+    return None;
+  };
+  let list = rheon_feel::Name::from("list");
+  let (Value::List(items), position) = given.get(&list)? else {
+    return None;
+  };
+  if items.iter().all(|item| matches!(item, Value::Number(_))) {
+    return None;
+  }
+  let numbers: Vec<Value> = items.iter().filter(|item| matches!(item, Value::Number(_))).cloned().collect();
+  let mut given = given.clone();
+  given.insert(list, (Value::List(numbers.into()), *position));
+  Some(Value::NamedParameters(given))
+}
+
+/// The value of the FEEL operation `feel`, or, when it is null, what `b_feel` makes of that null.
+/// When B-FEEL gives a value there, the errors that the operation recorded become warnings: B-FEEL
+/// defines that result as normal ("null only means missing data, never an error", DMN 1.7 Beta 1,
+/// 11.1), so a strict evaluation accepts it, and the messages stay to be read.
+pub(crate) fn defaulted(feel: impl FnOnce() -> Value, b_feel: impl FnOnce(Value) -> Value) -> Value {
+  let mark = diagnostics::tentative_mark();
+  let value = feel();
+  if !value.is_null() {
+    drop(mark);
+    return value;
+  }
+  let value = b_feel(value);
+  if value.is_null() {
+    drop(mark);
+  } else {
+    mark.demote();
+  }
+  value
+}
+
+pub(crate) fn default_if_null(bif: &Bif, result: Value) -> Value {
   if result.is_null()
     && let Some(default) = bif_default(bif)
   {
@@ -130,10 +180,12 @@ pub fn to_duration(value: &Value) -> Value {
 /// matching rule, in the spec's order of precedence, converts the mismatched operand and FEEL
 /// semantics apply to the converted values ([Arithmetic::apply] each time).
 pub(crate) fn arithmetic(operator: Arithmetic, lhs: Value, rhs: Value) -> Value {
-  let feel = operator.apply(lhs.clone(), rhs.clone());
-  if !feel.is_null() {
-    return feel;
-  }
+  let (l, r) = (lhs.clone(), rhs.clone());
+  defaulted(move || operator.apply(l, r), move |feel| converted_arithmetic(operator, lhs, rhs, feel))
+}
+
+/// [arithmetic] once the FEEL result `feel` is null: the conversion of the first matching rule.
+fn converted_arithmetic(operator: Arithmetic, lhs: Value, rhs: Value, feel: Value) -> Value {
   let either = |f: fn(&Value) -> bool| f(&lhs) || f(&rhs);
   // convert the operand that does not satisfy `is`, keep the other one
   let convert = |is: fn(&Value) -> bool, to: fn(&Value) -> Value| {

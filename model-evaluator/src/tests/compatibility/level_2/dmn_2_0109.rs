@@ -11,7 +11,7 @@ fn _0001() {
     &MODEL_NAME,
     "Approval",
     &ctx,
-    r#"[{Rate: "Best", Status: "Approved"}, {Rate: "Standard", Status: "Approved"}]"#,
+    r#"[{Status: "Approved", Rate: "Best"}, {Status: "Approved", Rate: "Standard"}]"#,
   );
 }
 
@@ -24,7 +24,7 @@ fn _0002() {
     &MODEL_NAME,
     "Approval",
     &ctx,
-    r#"[{Rate: "Standard", Status: "Approved"}]"#,
+    r#"[{Status: "Approved", Rate: "Standard"}]"#,
   );
 }
 
@@ -37,6 +37,6 @@ fn _0003() {
     &MODEL_NAME,
     "Approval",
     &ctx,
-    r#"[{Rate: "Standard", Status: "Declined"}]"#,
+    r#"[{Status: "Declined", Rate: "Standard"}]"#,
   );
 }

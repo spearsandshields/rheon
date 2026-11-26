@@ -366,32 +366,52 @@ impl Display for Value {
 }
 
 impl ToFeelString for Value {
-  /// Converts [Value] into `FEEL` string.
+  /// Converts [Value] into `FEEL` string. A null is written as `null`, also one that has a
+  /// reason and wherever it stands inside the value: the reason is no part of the value.
   fn to_feel_string(&self) -> String {
     match self {
       Value::Context(context) => context.to_feel_string(),
       Value::List(items) => values_to_feel_string(items),
       Value::String(value) => format!("\"{}\"", value.replace('"', "\\\"")),
+      Value::Null(_) => "null".to_string(),
+      Value::Range(start, start_type, end, end_type) => format!(
+        "{}{}..{}{}",
+        if start_type.closed() { "[" } else { "(" },
+        if start_type.undefined() { String::new() } else { start.to_feel_string() },
+        if end_type.undefined() { String::new() } else { end.to_feel_string() },
+        if end_type.closed() { "]" } else { ")" }
+      ),
+      Value::UnaryGreater(value) => format!("> {}", value.to_feel_string()),
+      Value::UnaryGreaterOrEqual(value) => format!(">= {}", value.to_feel_string()),
+      Value::UnaryLess(value) => format!("< {}", value.to_feel_string()),
+      Value::UnaryLessOrEqual(value) => format!("<= {}", value.to_feel_string()),
+      Value::UnaryEqual(value) => format!("= {}", value.to_feel_string()),
+      Value::UnaryNotEqual(value) => format!("!= {}", value.to_feel_string()),
       other => other.to_string(),
     }
   }
 }
 
 impl Jsonify for Value {
-  /// Converts a [Value] into `JSON`.
+  /// The value as JSON text (DMN 1.7 Beta 1, Table 48), as the HTTP server and the command line
+  /// write it: strings and the keys of contexts escaped as JSON escapes them, dates, times and
+  /// durations as ISO 8601 strings (a date and time with an IANA zone with its offset and the
+  /// zone in brackets, [FeelDateTime::json_text]), a list as an array, a context as an object, a
+  /// range as its text, a function as the text of its type, and every null as `null` (its reason
+  /// is not part of the value).
   fn jsonify(&self) -> String {
     match self {
       Value::Boolean(value) => format!("{value}"),
       Value::Number(value) => value.jsonify(),
-      Value::String(s) => format!(r#""{s}""#),
-      Value::Date(date) => format!(r#""{}""#, date),
-      Value::Time(time) => format!(r#""{}""#, time),
-      Value::DateTime(date_time) => format!(r#""{}""#, date_time),
-      Value::DaysAndTimeDuration(dt_duration) => format!(r#""{}""#, dt_duration),
-      Value::YearsAndMonthsDuration(ym_duration) => format!(r#""{}""#, ym_duration),
+      Value::String(s) => json_string(s),
+      Value::Date(date) => json_string(&date.to_string()),
+      Value::Time(time) => json_string(&time.to_string()),
+      Value::DateTime(date_time) => json_string(&date_time.json_text()),
+      Value::DaysAndTimeDuration(dt_duration) => json_string(&dt_duration.to_string()),
+      Value::YearsAndMonthsDuration(ym_duration) => json_string(&ym_duration.to_string()),
       Value::ExpressionList(items) => values_to_jsonify(items),
       Value::Context(ctx) => ctx.jsonify(),
-      Value::ContextEntryKey(name) => name.to_string(),
+      Value::ContextEntryKey(name) => json_string(&name.to_string()),
       Value::List(items) => values_to_jsonify(items),
       range @ (Value::Range(..)
       | Value::UnaryGreater(_)
@@ -399,17 +419,36 @@ impl Jsonify for Value {
       | Value::UnaryLess(_)
       | Value::UnaryLessOrEqual(_)
       | Value::UnaryEqual(_)
-      | Value::UnaryNotEqual(_)) => format!(r#""{}""#, range),
-      Value::Null(message) => {
-        if let Some(details) = message {
-          format!(r#""null({details})""#)
-        } else {
-          "null".to_string()
-        }
+      | Value::UnaryNotEqual(_)) => json_string(&range.to_string()),
+      Value::Null(_) => "null".to_string(),
+      function @ (Value::FunctionDefinition(_) | Value::BuiltInFunction(_) | Value::ExternalJavaFunction(..) | Value::ExternalPmmlFunction(..)) => {
+        json_string(&function.type_of().to_string())
       }
-      _ => format!("jsonify trait not implemented for value: {self}"),
+      other => json_string(&other.to_string()),
     }
   }
+}
+
+/// `text` as a JSON string: `"` and `\` escaped, the two-character escapes where JSON has one, and
+/// `\u00XX` for the other control characters, as `serde_json` writes it.
+pub fn json_string(text: &str) -> String {
+  let mut out = String::with_capacity(text.len() + 2);
+  out.push('"');
+  for c in text.chars() {
+    match c {
+      '"' => out.push_str("\\\""),
+      '\\' => out.push_str("\\\\"),
+      '\n' => out.push_str("\\n"),
+      '\r' => out.push_str("\\r"),
+      '\t' => out.push_str("\\t"),
+      '\u{08}' => out.push_str("\\b"),
+      '\u{0C}' => out.push_str("\\f"),
+      c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+      c => out.push(c),
+    }
+  }
+  out.push('"');
+  out
 }
 
 impl Value {
@@ -715,15 +754,11 @@ impl Value {
     }
   }
 
-  /// `true` when [Value::try_coerced] returns the value unchanged: a function definition
-  /// (whatever the target type), a built-in function whose type conforms to the target type,
-  /// or a value that conforms to it.
+  /// `true` when [Value::try_coerced] returns the value unchanged: a value that conforms to the
+  /// target type, a function value included (10.3.2.9.2): a function is kept only where its
+  /// type conforms, and is null elsewhere, as every other value.
   fn needs_no_coercion(&self, target_type: &FeelType) -> bool {
-    match self {
-      Value::FunctionDefinition(_) => true,
-      Value::BuiltInFunction(bif) if bif.feel_type().is_conformant(target_type) => true,
-      _ => self.is_conformant(target_type),
-    }
+    self.is_conformant(target_type)
   }
 
   /// The implicit conversions of [Value::try_coerced] of a value that needs one: from date to
@@ -732,9 +767,10 @@ impl Value {
     match self {
       // from date to date and time: UTC midnight (DMN 1.6 §10.3.2.9.4 and §10.3.2.3.5)
       Value::Date(date) if *target_type == FeelType::DateTime => {
-        return Some(Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::midnight(FeelZone::Utc))));
+        return FeelDateTime::try_new(date.clone(), FeelTime::midnight(FeelZone::Utc)).map(Value::DateTime);
       }
-      // from singleton list
+      // from singleton list, or else to singleton list: a list is a value of type T too, and
+      // where list<T> is expected it is the list of it (`[1, 2]` for list<list<number>>)
       Value::List(items) => {
         if items.len() == 1 {
           let value = items[0].clone();
@@ -744,8 +780,13 @@ impl Value {
           if let Value::Date(date) = &value
             && *target_type == FeelType::DateTime
           {
-            return Some(Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::midnight(FeelZone::Utc))));
+            return FeelDateTime::try_new(date.clone(), FeelTime::midnight(FeelZone::Utc)).map(Value::DateTime);
           }
+        }
+        if let FeelType::List(list_type) = target_type
+          && self.is_conformant(list_type)
+        {
+          return Some(Value::List(vec![self.clone()].into()));
         }
       }
       // to singleton list
@@ -897,24 +938,41 @@ pub fn truncated_fraction_warning(source: &(impl MessageArg + ?Sized), dropped: 
 /// Records [truncated_fraction_warning] in the active collection when digits were `dropped`.
 pub fn warn_truncated_fraction(source: &(impl MessageArg + ?Sized), dropped: Option<&str>) {
   if let Some(dropped) = dropped {
-    diagnostics::warn(&truncated_fraction_warning(source, dropped));
+    diagnostics::warn(diagnostics::WarningCode::FractionTruncated, &truncated_fraction_warning(source, dropped));
+  }
+}
+
+/// The warning that the date string `source` had the zone `zone`, which a date does not hold (DMN
+/// 1.7 Beta 1, 10.3.2.3.5: a date is a year, a month and a day): the date is taken without it.
+pub fn dropped_date_zone_warning(source: &(impl MessageArg + ?Sized), zone: &str) -> String {
+  compose(format_args!(
+    "the date '{}' has the zone '{}', which a date does not hold; the date is taken without it",
+    arg(source),
+    arg(zone)
+  ))
+}
+
+/// Records [dropped_date_zone_warning] in the active collection when a `zone` was dropped.
+pub fn warn_dropped_date_zone(source: &(impl MessageArg + ?Sized), zone: Option<&str>) {
+  if let Some(zone) = zone {
+    diagnostics::warn(diagnostics::WarningCode::DateZoneDropped, &dropped_date_zone_warning(source, zone));
   }
 }
 
 /// Type alias to a collection of values.
 pub type Values = Vec<Value>;
 
-/// The type of the items of a list, `Null` for an empty one: the type of the first item when
-/// every other item's type conforms to it, `Any` otherwise. Whether they conform is decided
-/// without building a type ([FeelList::items_conform_to_first]), a pair with a shared list or
-/// context once, so only the first item's type is built: building or checking each item's type
-/// followed every path of a list that holds the same list on several paths.
+/// The type of the items of a list, `Null` for an empty one: the type of the item that every
+/// item's type conforms to, wherever it stands, `Any` when there is no such item. Which item it
+/// is is decided without building a type ([FeelList::item_of_the_widest_type]), a pair with a
+/// shared list or context once, so only that item's type is built: building or checking each
+/// item's type followed every path of a list that holds the same list on several paths.
 fn list_item_type(items: &FeelList, budget: &mut impl Budget) -> Option<FeelType> {
-  match items.first() {
-    Some(first) if items.items_conform_to_first() => first.type_of_within(budget),
-    first => {
+  match items.item_of_the_widest_type() {
+    Some(widest) => widest.type_of_within(budget),
+    None => {
       budget.take(1)?;
-      Some(if first.is_some() { FeelType::Any } else { FeelType::Null })
+      Some(if items.is_empty() { FeelType::Null } else { FeelType::Any })
     }
   }
 }

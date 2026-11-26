@@ -114,3 +114,19 @@ fn a_string_key_in_another_form_is_read_by_its_name() {
   // an entry of the same text is found first
   te_number(false, scope, r#"{"a b": 1, "a  b": 2}.a b"#, 1, 0);
 }
+
+/// The same in a text of many names: the names of a tree are looked up in a map once there are
+/// more than a few, and a key by the form FEEL reads a name in is no name of the tree (review
+/// of the analysis: such a key was not found, and the entry that read it was null).
+#[test]
+fn a_string_key_in_another_form_is_read_by_its_name_among_many_names() {
+  let scope = &te_scope("{}");
+  let others: String = (1..=20).map(|i| format!("x{i}: {i}, ")).collect();
+  te_number(false, scope, &format!(r#"{{"Date - Time": 4, {others}r: Date - Time + 1}}.r"#), 5, 0);
+  te_number(false, scope, &format!(r#"{{"Date - Time": 4, {others}r: Date-Time + x20}}.r"#), 24, 0);
+  te_number(false, scope, &format!(r#"{{{others}r: Date - Time + 1, "Date - Time": 4}}.r"#), 5, 0);
+  te_number(false, scope, &format!(r#"{{{others}"Date - Time": 4, f: function() Date - Time, r: f()}}.r"#), 4, 0);
+  te_number(false, scope, &format!(r#"{{{others}"a  b": 1, c: a b}}.c"#), 1, 0);
+  // two such keys, and a name of the tree that is the form of one
+  te_number(false, scope, &format!(r#"{{{others}"a  b": 1, "c  d": 2, r: a b + c d}}.r"#), 3, 0);
+}

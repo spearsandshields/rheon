@@ -56,6 +56,8 @@ pub enum TokenType {
   Mul = 306,
   Div = 307,
   Exp = 308,
+  /// `as`, after a complete operand (DMN 1.7 Beta 1, grammar rule 51).
+  As = 309,
   Instance = 310,
   Name = 311,
   NameDateTime = 312,

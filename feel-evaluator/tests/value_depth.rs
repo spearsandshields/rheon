@@ -123,8 +123,9 @@ fn every_channel_answers_at_500_levels() {
       // the result of a built-in
       ("append([], l499)", 500),
       ("get entries({a: l498})", 500),
-      ("context put({}, for i in 1..500 return \"a\", 0)", 500),
-      ("context put({}, for i in 1..499 return \"a\", [])", 500),
+      // a key list puts into the contexts its path names (it builds none)
+      ("context put(c499, for i in 1..499 return \"a\", [])", 500),
+      ("context put(c498, for i in 1..498 return \"a\", [[]])", 500),
       // a function: one level, and its closure context another
       ("(function(x) function() x)(l498)", 500),
       // a filter of a value that is no list, which applies to the list that holds it
@@ -149,8 +150,8 @@ fn every_channel_stops_at_501_levels() {
       "(function(f) f(f, 99))(function(g, n) if n = 0 then [[[[[[]]]]]] else [[[[[g(g, n - 1)]]]]])",
       "append([], l500)",
       "get entries({a: l499})",
-      "context put({}, for i in 1..501 return \"a\", 0)",
-      "context put({}, for i in 1..500 return \"a\", [])",
+      "context put(c500, for i in 1..500 return \"a\", [])",
+      "context put(c499, for i in 1..499 return \"a\", [[]])",
       "(function(x) function() x)(l499)",
       "c500[true]",
     ]);
@@ -158,14 +159,26 @@ fn every_channel_stops_at_501_levels() {
 }
 
 /// The cases the previous release ran without end, or exhausted the stack in: a loop that would go
-/// on deepening its results, and a key list that would build 100,000 contexts in each other.
+/// on deepening its results.
 #[test]
 fn a_deeper_value_stops_the_evaluation_before_it_is_built() {
   with_big_stack(|| {
     stopped(&[
       "for i in 1..100000 return if i = 1 then l498 else [partial[-1]]",
       "for i in 1..100000 return if i = 1 then c498 else {a: partial[-1]}",
-      "context put({}, for i in 1..100000 return \"a\", 0)",
+    ]);
+  });
+}
+
+/// A key list builds no context, however long it is (DMN 1.7 Beta 1, 10.3.4.10): a key the path
+/// does not have gets null, so the result is at most one level deeper than the contexts it names;
+/// a path blocked by an entry that is not a context gives null.
+#[test]
+fn a_long_key_list_builds_no_context() {
+  with_big_stack(|| {
+    answers(&[
+      ("context put({}, for i in 1..100000 return \"a\", 0)", 1),
+      ("context put(c500, for i in 1..100000 return \"a\", 0)", 500),
     ]);
   });
 }

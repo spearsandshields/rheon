@@ -389,18 +389,25 @@ fn test_jsonify() {
   assert_eq!(r#""P3Y2M""#, Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(3, 2).unwrap()).jsonify());
   assert_eq!(r#"[]"#, Value::ExpressionList(Values::default()).jsonify());
   assert_eq!(r#"{}"#, Value::from(FeelContext::default()).jsonify());
-  assert_eq!(r#"alpha"#, Value::ContextEntryKey("alpha".into()).jsonify());
+  assert_eq!(r#""alpha""#, Value::ContextEntryKey("alpha".into()).jsonify());
   assert_eq!(r#"[]"#, Value::List(Values::default().into()).jsonify());
   assert_eq!(
     r#"[1.2, 2.1]"#,
     Value::List(vec![Value::Number(FeelNumber::new(12, 1)), Value::Number(FeelNumber::new(21, 1))].into()).jsonify()
   );
   assert_eq!(r#"null"#, Value::Null(None).jsonify());
-  assert_eq!(r#""null(error details)""#, Value::Null(Some("error details".to_string())).jsonify());
+  // a null is JSON null, also with a reason (Table 48)
+  assert_eq!(r#"null"#, Value::Null(Some("error details".to_string())).jsonify());
+  // strings and keys are escaped
+  assert_eq!(r#""a \"b\"\nc\\""#, Value::String("a \"b\"\nc\\".into()).jsonify());
+  let mut ctx = FeelContext::default();
+  ctx.set_entry(&"say \"hi\"".into(), Value::Boolean(true));
+  assert_eq!(r#"{"say \"hi\"": true}"#, Value::from(ctx).jsonify());
   let n_start = Box::new(Value::Number(FeelNumber::new(1, 0)));
   let n_end = Box::new(Value::Number(FeelNumber::new(12, 0)));
   assert_eq!(r#""(1..12]""#, Value::Range(n_start, IntervalType::Opened, n_end, IntervalType::Closed).jsonify());
-  assert_eq!(r#"jsonify trait not implemented for value: Irrelevant"#, Value::Irrelevant.jsonify());
+  // what has no JSON form is written as its text, a JSON string
+  assert_eq!(r#""Irrelevant""#, Value::Irrelevant.jsonify());
 }
 
 #[test]
@@ -507,7 +514,8 @@ fn test_coerced() {
   assert_eq!(r#"["a"]"#, coerced(&v_string, &T_LIST_D));
   assert_eq!(r#""A""#, coerced(&v_list_string_1, T_STRING));
   assert_eq!(r#"10"#, coerced(&v_number, T_NUMBER));
-  assert_eq!(r#"FunctionDefinition([(Name("a"), Number)],_,false,[],{},number)"#, coerced(&v_function_a, T_NUMBER));
+  // a function is kept only where its type conforms (10.3.2.9.4)
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_function_a, T_NUMBER));
   assert_eq!(r#"null(after coercion)"#, coerced(&v_irrelevant, T_NUMBER));
   assert_eq!(r#"null(after coercion)"#, coerced(&v_context_d, &T_CONTEXT_A));
   assert_eq!(r#"2022-09-27T00:00:00Z"#, coerced(&v_date, T_DATE_TIME));
@@ -529,9 +537,15 @@ fn test_type_of_list_items() {
   };
   let list_of = |item_type: FeelType| FeelType::List(Box::new(item_type));
   let context_a = FeelType::Context(BTreeMap::from([(NAME_A.clone(), FeelType::Number)]));
-  // fixed cases: a null item (first, its type is conformed to only by null; later, it conforms to
-  // any item type), a missing entry, extra entries, nested lists
-  eq_typ!(list_of(FeelType::Any), Value::List(vec![value_null!(), value_number!(1)].into()));
+  // fixed cases: a null item (first or later, it conforms to any item type), a missing entry,
+  // extra entries, nested lists
+  eq_typ!(list_of(FeelType::Number), Value::List(vec![value_null!(), value_number!(1)].into()));
+  eq_typ!(list_of(FeelType::Number), Value::List(vec![value_number!(1), value_null!()].into()));
+  eq_typ!(list_of(context_a.clone()), Value::List(vec![value_null!(), ctx(&[("a", value_number!(1))])].into()));
+  eq_typ!(
+    list_of(context_a.clone()),
+    Value::List(vec![ctx(&[("a", value_number!(2)), ("b", Value::String("x".into()))]), ctx(&[("a", value_number!(1))])].into())
+  );
   eq_typ!(list_of(context_a.clone()), Value::List(vec![ctx(&[("a", value_number!(1))]), value_null!()].into()));
   eq_typ!(
     list_of(FeelType::Any),
@@ -553,21 +567,16 @@ fn full() -> bool {
 }
 
 /// The type of a value by the list typing rule of [Value::type_of], applied at every level and
-/// with [FeelType::is_conformant] on the built type of every item: a list has the type of its
-/// first item when the type of every other item conforms to it, `Any` otherwise.
+/// with [FeelType::is_conformant] on the built type of every item: a list has the type of the
+/// item that the type of every item conforms to, wherever it stands, `Any` when there is none.
 fn reference_type(value: &Value) -> FeelType {
   match value {
-    Value::List(items) => match items.split_first() {
-      None => FeelType::List(Box::new(FeelType::Null)),
-      Some((first, others)) => {
-        let item_type = reference_type(first);
-        if others.iter().all(|item| reference_type(item).is_conformant(&item_type)) {
-          FeelType::List(Box::new(item_type))
-        } else {
-          FeelType::List(Box::new(FeelType::Any))
-        }
-      }
-    },
+    Value::List(items) if items.is_empty() => FeelType::List(Box::new(FeelType::Null)),
+    Value::List(items) => {
+      let types: Vec<FeelType> = items.iter().map(reference_type).collect();
+      let widest = types.iter().find(|widest| types.iter().all(|item| item.is_conformant(widest)));
+      FeelType::List(Box::new(widest.cloned().unwrap_or(FeelType::Any)))
+    }
     Value::Context(ctx) => FeelType::Context(ctx.iter().map(|(name, value)| (name.clone(), reference_type(value))).collect()),
     other => other.type_of(),
   }

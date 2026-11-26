@@ -244,6 +244,34 @@ impl FunctionBody {
   }
 }
 
+impl FunctionBody {
+  /// Whether two bodies are the same body: the same code, not only bodies of the same kind (the
+  /// [PartialEq] of bodies compares their kinds). A FEEL body is the same when it is the same
+  /// body of the same code; a body of a DMN model or an external function when it is the same
+  /// evaluator.
+  pub fn is_same(&self, other: &Self) -> bool {
+    use FunctionBody as B;
+    match (self, other) {
+      (B::Feel(code1, body1), B::Feel(code2, body2)) => Arc::ptr_eq(code1, code2) && body1 == body2,
+      (B::Conditional(e1), B::Conditional(e2))
+      | (B::Context(e1), B::Context(e2))
+      | (B::DecisionService(e1), B::DecisionService(e2))
+      | (B::DecisionTable(e1), B::DecisionTable(e2))
+      | (B::Every(e1), B::Every(e2))
+      | (B::External(e1), B::External(e2))
+      | (B::Filter(e1), B::Filter(e2))
+      | (B::For(e1), B::For(e2))
+      | (B::FunctionDefinition(e1), B::FunctionDefinition(e2))
+      | (B::Invocation(e1), B::Invocation(e2))
+      | (B::List(e1), B::List(e2))
+      | (B::LiteralExpression(e1), B::LiteralExpression(e2))
+      | (B::Relation(e1), B::Relation(e2))
+      | (B::Some(e1), B::Some(e2)) => Arc::ptr_eq(e1, e2),
+      _ => false,
+    }
+  }
+}
+
 impl Debug for FunctionBody {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {

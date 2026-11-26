@@ -39,6 +39,12 @@ impl ScopeFrame {
     }
   }
 
+  /// True when this frame holds `context` itself, shared and not written into since it was
+  /// pushed ([FeelScope::push_shared]): what is known of `context` is then true of the frame.
+  pub fn shares(&self, context: &Arc<FeelContext>) -> bool {
+    matches!(&self.0, Frame::Shared(held) if Arc::ptr_eq(held, context))
+  }
+
   /// The context of this frame: moved out of a frame that holds it alone, copied otherwise.
   pub fn into_context(self) -> FeelContext {
     match self.0 {
@@ -103,9 +109,9 @@ impl fmt::Display for FeelScope {
 }
 
 impl Jsonify for FeelScope {
-  /// Converts this [FeelScope] to JSON text.
+  /// The contexts of this [FeelScope], bottom first, as a JSON array of objects.
   fn jsonify(&self) -> String {
-    format!("[{}]", self.stack.borrow_mut().iter().map(|ctx| ctx.to_string()).collect::<Vec<String>>().join(", "))
+    format!("[{}]", self.stack.borrow_mut().iter().map(|ctx| ctx.jsonify()).collect::<Vec<String>>().join(", "))
   }
 }
 

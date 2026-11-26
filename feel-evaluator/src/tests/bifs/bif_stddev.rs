@@ -43,7 +43,12 @@ fn _0008() {
 
 #[test]
 fn _0009() {
-  te_null(false, &scope!(), r#"stddev(l: [2,4,7,5])"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"stddev(l: [2,4,7,5])"#,
+    r#"expected the parameters of stddev(list): number, found the parameter name 'l'"#,
+  );
 }
 
 #[test]

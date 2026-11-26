@@ -1,0 +1,1554 @@
+[
+  {
+    "expression": "time(\"10:00:00\") between time(\"09:00:00Z\") and time(\"11:00:00Z\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00@Europe/Paris\") = time(\"10:00:00\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") < time(\"11:00:00Z\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "time(\"10:00:00\") < time(\"11:00:00Z\")",
+      "errorMode": "strict"
+    },
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "time(\"10:00:00\") < time(\"11:00:00Z\")",
+      "language": "b-feel"
+    },
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") <= time(\"11:00:00Z\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"11:00:00Z\") > time(\"10:00:00\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"11:00:00Z\") >= time(\"10:00:00\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") <= time(\"10:00:00+02:00\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") >= time(\"10:00:00+02:00\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") = time(\"10:00:00+02:00\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") != time(\"10:00:00+02:00\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"00:00:00\") < time(\"14:00:00Z\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"00:00:00\") <= time(\"14:00:00Z\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"00:00:00\") < time(\"14:00:01Z\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"00:00:00\") <= time(\"14:00:01Z\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"23:00:00\") > time(\"08:59:59Z\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"23:00:00\") >= time(\"08:59:59Z\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") <= time(\"10:00:00@Europe/Paris\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") >= time(\"10:00:00@Europe/Paris\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") = time(\"10:00:00@Europe/Paris\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") != time(\"10:00:00@Europe/Paris\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"23:30:00\") between time(\"01:00:00Z\") and time(\"23:59:59\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sort([time(\"10:00:00\"), time(\"09:00:00Z\")], function(a, b) a < b)",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[\"10:00:00\", \"09:00:00Z\"]",
+        "feel": "[10:00:00, 09:00:00Z]",
+        "isNull": false,
+        "type": "list<time>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "10:00:00",
+                  "type": "xsd:time"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "09:00:00Z",
+                  "type": "xsd:time"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[\"09:00:00Z\", \"10:00:00\"]",
+        "feel": "[09:00:00Z, 10:00:00]",
+        "isNull": false,
+        "type": "list<time>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "09:00:00Z",
+                  "type": "xsd:time"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "10:00:00",
+                  "type": "xsd:time"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "@\"2023-02-09T23:59:59Z\" >= @\"2023-02-09T00:00:00\"",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "@\"2023-02-09T10:00:00Z\" >= @\"2023-02-09T00:00:00\"",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "@\"2026-10-17T10:00:00\" < @\"2026-10-17T11:00:00Z\"",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "@\"2026-10-17T10:00:00\" < @\"2026-10-18T11:00:00Z\"",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "if time(\"10:00:00\") < time(\"11:00:00Z\") then 1 else 2",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[time(\"10:00:00\"), time(\"12:00:00\")][item < time(\"11:00:00Z\")]",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[\"10:00:00\"]",
+        "feel": "[10:00:00]",
+        "isNull": false,
+        "type": "list<time>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "10:00:00",
+                  "type": "xsd:time"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  }
+]

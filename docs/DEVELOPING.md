@@ -53,7 +53,7 @@ npm run dev            # builds the runtime, then starts the Vite dev server
 | `bash tools/number-oracle/run.sh [quick\|full]` | Every number result of `dist/feel.wasm` judged against its truth under DMN 1.6, computed in Python with `decimal`, exact rationals and mpmath (`PYTHON` names an interpreter with the C `decimal` module and mpmath 1.3.0, see `tools/number-oracle/README.md`); the known wrong classes are listed in `known-wrong.json`, and a listed class that no longer fails fails the run. CI runs the quick size |
 | `bash scripts/tck.sh [--only <folder>]…` | The official DMN TCK with DecisionToolkit's patches and the tests of `tck-addendum/`, against the dsntk server of this tree with DecisionToolkit's runner; the three repositories are fetched into `.tck/` at the commits in `scripts/tck-pins.txt`, and the run exits 1 when a test fails or passes against `docs/tck-baseline.txt` (`node scripts/tck-summary.mjs .tck/out/tck_results.csv --update-baseline` rewrites it). `npm run test:tck-summary` checks the comparison on small result files |
 | `scripts/publish-crates.sh` | Publishes the `rheon-*` crates that crates.io lacks at the workspace version, waiting out the new-crate rate limit (see `docs/FORK.md`, "Publishing") |
-| `cargo test --workspace` | The engine's own suites (about 4,200 tests). A few upstream tests need things CI does not have and are skipped there: `external_functions` and `dmn_3_0076` (a Java external-function service), `compare_the_number_of_models` (a DMN TCK checkout at `../tck`), the server's `utils::tests::getting_*` (a checkout directory named `dsntk`); the tiers pass the same skips (`scripts/tier.mjs`) |
+| `cargo test --workspace` | The engine's own suites (about 4,200 tests). A few upstream tests need things CI does not have and are skipped there: `compare_the_number_of_models` (a DMN TCK checkout at `../tck`), the server's `utils::tests::getting_*` (a checkout directory named `dsntk`); the tiers pass the same skips (`scripts/tier.mjs`) |
 | `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps -p rheon-feel-number …` | The API documentation of the published crates (the `-p` list is in `scripts/tier.mjs`, which runs it in the release tier), with every rustdoc warning, such as an intra-doc link that resolves to nothing, an error |
 | `RHEON_FULL_TESTS=1 cargo test --release -p rheon-feel-number -p rheon-feel -p rheon-feel-parser -p rheon-feel-wasm` | The randomized and exhaustive tests of those crates at full size (by default they run a smaller number of cases; for `rheon-feel-wasm`, the edge-operand product with all its binary templates). `RHEON_PARSER_CORPUS=<absolute path of tools/feel-corpus>` with `-- --include-ignored` adds the parser's corpus test |
 
@@ -107,7 +107,7 @@ short, rheon's engine differs from upstream dsntk in:
 - a **pure-Rust decimal128 core** (`feel-number`, on dashu-float; no C library); correctly
   rounded `exp`, `ln`, `log` and fractional `**`, and every number result judged by the number
   oracle against DMN 1.6 (`tools/number-oracle/`);
-- **wasm32 support** (Java external functions become a null with a reason; 32-bit conversions);
+- **wasm32 support** (32-bit conversions; external Java functions are a null with a reason on every target, with no network call);
 - **robustness**: every user-reachable panic found in review is a FEEL null or an error, a call
   depth limit, an iterative AST drop, linear `for` loops and list literals (upstream was quadratic);
 - **engine fixes** found by review and by the DMN TCK: scale rounding, lost-step `for` ranges,

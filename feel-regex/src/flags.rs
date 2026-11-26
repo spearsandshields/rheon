@@ -44,6 +44,11 @@ impl Flags {
     Ok(options)
   }
 
+  /// Whether `.` matches every character (`s`).
+  pub fn dot_all(&self) -> bool {
+    self.dot_all
+  }
+
   /// Whether every character of the pattern represents itself (`q`), and so does every
   /// character of a replacement string.
   pub fn literal(&self) -> bool {
@@ -54,7 +59,7 @@ impl Flags {
   /// written, so no engine is needed: there is no flag, or only `q`; the pattern is not empty;
   /// with `q` any character stands for itself, and without it the pattern has only letters,
   /// digits, spaces and punctuation that no pattern syntax gives a meaning; and it has no line
-  /// end, the one thing that an input is changed for before it is matched.
+  /// end.
   pub fn plain(&self, pattern: &str) -> bool {
     if self.case_insensitive || self.multi_line || self.dot_all || self.free_spacing || pattern.is_empty() {
       return false;
@@ -73,7 +78,13 @@ impl Flags {
   /// representing themselves", and "If it is used together with the m, s, or x flag, that flag
   /// has no effect": the pattern is quoted, and only `i` applies. Otherwise `x` removes the
   /// whitespace first, and `translate` turns the result into the engine's syntax.
+  #[cfg(test)]
   pub fn source(&self, pattern: &str, translate: impl FnOnce(&str) -> String) -> String {
+    self.try_source(pattern, |pattern| Ok::<String, ()>(translate(pattern))).unwrap_or_default()
+  }
+
+  /// [Flags::source] with a translation that may refuse the pattern.
+  pub fn try_source<E>(&self, pattern: &str, translate: impl FnOnce(&str) -> Result<String, E>) -> Result<String, E> {
     let mut source = String::with_capacity(pattern.len() + 8);
     if self.literal {
       if self.case_insensitive {
@@ -85,7 +96,7 @@ impl Flags {
         }
         source.push(ch);
       }
-      return source;
+      return Ok(source);
     }
     if self.case_insensitive || self.multi_line || self.dot_all {
       source.push_str("(?");
@@ -97,11 +108,11 @@ impl Flags {
       source.push(')');
     }
     if self.free_spacing {
-      source.push_str(&translate(&without_whitespace(pattern)));
+      source.push_str(&translate(&without_whitespace(pattern))?);
     } else {
-      source.push_str(&translate(pattern));
+      source.push_str(&translate(pattern)?);
     }
-    source
+    Ok(source)
   }
 }
 

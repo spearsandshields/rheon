@@ -148,17 +148,32 @@ fn _0017() {
 
 #[test]
 fn _0018() {
-  te_null(false, &scope!(), r#"overlaps after(range1: [1..5],r2: [3..8])"#, "parameter 'range2' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"overlaps after(range1: [1..5],r2: [3..8])"#,
+    "expected the parameters of overlaps after(range1, range2): boolean, found the parameter name 'r2'",
+  );
 }
 
 #[test]
 fn _0019() {
-  te_null(false, &scope!(), r#"overlaps after(r1: [1..5],range2: [3..8])"#, "parameter 'range1' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"overlaps after(r1: [1..5],range2: [3..8])"#,
+    "expected the parameters of overlaps after(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
 fn _0020() {
-  te_null(false, &scope!(), r#"overlaps after(r1: [1..5], r2: [3..8])"#, "parameter 'range1' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"overlaps after(r1: [1..5], r2: [3..8])"#,
+    "expected the parameters of overlaps after(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
@@ -167,6 +182,6 @@ fn _0021() {
     false,
     &scope!(),
     r#"overlaps after(1, [3..8])"#,
-    "[core::overlaps] invalid argument type, expected range<scalar>, actual type is number",
+    "[core::overlaps after] invalid argument type, expected range of scalars, actual type is number",
   );
 }

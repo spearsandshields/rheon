@@ -572,7 +572,10 @@ fn list_item_context_types() {
     (vec![one("a"), one("b")], false),
     (vec![one("a"), number(1)], false),
     (vec![number(1), one("a")], false),
-    (vec![Value::Null(None), one("a")], false),
+    // a null conforms to the type of the context beside it, wherever it stands
+    (vec![Value::Null(None), one("a")], true),
+    (vec![one("a"), Value::Null(None)], true),
+    (vec![Value::Null(None), Value::Null(None)], false),
     (vec![Value::List(vec![one("a")].into())], false),
     (vec![], false),
     (vec![nested("a", one("b")), nested("a", one("b"))], true),
@@ -596,9 +599,7 @@ fn list_item_context_types() {
     let node = list_item_node(&list);
     assert_eq!(expected.is_some(), node.is_some(), "{list:?}");
     if let (Some(FeelType::Context(entries)), Some((node, item))) = (&expected, node) {
-      // the node is the first item, whose type is the item type
-      let Value::List(items) = &list else { unreachable!() };
-      assert!(std::ptr::eq(item, &items[0]), "{list:?}");
+      // the node is the item whose type is the item type
       assert_eq!(expected, Some(item.type_of()), "{list:?}");
       match node {
         Node::Context(ctx) => assert!(ctx.iter().map(|(name, _)| name).eq(entries.keys()), "{list:?}"),

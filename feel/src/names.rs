@@ -93,9 +93,9 @@ impl MessageArg for Name {
 }
 
 impl Jsonify for Name {
-  /// Converts [Name] to its `JSON` representation.
+  /// The name as a JSON string, escaped as JSON escapes it.
   fn jsonify(&self) -> String {
-    self.0.as_ref().to_string()
+    crate::values::json_string(self.0.as_ref())
   }
 }
 

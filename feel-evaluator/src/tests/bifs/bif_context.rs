@@ -88,17 +88,17 @@ fn _0016() {
 
 #[test]
 fn _0017() {
-  te_null(false, &scope!(), r#"context(entris: {key:"a", value:1})"#, "parameter 'entries' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"context(entris: {key:"a", value:1})"#,
+    "expected the parameters of context(entries): context, found the parameter name 'entris'",
+  );
 }
 
 #[test]
 fn _0018() {
-  te_null(
-    false,
-    &scope!(),
-    r#"context("foo")"#,
-    "[core::context] invalid argument type, expected list or context, actual type is string",
-  );
+  te_null(false, &scope!(), r#"context("foo")"#, r#"context: invalid entry, expected context, actual type is string"#);
 }
 
 #[test]

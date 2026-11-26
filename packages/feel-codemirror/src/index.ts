@@ -1,7 +1,7 @@
 /**
  * CodeMirror 6 support for FEEL from the rheon engine's own parser: the colours, the error
- * marks, the completions and the hint of the invoked function are what the engine answers for
- * the text (`syntax`, `complete`, docs/CONTRACT.md §3), so the editor reads a text as the
+ * marks, the completions, the hint of the invoked function and what shows over a name are what
+ * the engine answers for the text (`syntax`, `complete`, `hover`, docs/CONTRACT.md §3), so the editor reads a text as the
  * engine evaluates it.
  *
  *   const engine = await FeelEngine.create({ wasmUrl });
@@ -14,13 +14,15 @@ import { autocompletion, snippetCompletion, type Completion, type CompletionCont
 import { linter, type Diagnostic } from '@codemirror/lint';
 import { keymap } from '@codemirror/view';
 import { Compartment, Facet, StateEffect, StateField, type EditorState, type Extension } from '@codemirror/state';
-import { Decoration, EditorView, ViewPlugin, showTooltip, type DecorationSet, type Tooltip, type ViewUpdate } from '@codemirror/view';
-import type { CompleteResponse, CompletionCall, CompletionItem, EditorOptions, FormatResponse, FunctionSignature, SyntaxResponse } from '@rheon/feel-runtime';
+import { Decoration, EditorView, ViewPlugin, hoverTooltip, showTooltip, type DecorationSet, type Tooltip, type ViewUpdate } from '@codemirror/view';
+import type { CompleteResponse, CompletionCall, CompletionItem, EditorOptions, FormatResponse, FunctionSignature, Hover, HoverResponse, SyntaxResponse } from '@rheon/feel-runtime';
 
-/** What answers the editor: a `FeelEngine` (a worker), or anything with these two methods; the answers may be promises or values. */
+/** What answers the editor: a `FeelEngine` (a worker), or anything with these methods; the answers may be promises or values. */
 export interface FeelSource {
-  syntax(expression: string, opts: EditorOptions & { tree?: boolean }): Promise<SyntaxResponse> | SyntaxResponse;
+  syntax(expression: string, opts: EditorOptions & { tree?: boolean; check?: boolean }): Promise<SyntaxResponse> | SyntaxResponse;
   complete(expression: string, cursor: number, opts: EditorOptions): Promise<CompleteResponse> | CompleteResponse;
+  /** Needed only for what shows over a name (`hover`). */
+  hover?(expression: string, at: number, opts: EditorOptions): Promise<HoverResponse> | HoverResponse;
   /** Needed only for `formatDocument`. */
   format?(expression: string, opts: EditorOptions & { width?: number }): Promise<FormatResponse> | FormatResponse;
 }
@@ -36,12 +38,20 @@ export interface FeelEditorConfig extends FeelScope {
   templates?: boolean;
   /** Whether the answers hold the nodes of the text (`syntaxOf(state).nodes`; default false). */
   tree?: boolean;
+  /**
+   * Whether a text that parses is checked too (default false): a name that nothing gives, an entry that a context has
+   * not, a deprecated name, a value that is none of those listed, an operation that is always null. They are marked as
+   * warnings and hints beside the errors.
+   */
+  check?: boolean;
   /** Called with every answer that the editor takes. */
   onSyntax?: (syntax: FeelSyntax) => void;
   /** The most characters of a line that `formatDocument` aims at (default 80). */
   formatWidth?: number;
   /** Whether a hint shows the signatures of the built-in function whose parentheses the cursor is in (default true). */
   signatureHelp?: boolean;
+  /** Whether the type of a name, and what the outline or the engine says of it, shows when the pointer rests on it (default true; needs an engine that answers `hover`). */
+  hover?: boolean;
 }
 
 /** A `syntax` answer that succeeded. */
@@ -52,6 +62,7 @@ export function instanceSource(instance: { call(request: object): unknown }): Fe
   return {
     syntax: (expression, opts) => instance.call({ op: 'syntax', expression, ...opts }) as SyntaxResponse,
     complete: (expression, cursor, opts) => instance.call({ op: 'complete', expression, cursor, ...opts }) as CompleteResponse,
+    hover: (expression, at, opts) => instance.call({ op: 'hover', expression, at, ...opts }) as HoverResponse,
     format: (expression, opts) => instance.call({ op: 'format', expression, ...opts }) as FormatResponse,
   };
 }
@@ -107,6 +118,9 @@ const colours = EditorView.baseTheme({
   '.cm-feel-signature-active': { textDecoration: 'underline' },
   '.cm-feel-signature-given': { opacity: '0.6' },
   '.cm-feel-signature-summary': { fontFamily: 'sans-serif', opacity: '0.8', marginTop: '2px' },
+  '.cm-feel-hover': { padding: '4px 8px', fontFamily: 'monospace', fontSize: '0.9em', maxWidth: '40em' },
+  '.cm-feel-hover-documentation, .cm-feel-hover-deprecated': { fontFamily: 'sans-serif', opacity: '0.8', marginTop: '2px' },
+  '.cm-feel-hover-deprecated': { fontStyle: 'italic' },
   '&dark .cm-feel-keyword': { color: 'var(--feel-keyword, #c792ea)' },
   '&dark .cm-feel-number': { color: 'var(--feel-number, #8fb0ff)' },
   '&dark .cm-feel-string': { color: 'var(--feel-string, #a5e07b)' },
@@ -129,15 +143,17 @@ const TEMPLATES: [string, string][] = [
 ];
 
 function completionOf(item: CompletionItem): Completion {
-  const types: Record<CompletionItem['kind'], string> = { parameter: 'property', name: 'variable', entry: 'property', keyword: 'keyword', function: 'function', type: 'type' };
+  const types: Record<CompletionItem['kind'], string> = { value: 'enum', parameter: 'property', name: 'variable', entry: 'property', keyword: 'keyword', function: 'function', type: 'type' };
   return {
     label: item.label,
     type: types[item.kind],
     detail: item.detail ?? item.type ?? undefined,
-    info: item.info,
+    // a deprecated name says so, with its reason, and comes after the others
+    info: item.deprecated === undefined ? item.documentation : [item.documentation, item.deprecated === true ? 'Deprecated.' : `Deprecated: ${item.deprecated}`].filter(Boolean).join(' '),
+    boost: item.deprecated === undefined ? undefined : -50,
     // an item replaces the text from its own start: the items of one answer can start at different places
     apply: (view, _completion, _from, to) => {
-      const insert = item.kind === 'function' ? `${item.label}()` : (item.insert ?? item.label);
+      const insert = item.kind === 'function' ? `${item.label}()` : (item.insertText ?? item.label);
       const cursor = item.from + insert.length - (item.kind === 'function' ? 1 : 0);
       view.dispatch({ changes: { from: item.from, to, insert }, selection: { anchor: cursor }, userEvent: 'input.complete' });
     },
@@ -159,12 +175,9 @@ const hint = StateField.define<Tooltip | null>({
   provide: (field) => showTooltip.from(field),
 });
 
-/** The index of the parameter of the signature that the argument of the call is, or -1. */
-function activeParameter(signature: FunctionSignature, call: CompletionCall): number {
-  if (call.named.length > 0) return -1;
-  const last = signature.parameters.length - 1;
-  if (call.argument <= last) return call.argument;
-  return last >= 0 && signature.parameters[last].rest ? last : -1;
+/** The index of the parameter of the signature that the argument of the call is (the engine says it), or -1. */
+function activeParameter(signature: FunctionSignature): number {
+  return signature.activeParameter ?? -1;
 }
 
 /** The hint of a call: its signatures, the parameter of the cursor marked, and what the function gives. */
@@ -172,12 +185,12 @@ export function signatureHint(call: CompletionCall): HTMLElement {
   const dom = document.createElement('div');
   dom.className = 'cm-feel-signature';
   // the signatures that have a parameter for the argument, or all when none has
-  const fitting = call.signatures.filter((signature) => call.named.length > 0 || call.argument === 0 || activeParameter(signature, call) >= 0);
+  const fitting = call.signatures.filter((signature) => call.named.length > 0 || call.argument === 0 || activeParameter(signature) >= 0);
   for (const signature of fitting.length ? fitting : call.signatures) {
     const line = dom.appendChild(document.createElement('div'));
     line.className = 'cm-feel-signature-line';
     line.append(`${call.function}(`);
-    const active = activeParameter(signature, call);
+    const active = activeParameter(signature);
     signature.parameters.forEach((parameter, index) => {
       if (index > 0) line.append(', ');
       const part = line.appendChild(document.createElement(index === active ? 'strong' : 'span'));
@@ -188,8 +201,55 @@ export function signatureHint(call: CompletionCall): HTMLElement {
   }
   const summary = dom.appendChild(document.createElement('div'));
   summary.className = 'cm-feel-signature-summary';
-  summary.textContent = call.summary;
+  summary.textContent = call.documentation ?? '';
   return dom;
+}
+
+/**
+ * What shows over a name: the name with its type, or the signatures of a function, then what
+ * the outline or the engine says of it and whether it is deprecated. `name` is the name as the
+ * text has it.
+ */
+export function hoverInfo(hover: Hover, name: string): HTMLElement {
+  const dom = document.createElement('div');
+  dom.className = 'cm-feel-hover';
+  if (hover.signatures?.length) {
+    for (const signature of hover.signatures) {
+      const line = dom.appendChild(document.createElement('div'));
+      line.className = 'cm-feel-hover-line';
+      const parameters = signature.parameters.map((parameter) => `${parameter.name}${parameter.rest ? '...' : parameter.optional ? '?' : ''}: ${parameter.type}`);
+      line.textContent = `${name}(${parameters.join(', ')}): ${signature.result}`;
+    }
+  } else {
+    const line = dom.appendChild(document.createElement('div'));
+    line.className = 'cm-feel-hover-line';
+    line.textContent = hover.type ? `${name}: ${hover.type}` : name;
+  }
+  if (hover.documentation) {
+    const documentation = dom.appendChild(document.createElement('div'));
+    documentation.className = 'cm-feel-hover-documentation';
+    documentation.textContent = hover.documentation;
+  }
+  if (hover.deprecated !== undefined) {
+    const deprecated = dom.appendChild(document.createElement('div'));
+    deprecated.className = 'cm-feel-hover-deprecated';
+    deprecated.textContent = hover.deprecated === true ? 'Deprecated.' : `Deprecated: ${hover.deprecated}`;
+  }
+  return dom;
+}
+
+/**
+ * The tooltip for the place `pos` of the editor: what the engine answers for the name there
+ * (`hover`), or null where no name stands, the engine does not answer `hover`, or the text has
+ * changed since it was asked.
+ */
+export async function hoverAt(engine: FeelSource, view: EditorView, pos: number): Promise<Tooltip | null> {
+  if (!engine.hover) return null;
+  const text = view.state.doc.toString();
+  const answer = await engine.hover(text, pos, view.state.facet(scopeOf));
+  if (!answer.ok || !answer.hover || view.state.doc.toString() !== text) return null;
+  const found = answer.hover;
+  return { pos: found.from, end: found.to, above: true, create: () => ({ dom: hoverInfo(found, text.slice(found.from, found.to)) }) };
 }
 
 /**
@@ -197,7 +257,7 @@ export function signatureHint(call: CompletionCall): HTMLElement {
  * scope or the dialect later with `setFeelScope`.
  */
 export function feelEditor(config: FeelEditorConfig): Extension {
-  const { engine, maxDiagnostics = 20, templates = true, tree = false, onSyntax, signatureHelp = true } = config;
+  const { engine, maxDiagnostics = 20, templates = true, tree = false, check = false, onSyntax, signatureHelp = true, hover = true } = config;
   const scope: FeelScope = { dialect: config.dialect, context: config.context, contextFormat: config.contextFormat, outline: config.outline };
 
   // asks the engine after every change of the text or of the scope
@@ -222,7 +282,7 @@ export function feelEditor(config: FeelEditorConfig): Extension {
         };
         // a dispatch is not allowed inside an update: the answer is taken afterwards
         Promise.resolve()
-          .then(() => engine.syntax(text, { ...this.view.state.facet(scopeOf), tree }))
+          .then(() => engine.syntax(text, { ...this.view.state.facet(scopeOf), tree, ...(check ? { check } : {}) }))
           .then(take, () => undefined);
       }
     },
@@ -270,7 +330,9 @@ export function feelEditor(config: FeelEditorConfig): Extension {
         } else if (from === to && to < length) {
           to += 1;
         }
-        return { from, to, severity: 'error', source: 'rheon', message: d.message };
+        // what a check finds is a warning or a hint; an error of the text has no severity or `error`
+        const severity = d.severity === 'warning' ? 'warning' : d.severity === 'hint' ? 'hint' : d.severity === 'information' ? 'info' : 'error';
+        return { from, to, severity, source: 'rheon', message: d.message };
       });
     },
     { delay: 0, needsRefresh: (update) => update.transactions.some((tr) => tr.effects.some((effect) => effect.is(setSyntax))) },
@@ -282,8 +344,9 @@ export function feelEditor(config: FeelEditorConfig): Extension {
     if (context.aborted || !answer.ok) return null;
     const from = answer.items.reduce((least, item) => Math.min(least, item.from), context.pos);
     if (answer.items.length === 0 && !context.explicit) return null;
-    // nothing is offered for an empty word unless asked for, except after a dot and where a parameter is named
-    if (from === context.pos && !context.explicit && answer.expects !== 'property' && answer.expects !== 'parameter') return null;
+    // nothing is offered for an empty word unless asked for, except after a dot and where a parameter is named or values are listed
+    const values = answer.items.some((item) => item.kind === 'value');
+    if (from === context.pos && !context.explicit && answer.expects !== 'property' && answer.expects !== 'parameter' && !values) return null;
     const options = answer.items.map(completionOf);
     if (templates && answer.expects === 'expression') {
       const typed = text.slice(from, context.pos).toLowerCase();
@@ -304,6 +367,7 @@ export function feelEditor(config: FeelEditorConfig): Extension {
     autocompletion({ override: [complete] }),
     keymap.of([{ key: 'Shift-Alt-f', run: formatDocument }]),
     signatureHelp ? [hint, hinter] : [],
+    hover && engine.hover ? hoverTooltip((view, pos) => hoverAt(engine, view, pos).catch(() => null)) : [],
   ];
 }
 

@@ -1,0 +1,16 @@
+[
+  {"op": "evaluate", "expression": "{x: Profit and Loss + 1, Profit and Loss: 2}.x"},
+  {"op": "evaluate", "expression": "{r: {x: Profit and Loss + 1, Profit and Loss: 2}.x}.r"},
+  {"op": "evaluate", "expression": "{r: {x: a + b + 1, a + b: 2}.x}.r"},
+  {"op": "evaluate", "expression": "{r: {x: f(), f: function() Profit and Loss, Profit and Loss: 2}.x}.r"},
+  {"op": "evaluate", "expression": "[{a: 1}.a, {x: Profit and Loss + 1, Profit and Loss: 2}.x]"},
+  {"op": "evaluate", "expression": "{a: 1}.a + {x: Profit and Loss + 1, Profit and Loss: 2}.x"},
+  {"op": "evaluate", "expression": "{f: function(n) {x: n or more + n, n or more: 5}.x, r: f(1)}.r"},
+  {"op": "evaluate", "expression": "{r: {s: {x: a - b, a - b: 7}.x}.s}.r"},
+  {"op": "evaluate", "expression": "[{a + b: 9}, {a: 1, b: 2, x: a + b}.x][2]"},
+  {"op": "evaluate", "expression": "{a + b: 9, r: {a: 1, b: 2, x: a + b}.x}.r"},
+  {"op": "evaluate", "expression": "[{a b: 1}, {x: a b, a b: 2}.x][2]"},
+  {"op": "parse", "expression": "{r: {x: Profit and Loss + 1, Profit and Loss: 2}.x}.r"},
+  {"op": "parse", "expression": "{r: {x: a + b + 1, a + b: 2}.x}.r"},
+  {"op": "parse", "expression": "{r: {x: f(), f: function() Profit and Loss, Profit and Loss: 2}.x}.r"}
+]

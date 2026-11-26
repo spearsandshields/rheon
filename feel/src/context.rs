@@ -16,9 +16,33 @@ use std::ops::Bound;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, OnceLock};
 
+/// The order in which the entries of a context were written, which is the order they are shown
+/// in. The entries are kept in the order of their names, which finds an entry and decides what
+/// two contexts have in common; this says where that is not the order of writing.
+#[derive(Clone, Default)]
+enum Written {
+  /// In the order of their names.
+  #[default]
+  ByName,
+  /// The names in the order of writing, each once. An entry that is added is added at its
+  /// end, in constant time; an entry that is replaced keeps its place.
+  Names(Vec<Name>),
+  /// For a record: the places of its names in the order of writing, one list for all the
+  /// records of its shape.
+  Places(Arc<[u32]>),
+}
+
+/// The entries of a context: kept in the order of their names, each name once, with the order
+/// they were written in.
+#[derive(Clone, Default)]
+struct FeelContextEntries {
+  store: Store,
+  written: Written,
+}
+
 /// The entries of a context, in the order of their names, each name once.
 #[derive(Clone)]
-enum FeelContextEntries {
+enum Store {
   /// A map from the names to the values.
   Map(BTreeMap<Name, Value>),
   /// The names, ascending and each once, and the value of each: the form of a record that has
@@ -27,9 +51,16 @@ enum FeelContextEntries {
   Record(Arc<[Name]>, Vec<Value>),
 }
 
-impl Default for FeelContextEntries {
+impl Default for Store {
   fn default() -> Self {
     Self::Map(BTreeMap::new())
+  }
+}
+
+impl From<Store> for FeelContextEntries {
+  /// The entries of a store, written in the order of their names.
+  fn from(store: Store) -> Self {
+    Self { store, written: Written::ByName }
   }
 }
 
@@ -76,7 +107,139 @@ impl<'a> Iterator for NamesFrom<'a> {
   }
 }
 
+/// The entries of a context in the order they were written in.
+enum WrittenEntries<'a> {
+  ByName(Entries<'a>),
+  Names(std::slice::Iter<'a, Name>, &'a BTreeMap<Name, Value>),
+  Places(std::slice::Iter<'a, u32>, &'a [Name], &'a [Value]),
+}
+
+impl<'a> Iterator for WrittenEntries<'a> {
+  type Item = (&'a Name, &'a Value);
+
+  fn next(&mut self) -> Option<Self::Item> {
+    match self {
+      Self::ByName(entries) => entries.next(),
+      // every name of the list is a name of the map
+      Self::Names(names, map) => names.find_map(|name| map.get_key_value(name)),
+      Self::Places(places, names, values) => places.find_map(|place| names.get(*place as usize).zip(values.get(*place as usize))),
+    }
+  }
+
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    match self {
+      Self::ByName(entries) => entries.size_hint(),
+      Self::Names(names, _) => names.size_hint(),
+      Self::Places(places, ..) => places.size_hint(),
+    }
+  }
+}
+
+impl ExactSizeIterator for WrittenEntries<'_> {}
+
 impl FeelContextEntries {
+  /// The entries in the order they were written in.
+  fn iter_written(&self) -> WrittenEntries<'_> {
+    match (&self.store, &self.written) {
+      (Store::Map(map), Written::Names(names)) => WrittenEntries::Names(names.iter(), map),
+      (Store::Record(names, values), Written::Places(places)) => WrittenEntries::Places(places.iter(), names, values),
+      (store, _) => WrittenEntries::ByName(store.iter()),
+    }
+  }
+
+  /// Adds an entry, or replaces the entry of its name, which keeps its place in the order of
+  /// writing; a new entry is the last one. Returns the value it replaces.
+  fn insert(&mut self, name: Name, value: Value) -> Option<Value> {
+    self.map_mut();
+    let Store::Map(map) = &mut self.store else {
+      unreachable!("a record became a map");
+    };
+    match &mut self.written {
+      Written::ByName => {
+        // after the last name, the order of the names is still the order of writing
+        if map.last_key_value().is_some_and(|(last, _)| *last >= name) && !map.contains_key(&name) {
+          let mut names: Vec<Name> = map.keys().cloned().collect();
+          names.push(name.clone());
+          self.written = Written::Names(names);
+        }
+      }
+      Written::Names(names) => {
+        if !map.contains_key(&name) {
+          names.push(name.clone());
+        }
+      }
+      // a map has no places
+      Written::Places(_) => self.written = Written::ByName,
+    }
+    map.insert(name, value)
+  }
+
+  /// Removes the entry of a name and returns its value.
+  fn remove(&mut self, name: &Name) -> Option<Value> {
+    let removed = self.map_mut().remove(name)?;
+    if let Written::Names(names) = &mut self.written {
+      // the entry written last is the one that is mostly removed
+      if names.last() == Some(name) {
+        names.pop();
+      } else if let Some(place) = names.iter().position(|written| written == name) {
+        names.remove(place);
+      }
+    }
+    Some(removed)
+  }
+
+  /// The value of the entry of a name, to be changed.
+  fn get_mut(&mut self, name: &Name) -> Option<&mut Value> {
+    self.map_mut().get_mut(name)
+  }
+
+  /// The entries as a map, to be changed: a record becomes one, and the places of its names
+  /// become the names in the order of writing. The map is changed only through
+  /// [FeelContextEntries::insert] and [FeelContextEntries::remove], which keep that order.
+  fn map_mut(&mut self) -> &mut BTreeMap<Name, Value> {
+    if let (Store::Record(names, _), Written::Places(places)) = (&self.store, &self.written) {
+      let names = places.iter().filter_map(|place| names.get(*place as usize).cloned()).collect();
+      self.written = Written::Names(names);
+    }
+    self.store.map_mut()
+  }
+
+  fn iter(&self) -> Entries<'_> {
+    self.store.iter()
+  }
+
+  fn values(&self) -> impl Iterator<Item = &Value> {
+    self.store.values()
+  }
+
+  fn len(&self) -> usize {
+    self.store.len()
+  }
+
+  fn is_empty(&self) -> bool {
+    self.store.is_empty()
+  }
+
+  fn get<Q: Ord + ?Sized>(&self, name: &Q) -> Option<&Value>
+  where
+    Name: Borrow<Q>,
+  {
+    self.store.get(name)
+  }
+
+  fn contains_key<Q: Ord + ?Sized>(&self, name: &Q) -> bool
+  where
+    Name: Borrow<Q>,
+  {
+    self.store.contains_key(name)
+  }
+
+  fn names_from(&self, name: &str) -> NamesFrom<'_> {
+    self.store.names_from(name)
+  }
+}
+
+impl Store {
   fn iter(&self) -> Entries<'_> {
     match self {
       Self::Map(map) => Entries::Map(map.iter()),
@@ -141,6 +304,7 @@ impl FeelContextEntries {
 }
 
 impl PartialEq for FeelContextEntries {
+  /// The same entries, in whatever order they were written.
   fn eq(&self, other: &Self) -> bool {
     self.len() == other.len() && self.iter().eq(other.iter())
   }
@@ -253,11 +417,12 @@ impl FromIterator<(Name, Value)> for FeelContext {
     let in_order = ascending.windows(2).position(|pair| pair[0].0 >= pair[1].0).map_or(ascending.len(), |index| index + 1);
     let rest = ascending.split_off(in_order);
     // sorted and without equal names, so the result does not depend on how the map treats either
-    let mut entries = BTreeMap::from_iter(ascending);
+    let mut entries = FeelContextEntries::from(Store::Map(BTreeMap::from_iter(ascending)));
+    // the others in the order they come in, which is the order they were written in
     for (name, value) in rest {
       entries.insert(name, value);
     }
-    Self::of(FeelContextEntries::Map(entries))
+    Self::of(entries)
   }
 }
 
@@ -266,7 +431,30 @@ impl FeelContext {
   /// once, in one pass and without the check of [FromIterator]. Entries in another order give a
   /// context too, but which of two entries with one name it keeps is not defined.
   pub fn from_ascending_entries(entries: impl IntoIterator<Item = (Name, Value)>) -> Self {
-    Self::of(FeelContextEntries::Map(BTreeMap::from_iter(entries)))
+    Self::of(FeelContextEntries::from(Store::Map(BTreeMap::from_iter(entries))))
+  }
+
+  /// [FeelContext::from_ascending_entries] for entries that were written in another order:
+  /// `places[i]` is the place among `entries` of the entry written at `i`. The order of
+  /// writing is taken when `places` has every place once and no two entries have one name: the
+  /// names at the places are then the names of the context, each once. That is checked on the
+  /// places and the number of entries, without a comparison of names; other places leave the
+  /// order of the names.
+  pub fn from_ascending_entries_written(entries: Vec<(Name, Value)>, places: &[u32]) -> Self {
+    let count = entries.len();
+    let mut seen = vec![false; count];
+    let each_once = places.len() == count && places.iter().all(|place| seen.get_mut(*place as usize).is_some_and(|seen| !std::mem::replace(seen, true)));
+    let by_name = places.iter().enumerate().all(|(index, place)| *place as usize == index);
+    let names: Vec<Name> = if each_once && !by_name {
+      places.iter().filter_map(|place| entries.get(*place as usize).map(|entry| entry.0.clone())).collect()
+    } else {
+      vec![]
+    };
+    let mut built = FeelContextEntries::from(Store::Map(BTreeMap::from_iter(entries)));
+    if names.len() == count && built.len() == count {
+      built.written = Written::Names(names);
+    }
+    Self::of(built)
   }
 
   /// Builds a context of the entries `names[i]: values[i]`. The names are shared: the records
@@ -275,7 +463,41 @@ impl FeelContext {
   /// values is not defined (it stays memory-safe: a lookup may miss an entry).
   pub fn from_shared_names(names: Arc<[Name]>, values: Vec<Value>) -> Self {
     debug_assert!(names.len() == values.len() && names.windows(2).all(|pair| pair[0] < pair[1]));
-    Self::of(FeelContextEntries::Record(names, values))
+    Self::of(FeelContextEntries::from(Store::Record(names, values)))
+  }
+
+  /// Says the order in which the entries of this context were written: `names` has every name
+  /// of it once. A list that is not that leaves the order as it is. The names in their own
+  /// order need no list.
+  pub fn with_written_names(mut self, names: Vec<Name>) -> Self {
+    self.set_written_names(names);
+    self
+  }
+
+  /// [FeelContext::with_written_names] for a context that is held.
+  pub fn set_written_names(&mut self, names: Vec<Name>) {
+    let entries = self.entries_mut();
+    let mut distinct: Vec<&Name> = names.iter().collect();
+    distinct.sort_unstable();
+    distinct.dedup();
+    if names.len() == entries.len() && distinct.len() == names.len() && names.iter().all(|name| entries.contains_key(name)) {
+      entries.map_mut();
+      let by_name = names.windows(2).all(|pair| pair[0] < pair[1]);
+      entries.written = if by_name { Written::ByName } else { Written::Names(names) };
+    }
+  }
+
+  /// Says the order in which the entries of a context of shared names ([FeelContext::from_shared_names])
+  /// were written: `places[i]` is the place among the names of the entry written at `i`, and
+  /// every place comes once. One list serves all the records of a shape. A list that is not
+  /// that leaves the order as it is.
+  pub fn with_written_places(mut self, places: Arc<[u32]>) -> Self {
+    let entries = self.entries();
+    let fits = matches!(entries.store, Store::Record(..)) && places.len() == entries.len();
+    if fits && let Some(entries) = self.built.get_mut() {
+      entries.written = Written::Places(places);
+    }
+    self
   }
 
   /// A context of `entries`.
@@ -364,7 +586,7 @@ impl fmt::Display for FeelContext {
   /// Convert [FeelContext] to string.
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.write_str("{")?;
-    write_separated(f, self.entries().iter(), |f, (name, value)| {
+    write_separated(f, self.entries().iter_written(), |f, (name, value)| {
       if name.is_empty() { write!(f, r#""": {value}"#) } else { write!(f, "{name}: {value}") }
     })?;
     f.write_str("}")
@@ -378,7 +600,7 @@ impl ToFeelString for FeelContext {
       "{{{}}}",
       self
         .entries()
-        .iter()
+        .iter_written()
         .map(|(name, value)| {
           let name_str = format!("{name}");
           let padded_name_str = match name_str.as_str() {
@@ -386,7 +608,7 @@ impl ToFeelString for FeelContext {
             "\"" => "\"\\\"\"".to_string(),
             _ => name_str,
           };
-          format!(r#"{padded_name_str}: {value}"#)
+          format!("{padded_name_str}: {}", value.to_feel_string())
         })
         .collect::<Vec<String>>()
         .join(", ")
@@ -401,8 +623,8 @@ impl Jsonify for FeelContext {
       "{{{}}}",
       self
         .entries()
-        .iter()
-        .map(|(name, value)| format!(r#""{}": {}"#, name, value.jsonify()))
+        .iter_written()
+        .map(|(name, value)| format!("{}: {}", crate::values::json_string(&name.to_string()), value.jsonify()))
         .collect::<Vec<String>>()
         .join(", ")
     )
@@ -505,14 +727,22 @@ impl FeelContext {
     self.put(name, value_null!());
   }
 
-  /// Returns a list of all [FeelContext] entries.
+  /// Returns a list of all [FeelContext] entries, in the order they were written in.
   pub fn get_entries(&self) -> Vec<(&Name, &Value)> {
-    self.entries().iter().collect::<Vec<(&Name, &Value)>>()
+    self.entries().iter_written().collect::<Vec<(&Name, &Value)>>()
   }
 
-  /// Returns an iterator over all entries in [FeelContext], in the order of their names.
+  /// Returns an iterator over all entries in [FeelContext], in the order of their names: the
+  /// order that two contexts with the same names share, whatever order they were written in.
   pub fn iter(&self) -> impl ExactSizeIterator<Item = (&Name, &Value)> {
     self.entries().iter()
+  }
+
+  /// Returns an iterator over all entries in [FeelContext], in the order they were written
+  /// in: the order a context is shown in. An entry that was added later comes last, and an
+  /// entry that was replaced keeps its place.
+  pub fn iter_written(&self) -> impl ExactSizeIterator<Item = (&Name, &Value)> {
+    self.entries().iter_written()
   }
 
   /// Returns an iterator over the names of the entries from the first name not less than `name` on, in their order.
@@ -540,8 +770,10 @@ impl FeelContext {
     matches!(self.find(name), Some(Value::Context(_)))
   }
 
+  /// Adds the entries of `other`, in the order they were written in: an entry of a name that
+  /// this context has replaces it in its place, the others come last.
   pub fn zip(&mut self, other: &FeelContext) {
-    for (name, value) in other.entries().iter() {
+    for (name, value) in other.entries().iter_written() {
       self.put(name.clone(), value.clone());
     }
   }
@@ -666,11 +898,11 @@ impl FeelContext {
   }
 
   /// The entries, to be changed: the nesting depth is forgotten.
-  fn entries_mut(&mut self) -> &mut BTreeMap<Name, Value> {
+  fn entries_mut(&mut self) -> &mut FeelContextEntries {
     self.entries();
     self.source = None;
     *self.depth.get_mut() = 0;
-    self.built.get_mut().expect("the entries are read").map_mut()
+    self.built.get_mut().expect("the entries are read")
   }
 
   /// Inserts an entry.

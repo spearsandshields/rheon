@@ -62,7 +62,7 @@ fn _0011() {
     false,
     &scope!(),
     r#"substring(s: "foobar", start position: 3, length: 3)"#,
-    r#"parameter 'string' not found"#,
+    r#"expected the parameters of substring(string, start position, length?): string, found the parameter name 's'"#,
   );
 }
 
@@ -72,7 +72,7 @@ fn _0012() {
     false,
     &scope!(),
     r#"substring(string: "foobar", start: 3, length: 3)"#,
-    r#"parameter 'start position' not found"#,
+    r#"expected the parameters of substring(string, start position, length?): string, found the parameter name 'start'"#,
   );
 }
 
@@ -187,6 +187,6 @@ fn _0025() {
     false,
     &scope!(),
     r#"substring(["homeless"], 9, 2)"#,
-    r#"substring: expected string, actual value type is list<string>"#,
+    r#"substring: invalid range, len = 8, start position = 9, end position = 11"#,
   );
 }

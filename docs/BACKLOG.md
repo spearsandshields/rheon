@@ -102,8 +102,11 @@ was written.
   been reused (`append(for i in 1..n return i, 0)` copies `n` items).
 - **Loop variables are looked up by name** `[fork]`: every iteration resolves the variable
   through the scope stack (`FeelScope::get_value`).
-- **Regular expressions are compiled on every call** `[fork]`: `matches` (`feel-regex`),
-  `replace` and `split` compile their pattern for each invocation.
+- **XPath and XQuery F&O 3.1 regex syntax** `[feel]` (2026-11-22). Patterns are read at the level of
+  F&O 2.0, the syntax DMN 1.6 names; F&O 3.1 adds non-capturing groups `(?:...)` (DMN 1.7), which
+  the front end reads at its 3.1 level (`feel-regex/src/xsd.rs`, `Level::Fo31`) once 1.7 models
+  select it. The QT3 regex cases as a frozen oracle (Q-R5) and an owned, budgeted backtracker
+  (Q-R3) are the next steps.
 - **`sort` on long lists with few distinct values** `[fork]` (2026-11-14). `sort` merges runs of
   its own (`feel-evaluator/src/bifs/sorting.rs`), and on long lists with few distinct values it
   calls the predicate more often than the standard library's sort: 10,000 items of seven distinct
@@ -116,10 +119,6 @@ Official TCK (patched): 3,392 of 3,407; only 0076 (Java, out of scope) and 0085 
 `scripts/tck.sh` runs it on demand; `docs/tck-baseline.txt` records the failing tests.
 
 Open in 1.6:
-- **B-FEEL arithmetic leaves a diagnostic** `[dmn]`. B-FEEL first applies the FEEL operator and
-  converts the operands only when that fails, so `1 + "2"` in B-FEEL gives `"12"` with one
-  recorded error ("incompatible types in addition"). In B-FEEL a null never means an error, so
-  the FEEL attempt should not be recorded.
 - **Dialect of decision table entries** `[dmn]`. Input and output entries are unary tests and
   literal expressions that may carry their own `expressionLanguage`; the evaluator applies the
   model's dialect to the whole table. Not exercised by the TCK.
@@ -135,23 +134,11 @@ Open in 1.6:
   - *Ranges against unary comparisons.* `(< 10)` and the like compared with a range can give a
     wrong `true`, and the result depends on the operand order (the Unary* arms of
     `eval_ternary_equality`: inverted null check on the endpoint, wrong closure for `<=`).
-  - *`is()` decides by its first argument.* `is(null, 1)` is null and `is(1, null)` is false;
-    `is` never results in null (§10.3.2.2).
-  - *`max` and `min` depend on the argument order* with nulls (max skips them after the first
-    position, min never does), which carries into the C< and C> hit policies. Both reject dates,
-    times and durations.
-  - *Context equality depends on key order*: it returns null at the first pair it can not
-    compare, even when a later pair differs. List equality treats such a pair as unequal.
-  - *Lists of `!=` unary tests are combined with AND*; the spec defines a list of unary tests as
-    OR (comparison_in.rs asserts AND). The spec also reads differently for `null <= null` (spec:
-    `<` or `=`, so true) and `-` against a null input (rule 15.c reads as `? != null`); rheon gives null and
-    a match.
-  - *Smaller ones*: null range endpoints are handled differently by kind; `between` checks the
-    kinds of all three operands first; `list in list` is containment of a multiset; `count(null)`
-    is 1; the Any and Priority hit policies compare outputs with Rust equality, not FEEL
+  - *`-` against a null input.* Rule 15.c reads as `? != null`; rheon gives a match. (`null <= null`
+    is null by the reading recorded in LIMITATIONS.md.)
+  - *Smaller ones*: the Any and Priority hit policies compare outputs with Rust equality, not FEEL
     equality; a collection item definition turns a list with a null item into null; a missing
-    input has a null with a reason only when its typeRef is an item definition; the nulls of
-    `eval_in_*` name internal functions.
+    input has a null with a reason only when its typeRef is an item definition.
 - **Invocation follow-ups** `[dmn]` (2026-11-12). Every invocation goes through
   `feel-evaluator/src/invocation.rs` (Table 64: FEEL and boxed invocations, invocables invoked
   with input data, `sort` and `list replace`). Open:
@@ -167,7 +154,10 @@ Open in 1.6:
     (decision_service.rs), so the invocation must push the parameters last, and it converts them
     a second time through the input data and input decision evaluators.
   - *Java and PMML BKMs are not external.* `build_bkm_evaluator` special-cases only ONNX; a BKM
-    with `kind="Java"` or `"PMML"` returns its mapping context instead of calling the function.
+    with `kind="Java"` or `"PMML"` returns its mapping context instead of a function whose call is
+    null with a reason, as FEEL's external functions are. A boxed ONNX function definition
+    (boxed_expressions.rs) evaluates to null instead of such a function, and a boxed PMML mapping
+    still requires its `model` entry, which 10.3.2.13.3 makes optional.
   - *Binding types are not checked.* A binding's parameter `typeRef` is ignored (§7.3.6 binds by
     name); §7.3.4 asks it to be compatible with the value.
   - *`try_coerced` lets any function value pass* whatever the target type (feel/src/values.rs).
@@ -190,6 +180,18 @@ commits 4b5ca51 and 69e81cc: scale range -6111..=6176 for the rounding functions
 back-references via fancy-regex). The unpatched subset stands at 289/298. Remaining:
 - **Dates beyond chrono's range** (1115/1117): years outside ±262143 are not supported.
 - **0036 typeRefs** is DMN-layer (item definition type references).
+
+## DMN 1.7
+
+- **Parameter qualifiers `?` and `...`** `[feel]` (2026-11-21). DMN 1.7 Beta 1 lets a formal
+  parameter be optional (`b?`) or take a variable number of arguments (`b...`), and function types
+  carry these qualifiers in equivalence and conformance (10.3.2.9.1-10.3.2.9.2). `...` is a syntax
+  error today and would be additive, but `?` changes a 1.6 meaning (`function(a, b?)` names a
+  parameter `b?`), so it waits for models of the 1.7 namespace (owner, 2026-11-21). Both need one
+  design of qualifiers in the AST, the function value and FeelType; they are built together.
+- **1.7 answers that change 1.6 ones** `[dmn]` (owner, 2026-11-21): `for x in null return x` is
+  `[]` in 1.7 (FEEL and B-FEEL; `[null]` in 1.6), and the `?` qualifier: they apply to models of the
+  DMN 1.7 namespace only, once rheon reads them; plain FEEL keeps the 1.6 answers.
 
 ## DMN model evaluator
 

@@ -1,8 +1,11 @@
-use crate::bifs::core;
+use crate::bifs::{core, one_item_lists};
 use crate::macros::invalid_argument_type;
 use rheon_feel::bif::Bif;
+use rheon_feel::message::arg;
+use rheon_feel::signatures::{self, Signature};
 use rheon_feel::values::Value;
 use rheon_feel::{FeelNumber, Name, value_null};
+use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
 static NAME_CONTEXT: LazyLock<Name> = LazyLock::new(|| Name::from("context"));
@@ -13,6 +16,7 @@ static NAME_DECIMAL_SEPARATOR: LazyLock<Name> = LazyLock::new(|| Name::new(&["de
 static NAME_DELIMITER: LazyLock<Name> = LazyLock::new(|| Name::from("delimiter"));
 static NAME_DIVIDEND: LazyLock<Name> = LazyLock::new(|| Name::from("dividend"));
 static NAME_DIVISOR: LazyLock<Name> = LazyLock::new(|| Name::from("divisor"));
+static NAME_ELEMENT: LazyLock<Name> = LazyLock::new(|| Name::from("element"));
 static NAME_ENTRIES: LazyLock<Name> = LazyLock::new(|| Name::from("entries"));
 static NAME_FLAGS: LazyLock<Name> = LazyLock::new(|| Name::from("flags"));
 static NAME_FROM: LazyLock<Name> = LazyLock::new(|| Name::from("from"));
@@ -65,7 +69,87 @@ macro_rules! parameter_not_found {
   ($p:expr) => {{ value_null!(r"parameter '{}' not found", *$p) }};
 }
 
+/// Null when the names of `parameters` are not all parameters of one signature of `bif`: a
+/// name that the function does not have, or names of two of its signatures together. A function
+/// that takes no names at all says so itself.
+fn names_of_no_signature(bif: &Bif, parameters: &NamedParameters) -> Option<Value> {
+  let Value::NamedParameters(given) = parameters else {
+    return None;
+  };
+  let built_in = signatures::of(bif)?;
+  let named = || built_in.signatures.iter().filter(|signature| signature.named);
+  let has = |signature: &Signature, name: &Name| signature.parameters.iter().any(|parameter| parameter.name == name.as_str());
+  if named().next().is_none() || named().any(|signature| given.keys().all(|name| has(signature, name))) {
+    return None;
+  }
+  let expected: Vec<String> = named().map(|signature| signature.text(built_in.name)).collect();
+  let one_of = if expected.len() > 1 { "one of " } else { "" };
+  // in the order they are written in
+  let mut names: Vec<(usize, &Name)> = given.iter().map(|(name, (_, position))| (*position, name)).collect();
+  names.sort_unstable();
+  let found = match names.iter().find(|(_, name)| !named().any(|signature| has(signature, name))) {
+    Some((_, name)) => format!("name '{}'", arg(*name)),
+    None => {
+      let names: Vec<String> = names.iter().map(|(_, name)| format!("'{}'", arg(*name))).collect();
+      format!("names {}", names.join(", "))
+    }
+  };
+  Some(value_null!("expected the parameters of {}{}, found the parameter {}", one_of, expected.join(", "), found))
+}
+
 pub fn evaluate_bif(bif: Bif, parameters: &NamedParameters) -> Value {
+  if let Some(refused) = names_of_no_signature(&bif, parameters) {
+    return refused;
+  }
+  let Value::NamedParameters(given) = parameters else {
+    return apply(bif, parameters);
+  };
+  let bound = unsupplied_bound_to_null(&bif, given);
+  let given = bound.as_ref().unwrap_or(given);
+  match one_item_lists::by_name(&bif, given) {
+    Some(converted) => apply(bif, &Value::NamedParameters(converted)),
+    None if bound.is_some() => apply(bif, &Value::NamedParameters(given.clone())),
+    None => apply(bif, parameters),
+  }
+}
+
+/// The named arguments with every required parameter that is not supplied bound to null (DMN 1.7
+/// Beta 1, 10.3.2.13.5: "parameters not supplied are bound to null"), so that
+/// `list contains(list: [1, null])` asks for null; `None` when none is missing. The parameters are
+/// those of the one signature that has every name given; when several do and they miss different
+/// parameters (`context put` with neither `key` nor `keys`), nothing is bound and the function
+/// says which is missing. Optional parameters stay unsupplied: their absence has its own meaning
+/// (`substring(string: "abc", start position: 2)` takes the rest of the string).
+fn unsupplied_bound_to_null(bif: &Bif, given: &BTreeMap<Name, (Value, usize)>) -> Option<BTreeMap<Name, (Value, usize)>> {
+  let built_in = signatures::of(bif)?;
+  let has = |signature: &Signature, name: &Name| signature.parameters.iter().any(|parameter| parameter.name == name.as_str());
+  let missing = |signature: &'static Signature| {
+    signature
+      .parameters
+      .iter()
+      .filter(|parameter| !parameter.optional && !parameter.rest && !given.keys().any(|name| name.as_str() == parameter.name))
+      .map(|parameter| parameter.name)
+      .collect::<Vec<&'static str>>()
+  };
+  let mut fitting = built_in
+    .signatures
+    .iter()
+    .filter(|signature| signature.named && given.keys().all(|name| has(signature, name)))
+    .map(missing);
+  let first = fitting.next()?;
+  if first.is_empty() || fitting.any(|other| other != first) {
+    return None;
+  }
+  // the positions of the given arguments are 1 to given.len(): the bound ones come after them
+  let mut bound = given.clone();
+  for (place, name) in first.into_iter().enumerate() {
+    bound.insert(Name::from(name), (Value::Null(None), given.len() + place + 1));
+  }
+  Some(bound)
+}
+
+/// Applies `bif` to `parameters`, as they are.
+fn apply(bif: Bif, parameters: &NamedParameters) -> Value {
   match bif {
     Bif::Abs => bif_abs(parameters),
     Bif::After => bif_after(parameters),
@@ -83,6 +167,7 @@ pub fn evaluate_bif(bif: Bif, parameters: &NamedParameters) -> Value {
     Bif::Count => bif_count(parameters),
     Bif::Date => bif_date(parameters),
     Bif::DateAndTime => bif_date_and_time(parameters),
+    Bif::DaysAndTimeDuration => bif_days_and_time_duration(parameters),
     Bif::DayOfWeek => bif_day_of_week(parameters),
     Bif::DayOfYear => bif_day_of_year(parameters),
     Bif::Decimal => bif_decimal(parameters),
@@ -582,10 +667,10 @@ fn bif_is(parameters: &NamedParameters) -> Value {
 
 fn bif_list_contains(parameters: &NamedParameters) -> Value {
   if let Some((list_value, _)) = get_param(parameters, &NAME_LIST) {
-    if let Some((match_value, _)) = get_param(parameters, &NAME_MATCH) {
-      core::list_contains(list_value, match_value)
+    if let Some((element, _)) = get_param(parameters, &NAME_ELEMENT) {
+      core::list_contains(list_value, element)
     } else {
-      parameter_not_found!(NAME_MATCH)
+      parameter_not_found!(NAME_ELEMENT)
     }
   } else {
     parameter_not_found!(NAME_LIST)
@@ -1220,8 +1305,16 @@ fn bif_years_and_months_duration(parameters: &NamedParameters) -> Value {
     if let Some((to_value, _)) = get_param(parameters, &NAME_TO) {
       core::years_and_months_duration(from_value, to_value)
     } else {
-      parameter_not_found!(NAME_TO)
+      core::years_and_months_duration_of(from_value)
     }
+  } else {
+    parameter_not_found!(NAME_FROM)
+  }
+}
+
+fn bif_days_and_time_duration(parameters: &NamedParameters) -> Value {
+  if let Some((from_value, _)) = get_param(parameters, &NAME_FROM) {
+    core::days_and_time_duration(from_value)
   } else {
     parameter_not_found!(NAME_FROM)
   }
@@ -1251,5 +1344,15 @@ mod tests {
   #[test]
   fn test_get_param_count() {
     assert_eq!(0, get_param_count(&Value::Boolean(false)))
+  }
+
+  #[test]
+  fn a_parameter_bound_to_null_comes_after_the_given_ones() {
+    // review of v0.9.0..feel/f1: the first bound parameter had the position of the last given
+    // one, and `before(point, range)` tells the orders apart by the positions
+    let given: BTreeMap<Name, (Value, usize)> = [(Name::from("point"), (Value::Number(1.into()), 1))].into();
+    let bound = unsupplied_bound_to_null(&Bif::Before, &given).expect("range is missing");
+    assert_eq!(bound.get(&Name::from("range")).map(|(_, position)| *position), Some(2));
+    assert_eq!(bound.get(&Name::from("point")).map(|(_, position)| *position), Some(1));
   }
 }

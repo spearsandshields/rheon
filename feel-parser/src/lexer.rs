@@ -32,10 +32,15 @@ const NOT_SEARCHED: (usize, usize) = (usize::MAX, 0);
 
 /// The keywords that can follow an operand. A name that is not in scope ends before a word of
 /// its chain that is one of them: `for s in x return s` and `x and y` have their keywords also
-/// when `x` is no name in scope. A name in scope is matched first, so it may hold these words
-/// (`tax return`). The other keywords never follow an operand, so a name ending before them
-/// would only be a syntax error.
-const NAME_ENDING_KEYWORDS: [&str; 9] = ["and", "between", "else", "in", "instance", "or", "return", "satisfies", "then"];
+/// when `x` is no name in scope. `as` (DMN 1.7 Beta 1, grammar rule 51) ends such a name only
+/// when a type follows it that ends the name ([type_ends_name]), and never a name being declared
+/// ([Lexer::set_declared_name]): `item as number` in a filter converts `item`, while a name of
+/// FEEL 1.6 that holds the word keeps it (`p.Cost as percent`, `p.Count as number of items`,
+/// entries of a parameter; `function(cost as string)`).
+/// A name in scope is matched first, so it may hold these words (`tax return`, `cost as
+/// percent`); names are resolved by the scope (10.3.1.2). The other keywords never follow an
+/// operand, so a name ending before them would only be a syntax error.
+const NAME_ENDING_KEYWORDS: [&str; 10] = ["and", "as", "between", "else", "in", "instance", "or", "return", "satisfies", "then"];
 
 /// The additional name symbols that are operators or punctuation of an expression. A name that
 /// is not in scope ends before one of them: `a + b` is a sum and `x.y` a path also when `a` and
@@ -92,6 +97,7 @@ pub enum TokenValue {
   Gt,
   If,
   In,
+  As,
   Instance,
   List,
   Minus,
@@ -142,11 +148,18 @@ pub struct Lexer<'lexer, 'scope> {
   /// keywords `list`, `range` and `context`. Set by the parser before every type, and over
   /// with the token read next.
   type_name: bool,
+  /// A complete operand was read: the next token may be the operator `as` (DMN 1.7 Beta 1,
+  /// grammar rule 51). `as` is no keyword elsewhere, so a name may start with it (`as of date`),
+  /// and a name in scope that holds it is read whole before (`price as of today`). Set by the
+  /// parser before every token, as where it reads it.
+  after_operand: bool,
   /// ???
   till_in: bool,
   /// The text is a name that is being declared ([crate::parse_name]): a name that is not in
   /// scope is the whole chain of its parts, keywords and symbols included.
   whole_names: bool,
+  /// The next token, when it is a name, is a name being declared ([Lexer::set_declared_name]).
+  declared_name: bool,
   /// The token follows a dot: its name may be a built-in property (`year`, `time offset`,
   /// `start included`). Set by the parser after every dot, and over with the token read next.
   after_dot: bool,
@@ -205,8 +218,10 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       position: 0,
       unary_tests: false,
       type_name: false,
+      after_operand: false,
       till_in: false,
       whole_names: false,
+      declared_name: false,
       after_dot: false,
       filters: 0,
       name_buf: String::new(),
@@ -246,8 +261,20 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     self.type_name = true;
   }
 
+  /// Tells whether the next token follows a complete operand ([Lexer::after_operand]).
+  pub fn set_after_operand(&mut self, after_operand: bool) {
+    self.after_operand = after_operand;
+  }
+
   pub fn set_till_in(&mut self) {
     self.till_in = true;
+  }
+
+  /// Tells that the next token, when it is a name, is one being declared (a parameter of a
+  /// function definition): `as` and a type do not end it, as they end a name that is not in
+  /// scope where it is read ([NAME_ENDING_KEYWORDS]). For the next token only.
+  pub fn set_declared_name(&mut self) {
+    self.declared_name = true;
   }
 
   pub fn set_whole_names(&mut self) {
@@ -306,6 +333,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     let (type_name, after_dot) = (self.type_name, self.after_dot);
     self.scope.set_members(after_dot || self.filters > 0);
     let result = self.read_next_token();
+    self.declared_name = false;
     if type_name {
       self.type_name = false;
     }
@@ -334,6 +362,10 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       ['f', 'u', 'n', 'c', 't', 'i', 'o', 'n', _, _, _, _] if self.is_function_separator(8) => {
         self.position += 8;
         Ok((TokenType::Function, TokenValue::Function))
+      }
+      ['a', 's', ch, _, _, _, _, _, _, _, _, _] if self.after_operand && ends_word(ch) => {
+        self.position += 2;
+        Ok((TokenType::As, TokenValue::As))
       }
       ['i', 'n', 's', 't', 'a', 'n', 'c', 'e', ch, _, _, _] if ends_word(ch) => {
         self.position += 8;
@@ -1066,9 +1098,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   fn is_name_ending_keyword(&self, index: usize) -> bool {
     let start = self.chain_parts[index].start;
     self.input[..start].chars().next_back().is_some_and(is_whitespace)
-      && NAME_ENDING_KEYWORDS
-        .iter()
-        .any(|keyword| self.input[start..].strip_prefix(keyword).is_some_and(|rest| rest.chars().next().is_none_or(is_whitespace)))
+      && NAME_ENDING_KEYWORDS.iter().any(|keyword| {
+        self.input[start..]
+          .strip_prefix(keyword)
+          .is_some_and(|rest| rest.chars().next().is_none_or(is_whitespace) && (*keyword != "as" || (!self.declared_name && !self.type_name && type_ends_name(rest))))
+      })
   }
 
   /// Returns `true` when the name that starts at part `first` of the chain is this part alone
@@ -1601,6 +1635,137 @@ fn is_built_in_type_name(name: &str) -> bool {
     name,
     "Any" | "Null" | "boolean" | "number" | "string" | "date" | "date and time" | "time" | "years and months duration" | "days and time duration"
   )
+}
+
+/// Returns `true` when `text`, the text after the word `as` in a name chain, makes `as` the
+/// operator of a name that is not in scope ([NAME_ENDING_KEYWORDS]): nothing follows (a text
+/// being written, `item as`, which an editor completes with a type), or a whole type of FEEL
+/// follows ([type_end]) that ends the name: the text ends after it, or a keyword that ends
+/// names, or a symbol other than `:` and `'`. After `cost as string:` stands a name being given
+/// a value or a type (`{cost as string: 1}`, `f(cost as string: 1)`), `p.Count as number of
+/// items` is one name, and so is `p.Items as list` in `p.Items as list < 3`.
+fn type_ends_name(text: &str) -> bool {
+  if text.trim_start_matches(is_whitespace).is_empty() {
+    return true;
+  }
+  let Some(end) = type_end(text, 0) else {
+    return false;
+  };
+  let after = text[end..].trim_start_matches(is_whitespace);
+  match after.chars().next() {
+    None => true,
+    Some(':' | '\'') => false,
+    Some(ch) if is_name_part_char(ch) => {
+      let (start, end) = leading_word(after);
+      NAME_ENDING_KEYWORDS.contains(&&after[start..end])
+    }
+    Some(_) => true,
+  }
+}
+
+/// The most nested types that [type_end] reads (`list<list<…>>`); a deeper one is no type to it.
+const MAX_TYPE_DEPTH: usize = 16;
+
+/// The start and end of the word at the start of `text`, after white space.
+fn leading_word(text: &str) -> (usize, usize) {
+  let start = text.len() - text.trim_start_matches(is_whitespace).len();
+  let end = text[start..].find(|ch: char| !is_name_part_char(ch)).map_or(text.len(), |end| start + end);
+  (start, end)
+}
+
+/// The end of the type of FEEL that `text` starts with, after white space (DMN 1.7 Beta 1,
+/// grammar rule 54, with the abstract types of Figure 10-26): a built-in or abstract type
+/// name, the multi-word ones whole, `list<T>`, `range<T>`, `context<>`, `context<name: T, …>`
+/// or `function<T, …>->T`. None when it starts with none: a type that names an item definition
+/// is a name like any other, which `as` does not end.
+fn type_end(text: &str, depth: usize) -> Option<usize> {
+  if depth > MAX_TYPE_DEPTH {
+    return None;
+  }
+  // the end of the words `words` at the start of `text`
+  let words_end = |words: &[&str]| -> Option<usize> {
+    let mut at = 0;
+    for expected in words {
+      let (start, end) = leading_word(&text[at..]);
+      if &text[at + start..at + end] != *expected {
+        return None;
+      }
+      at += end;
+    }
+    Some(at)
+  };
+  // the end of `symbol` after white space at `at`
+  // `<=` and `>=` are tokens of their own: a `<` or `>` before `=` is no bracket of a type
+  // (`Kn as range<number>=1` compares, as in FEEL 1.6)
+  let symbol = |at: usize, symbol: &str| -> Option<usize> {
+    let rest = &text[at..];
+    let start = rest.len() - rest.trim_start_matches(is_whitespace).len();
+    let end = at + start + symbol.len();
+    let comparison = matches!(symbol, "<" | ">") && text[end.min(text.len())..].starts_with('=');
+    (rest[start..].starts_with(symbol) && !comparison).then_some(end)
+  };
+  let (start, end) = leading_word(text);
+  match &text[start..end] {
+    "Any" | "Null" | "boolean" | "number" | "string" | "time" | "comparable" | "temporal" => Some(end),
+    "date" => Some(words_end(&["date", "and", "time"]).unwrap_or(end)),
+    "years" => words_end(&["years", "and", "months", "duration"]),
+    "days" => words_end(&["days", "and", "time", "duration"]),
+    "duration" => Some(end),
+    "list" | "range" => {
+      let open = symbol(end, "<")?;
+      let inner = open + type_end(&text[open..], depth + 1)?;
+      symbol(inner, ">")
+    }
+    "context" => {
+      let Some(mut at) = symbol(end, "<") else {
+        // the context type of any entries
+        return Some(end);
+      };
+      if let Some(close) = symbol(at, ">") {
+        return Some(close);
+      }
+      loop {
+        // a name of an entry: words, then `:`
+        let (start, name_end) = leading_word(&text[at..]);
+        if start == name_end {
+          return None;
+        }
+        // the words of the name, white space between them
+        let mut name_end = at + name_end;
+        loop {
+          let (start, end) = leading_word(&text[name_end..]);
+          if start == 0 || start == end {
+            break;
+          }
+          name_end += end;
+        }
+        let colon = symbol(name_end, ":")?;
+        at = colon + type_end(&text[colon..], depth + 1)?;
+        if let Some(close) = symbol(at, ">") {
+          return Some(close);
+        }
+        at = symbol(at, ",")?;
+      }
+    }
+    "function" => {
+      let mut at = symbol(end, "<")?;
+      if let Some(close) = symbol(at, ">") {
+        at = close;
+      } else {
+        loop {
+          at += type_end(&text[at..], depth + 1)?;
+          if let Some(close) = symbol(at, ">") {
+            at = close;
+            break;
+          }
+          at = symbol(at, ",")?;
+        }
+      }
+      let arrow = symbol(at, "->")?;
+      Some(arrow + type_end(&text[arrow..], depth + 1)?)
+    }
+    _ => None,
+  }
 }
 
 /// Returns `true` when the text of a part of a name chain is one additional name symbol.

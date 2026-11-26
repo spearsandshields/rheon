@@ -81,7 +81,11 @@ fn _0009() {
 
 #[test]
 fn _0010() {
-  eq("null_006", &CTX, r#"null(parameter 'date' not found)"#);
+  eq(
+    "null_006",
+    &CTX,
+    r#"null(expected the parameters of day of week(date): string, found the parameter name 'value')"#,
+  );
 }
 
 #[test]

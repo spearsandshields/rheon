@@ -53,12 +53,22 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  te_null(false, &scope!(), r#"get value(map: {a: "foo"}, key: "a")"#, r#"parameter 'm' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"get value(map: {a: "foo"}, key: "a")"#,
+    r#"expected the parameters of get value(m, key): Any, found the parameter name 'map'"#,
+  );
 }
 
 #[test]
 fn _0009() {
-  te_null(false, &scope!(), r#"get value(m: {a: "foo"}, k: "a")"#, r#"parameter 'key' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"get value(m: {a: "foo"}, k: "a")"#,
+    r#"expected the parameters of get value(m, key): Any, found the parameter name 'k'"#,
+  );
 }
 
 #[test]

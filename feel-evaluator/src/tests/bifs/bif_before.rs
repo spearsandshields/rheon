@@ -718,17 +718,17 @@ fn _0108() {
 
 #[test]
 fn _0109() {
-  te_null(false, &scope!(), r#"before(p1: 1, point2: 2)"#, r#"[named::before] invalid named parameters"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"before(p1: 1, point2: 2)"#,
+    r#"expected the parameters of one of before(point1, point2): boolean, before(point, range): boolean, before(range, point): boolean, before(range1, range2): boolean, found the parameter name 'p1'"#,
+  );
 }
 
 #[test]
 fn _0110() {
-  te_null(
-    false,
-    &scope!(),
-    r#"before("abc","bcd")"#,
-    r#"[core::before] invalid argument type, expected scalar or range of scalars, actual type is string"#,
-  );
+  te_bool(false, &scope!(), r#"before("abc","bcd")"#, true);
 }
 
 #[test]
@@ -743,5 +743,47 @@ fn _0112() {
     &scope!(),
     r#"before([date("2021-01-01")..date("2021-12-31")],[date("2022-01-01")..date("2022-12-31")])"#,
     true,
+  );
+}
+
+#[test]
+fn _0113() {
+  // every range function is the formula of Table 79, with FEEL's comparisons (10.3.4.7)
+  let scope = &scope!();
+  te_bool(false, scope, r#"before("a", "b")"#, true);
+  te_bool(false, scope, r#"coincides("a", "a")"#, true);
+  te_bool(false, scope, r#"includes(["a".."z"], "m")"#, true);
+  te_bool(false, scope, r#"meets([1..5), (5..10])"#, false);
+  te_bool(false, scope, r#"meets([1..5], [5..10])"#, true);
+  te_bool(false, scope, r#"met by((5..10], [1..5))"#, false);
+  te_bool(false, scope, r#"finishes([1..10], [5..10])"#, false);
+  te_bool(false, scope, r#"finishes([5..10], [1..10])"#, true);
+  te_bool(false, scope, r#"finished by([5..10], [1..10])"#, false);
+  te_bool(false, scope, r#"started by([1..5], [1..10])"#, false);
+  te_bool(false, scope, r#"started by([1..10], [1..5])"#, true);
+  te_bool(false, scope, r#"includes([5..5), 5)"#, true);
+  // a time without an offset takes the offset of the other (Table 55): the same instant
+  te_bool(false, scope, r#"before(time("10:00:00"), time("10:00:00+02:00"))"#, false);
+  te_bool(false, scope, r#"before(time("09:00:00"), time("10:00:00+02:00"))"#, true);
+}
+
+#[test]
+fn _0114() {
+  // a point or an endpoint written as null takes part in the formula as null (Table 79), as in `in`
+  let scope = &scope!();
+  te_bool(false, scope, r#"during(15, (null..10])"#, false);
+  te_bool(false, scope, r#"includes((null..10], 15)"#, false);
+  te_bool(false, scope, r#"15 in (null..10]"#, false);
+  te_null(
+    false,
+    scope,
+    r#"during(5, (null..10])"#,
+    "[during] expected values that have an order, found 5 and (null..10]",
+  );
+  te_null(
+    false,
+    scope,
+    r#"before(null, 1)"#,
+    "[core::before] invalid argument type, expected scalar or range of scalars, actual type is Null",
   );
 }

@@ -23,12 +23,8 @@ fn _0004() {
 
 #[test]
 fn _0005() {
-  te_null(
-    false,
-    &scope!(),
-    r#"append(1,2,3)"#,
-    r#"[core::append] invalid argument type, expected list, actual type is number"#,
-  );
+  // a value that is no list is the list of it where a list is taken (10.3.2.9.4)
+  te_be_value(false, &scope!(), r#"append(1,2,3)"#, r#"[1, 2, 3]"#);
 }
 
 #[test]

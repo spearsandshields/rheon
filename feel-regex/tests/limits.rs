@@ -8,8 +8,12 @@ fn nested(levels: usize) -> String {
   format!("{}a{}", "(".repeat(levels), ")".repeat(levels))
 }
 
-fn invalid(pattern: &str) -> RegexError {
-  RegexError::InvalidPattern(DsntkError::new("FeelRegexError", &format!("invalid regex pattern: '{pattern}'")))
+/// Whether `result` refuses `pattern` as an invalid pattern, quoting it as the caller wrote it.
+fn is_invalid<T: std::fmt::Debug>(result: Result<T, RegexError>, pattern: &str) -> bool {
+  match result {
+    Err(RegexError::InvalidPattern(error)) => error.to_string().contains(&format!("invalid regex pattern '{pattern}': expected ")),
+    other => panic!("{pattern:?}: {other:?}"),
+  }
 }
 
 #[test]
@@ -27,8 +31,9 @@ fn matches_reports_the_engine_limits() {
 fn split_reports_the_engine_limits() {
   assert_eq!(Err(RegexError::LimitExceeded(Limit::CompiledSize)), split("a", r"\w{10000}"));
   assert_eq!(Err(RegexError::LimitExceeded(Limit::Nesting)), split("a", &nested(300)));
-  // 100 levels are within the limit of split's engine
-  assert_eq!(Ok(vec!["".to_string(), "".to_string()]), split("a", &nested(100)));
+  assert_eq!(Err(RegexError::LimitExceeded(Limit::Nesting)), split("a", &nested(100)));
+  // 60 levels are within the limit of the engine
+  assert_eq!(Ok(vec!["".to_string(), "".to_string()]), split("a", &nested(60)));
 }
 
 #[test]
@@ -46,25 +51,24 @@ fn replace_reports_the_engine_limits() {
 #[test]
 fn a_pattern_is_invalid_only_when_the_engine_reads_it_within_its_limits() {
   let pattern = format!("{}[", "(".repeat(300));
-  // the backtracking engine's parser stops at its nesting limit, before the unclosed class
+  // the reading stops at the nesting limit, before the unclosed class, for every function
   assert_eq!(Err(RegexError::LimitExceeded(Limit::Nesting)), is_match("a", &pattern, ""));
-  // the automata engine's parser reads the whole pattern before it checks the nesting
-  assert_eq!(Err(invalid(&pattern)), split("a", &pattern));
-  assert_eq!(Err(invalid(&pattern)), replace("a", &pattern, "b", ""));
+  assert_eq!(Err(RegexError::LimitExceeded(Limit::Nesting)), split("a", &pattern));
+  assert_eq!(Err(RegexError::LimitExceeded(Limit::Nesting)), replace("a", &pattern, "b", ""));
 }
 
 #[test]
 fn invalid_patterns_stay_invalid() {
   for pattern in ["[a-z", r"(asd)[\1]"] {
-    assert_eq!(Err(invalid(pattern)), split("a", pattern));
-    assert_eq!(Err(invalid(pattern)), replace("a", pattern, "b", ""));
+    assert!(is_invalid(split("a", pattern), pattern));
+    assert!(is_invalid(replace("a", pattern, "b", ""), pattern));
   }
   for pattern in [r"(.)\3", "[a-z", r"(asd)[\1]", r"\p{ IsBasicLatin}+"] {
-    assert_eq!(Err(invalid(pattern)), is_match("a", pattern, ""));
+    assert!(is_invalid(is_match("a", pattern, ""), pattern));
   }
   // the pattern is quoted as the caller wrote it, also with flags
-  assert_eq!(Err(invalid("[a-z")), is_match("a", "[a-z", "i"));
-  assert_eq!(Err(invalid("[a-z")), replace("a", "[a-z", "b", "i"));
+  assert!(is_invalid(is_match("a", "[a-z", "i"), "[a-z"));
+  assert!(is_invalid(replace("a", "[a-z", "b", "i"), "[a-z"));
 }
 
 #[test]
@@ -85,7 +89,7 @@ fn replace_and_split_reject_a_pattern_that_matches_the_zero_length_string() {
   assert_eq!(Err(zero_length()), split("", "a?"));
   // a limit or an invalid pattern comes first
   assert_eq!(Err(RegexError::LimitExceeded(Limit::CompiledSize)), split("", r"\w{10000}"));
-  assert_eq!(Err(invalid("(|")), split("", "(|"));
+  assert!(is_invalid(split("", "(|"), "(|"));
   // a zero-length input has no item
   assert_eq!(Ok(Vec::<String>::new()), split("", ";"));
   assert_eq!(Ok(vec!["".to_string(), "".to_string()]), split(";", ";"));

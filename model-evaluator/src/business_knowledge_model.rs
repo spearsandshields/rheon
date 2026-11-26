@@ -32,16 +32,42 @@ impl BusinessKnowledgeModelEvaluator {
   pub fn new(definitions: &DefDefinitions, model_builder: &ModelBuilder) -> Result<Self> {
     let mut evaluators = HashMap::new();
     for business_knowledge_model in definitions.business_knowledge_models() {
-      let function_definition = business_knowledge_model.encapsulated_logic().as_ref().ok_or_else(err_empty_encapsulated_logic)?;
-      let evaluator = build_bkm_evaluator(definitions, business_knowledge_model, function_definition, model_builder)?;
       let model_namespace = business_knowledge_model.namespace();
       let model_name = business_knowledge_model.model_name();
       let id = business_knowledge_model.id();
       let invocable_name = business_knowledge_model.name().to_string();
       let output_variable_name = business_knowledge_model.variable().name().to_owned();
       let def_key = DefKey::new(model_namespace, id);
-      evaluators.insert(def_key.clone(), evaluator);
-      model_builder.add_bkm_invocable(model_namespace.to_string(), model_name.to_string(), invocable_name, def_key, output_variable_name);
+      // one that is not built is known by its name: its evaluation says why it is not
+      model_builder.add_bkm_invocable(model_namespace.to_string(), model_name.to_string(), invocable_name, def_key.clone(), output_variable_name);
+      if model_builder.is_unbuilt(&def_key) {
+        continue;
+      }
+      let built = match business_knowledge_model.encapsulated_logic().as_ref() {
+        Some(function_definition) => build_bkm_evaluator(definitions, business_knowledge_model, function_definition, model_builder),
+        // without encapsulated logic it is a business knowledge model all the same (DMN 1.6
+        // §6.3.9: the logic is optional): a function whose invocation is null with the reason
+        None => {
+          let name = business_knowledge_model.name().to_string();
+          let evaluator: rheon_feel::Evaluator =
+            Box::new(move |_: &FeelScope| rheon_feel::value_null!("business knowledge model '{}' has no encapsulated logic", rheon_feel::message::arg(&name)));
+          let function = Value::from(rheon_feel::FunctionDefinition::new(
+            vec![],
+            FunctionBody::LiteralExpression(Arc::new(evaluator)),
+            false,
+            Closure::default(),
+            FeelContext::default(),
+            FeelType::Any,
+          ));
+          build_bkm_evaluator_from_function_definition(business_knowledge_model.variable().name().clone(), function, vec![])
+        }
+      };
+      match built {
+        Ok(evaluator) => {
+          evaluators.insert(def_key, evaluator);
+        }
+        Err(error) => model_builder.failed(&def_key, error),
+      }
     }
     Ok(Self { evaluators: Arc::new(evaluators) })
   }
@@ -96,7 +122,7 @@ fn build_bkm_evaluator(
   if *function_definition.kind() == FunctionKind::Onnx {
     // DMN 1.6 (DMN16-90, DMN16-134): ONNX execution is optional; the BKM is a function whose
     // invocation gives null with a diagnostic, and the rest of the model evaluates normally.
-    let evaluator: rheon_feel::Evaluator = Box::new(|_: &FeelScope| rheon_feel::value_null!("ONNX functions are not supported"));
+    let evaluator: rheon_feel::Evaluator = Box::new(|_: &FeelScope| rheon_feel::value_null!("external ONNX functions are not supported"));
     let function = Value::from(rheon_feel::FunctionDefinition::new(
       formal_parameters,
       FunctionBody::LiteralExpression(Arc::new(evaluator)),

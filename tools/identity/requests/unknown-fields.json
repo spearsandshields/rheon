@@ -1,0 +1,13 @@
+[
+  {"op": "evaluate", "expression": "1 + \"a\"", "errorMod": "strict", "maxsteps": 5},
+  {"op": "evaluate", "expression": "1", "x": 1},
+  {"op": "evaluate", "expression": "1", "Expression": "2"},
+  {"op": "evaluate", "dialect": "unaryTests", "expression": "> 1", "input": 2, "inputs": 3},
+  {"op": "evaluate", "expression": "1", "id": 7, "cursor": 0, "width": 80},
+  {"op": "parse", "expression": "1", "x": 1},
+  {"op": "syntax", "expression": "1", "x": 1},
+  {"op": "evaluate", "expression": "1", "errorMode": "strict", "x": 1},
+  {"op": "evaluate", "expression": "1 +", "x": 1},
+  {"op": "info", "x": 1},
+  {"op": "evaluate", "expression": "a", "context": {"a": 1, "errorMode": "x"}}
+]

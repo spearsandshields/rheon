@@ -103,3 +103,65 @@ fn a_regex_engine_limit_is_not_a_default() {
     r"matches: the pattern '^(a|a)*\1$' exceeds the regex engine's backtracking limit; evaluation stopped",
   );
 }
+
+#[test]
+fn an_incomparable_not_equal_test_is_satisfied() {
+  // in B-FEEL an incompatible type is false, except for != where it is true (11.2), also in a test
+  for (e, x) in [
+    (r#""a" in != 1"#, "true"),
+    (r#""a" in (!= 5, != 6)"#, "true"),
+    (r#""a" in (!= 5, = 6)"#, "true"),
+    (r#""a" in not(!= 5)"#, "false"),
+    (r#""a" in (= 5, < 6)"#, "false"),
+    (r#"5 in (!= 5)"#, "false"),
+  ] {
+    bf(e, x, None);
+  }
+}
+
+#[test]
+fn some_and_every_are_never_null() {
+  // some and every are boolean expressions: no item that decides them gives false, not null (11.2)
+  for (e, x) in [
+    (r#"some x in [null, false] satisfies x"#, "false"),
+    (r#"every x in [true, null] satisfies x"#, "false"),
+    (r#"every i in [(1 + "a"), 2] satisfies (2 * "b")"#, "false"),
+    (r#"some x in [null, true] satisfies x"#, "true"),
+    (r#"every x in [true, true] satisfies x"#, "true"),
+  ] {
+    bf(e, x, None);
+  }
+}
+
+#[test]
+fn named_lists_of_the_list_number_functions_drop_what_is_no_number() {
+  // 11.3, 11.7: by name as by position; FEEL gives null
+  for (named, positional, expected) in [
+    ("sum(list: [1, null, 3])", "sum([1, null, 3])", "4"),
+    ("mean(list: [1, \"a\", 3])", "mean([1, \"a\", 3])", "2"),
+    ("mode(list: [null, 1, 1, 2])", "mode([null, 1, 1, 2])", "[1]"),
+    ("product(list: [2, true, 3])", "product([2, true, 3])", "6"),
+  ] {
+    bf(named, expected, Some("null"));
+    bf(positional, expected, Some("null"));
+  }
+}
+
+#[test]
+fn the_b_feel_uris_select_b_feel() {
+  // DMN 1.6 and 1.7 Beta 1, 11.1: the B-FEEL URI, and the versioned one for other languages
+  for uri in [
+    "https://www.omg.org/spec/DMN/20240513/B-FEEL/",
+    "https://www.omg.org/spec/DMN/B-FEEL/",
+    "https://www.omg.org/spec/DMN/B-FEEL/1.7",
+  ] {
+    assert_eq!(Dialect::BFeel, Dialect::from_expression_language(uri), "{uri}");
+  }
+  for uri in [
+    "https://www.omg.org/spec/DMN/FEEL/",
+    "https://www.omg.org/spec/DMN/FEEL/1.7",
+    "https://www.omg.org/spec/DMN/20240513/FEEL/",
+  ] {
+    assert_eq!(Dialect::Feel, Dialect::from_expression_language(uri), "{uri}");
+  }
+}

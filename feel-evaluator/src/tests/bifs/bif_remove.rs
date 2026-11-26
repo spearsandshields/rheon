@@ -33,12 +33,22 @@ fn _0006() {
 
 #[test]
 fn _0007() {
-  te_null(false, &scope!(), "remove(l:[1,2,3,4,5],position:1)", r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    "remove(l:[1,2,3,4,5],position:1)",
+    r#"expected the parameters of remove(list, position): list, found the parameter name 'l'"#,
+  );
 }
 
 #[test]
 fn _0008() {
-  te_null(false, &scope!(), "remove(list:[1,2,3,4,5],p:1)", r#"parameter 'position' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    "remove(list:[1,2,3,4,5],p:1)",
+    r#"expected the parameters of remove(list, position): list, found the parameter name 'p'"#,
+  );
 }
 
 #[test]

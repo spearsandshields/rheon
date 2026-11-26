@@ -1,0 +1,1027 @@
+[
+  {
+    "expression": "date(\"0044-01-01\")",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '0044-01-01'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date] invalid date string '0044-01-01')",
+        "isNull": true,
+        "nullReason": "[core::date] invalid date string '0044-01-01'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"0044-01-01\"",
+        "feel": "0044-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0044-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date(\"0044-01-01\")",
+      "errorMode": "strict"
+    },
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::date] invalid date string '0044-01-01'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"0044-01-01\"",
+        "feel": "0044-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0044-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"-0044-03-15\")",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '-0044-03-15'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date] invalid date string '-0044-03-15')",
+        "isNull": true,
+        "nullReason": "[core::date] invalid date string '-0044-03-15'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-0044-03-15\"",
+        "feel": "-0044-03-15",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-0044-03-15",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date(\"-0044-03-15\")",
+      "errorMode": "strict"
+    },
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::date] invalid date string '-0044-03-15'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-0044-03-15\"",
+        "feel": "-0044-03-15",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-0044-03-15",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"0001-01-01\")",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '0001-01-01'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date] invalid date string '0001-01-01')",
+        "isNull": true,
+        "nullReason": "[core::date] invalid date string '0001-01-01'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"0001-01-01\"",
+        "feel": "0001-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0001-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date(\"0001-01-01\")",
+      "errorMode": "strict"
+    },
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::date] invalid date string '0001-01-01'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"0001-01-01\"",
+        "feel": "0001-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0001-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(date(-44, 3, 15))",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-044-03-15\"",
+        "feel": "\"-044-03-15\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-044-03-15",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-0044-03-15\"",
+        "feel": "\"-0044-03-15\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-0044-03-15",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "string(date(-44, 3, 15))",
+      "errorMode": "strict"
+    },
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-044-03-15\"",
+        "feel": "\"-044-03-15\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-044-03-15",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-0044-03-15\"",
+        "feel": "\"-0044-03-15\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-0044-03-15",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(-5, 1, 1)",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-005-01-01\"",
+        "feel": "-005-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-005-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-0005-01-01\"",
+        "feel": "-0005-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-0005-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date(-5, 1, 1)",
+      "errorMode": "strict"
+    },
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-005-01-01\"",
+        "feel": "-005-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-005-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-0005-01-01\"",
+        "feel": "-0005-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-0005-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date and time(\"0044-01-01T10:00:00\")",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date and time] invalid date or date and time '0044-01-01T10:00:00'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date and time] invalid date or date and time '0044-01-01T10:00:00')",
+        "isNull": true,
+        "nullReason": "[core::date and time] invalid date or date and time '0044-01-01T10:00:00'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"0044-01-01T10:00:00\"",
+        "feel": "0044-01-01T10:00:00",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0044-01-01T10:00:00",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date and time(\"0044-01-01T10:00:00\")",
+      "errorMode": "strict"
+    },
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::date and time] invalid date or date and time '0044-01-01T10:00:00'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"0044-01-01T10:00:00\"",
+        "feel": "0044-01-01T10:00:00",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0044-01-01T10:00:00",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "@\"-0044-03-15T00:00:00Z\"",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid @ literal: -0044-03-15T00:00:00Z"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid @ literal: -0044-03-15T00:00:00Z)",
+        "isNull": true,
+        "nullReason": "invalid @ literal: -0044-03-15T00:00:00Z",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-0044-03-15T00:00:00Z\"",
+        "feel": "-0044-03-15T00:00:00Z",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-0044-03-15T00:00:00Z",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "@\"-0044-03-15T00:00:00Z\"",
+      "errorMode": "strict"
+    },
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: invalid @ literal: -0044-03-15T00:00:00Z"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-0044-03-15T00:00:00Z\"",
+        "feel": "-0044-03-15T00:00:00Z",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-0044-03-15T00:00:00Z",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"0999-12-31\")",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '0999-12-31'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date] invalid date string '0999-12-31')",
+        "isNull": true,
+        "nullReason": "[core::date] invalid date string '0999-12-31'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"0999-12-31\"",
+        "feel": "0999-12-31",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0999-12-31",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(date(-5,1,1))",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-005-01-01\"",
+        "feel": "\"-005-01-01\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-005-01-01",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-0005-01-01\"",
+        "feel": "\"-0005-01-01\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-0005-01-01",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"-0001-01-01\")",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '-0001-01-01'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date] invalid date string '-0001-01-01')",
+        "isNull": true,
+        "nullReason": "[core::date] invalid date string '-0001-01-01'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-0001-01-01\"",
+        "feel": "-0001-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-0001-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date and time(\"0001-01-01T00:00:00Z\")",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date and time] invalid date or date and time '0001-01-01T00:00:00Z'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date and time] invalid date or date and time '0001-01-01T00:00:00Z')",
+        "isNull": true,
+        "nullReason": "[core::date and time] invalid date or date and time '0001-01-01T00:00:00Z'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"0001-01-01T00:00:00Z\"",
+        "feel": "0001-01-01T00:00:00Z",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0001-01-01T00:00:00Z",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date and time(\"0999-12-31T23:59:59Z\")",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date and time] invalid date or date and time '0999-12-31T23:59:59Z'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date and time] invalid date or date and time '0999-12-31T23:59:59Z')",
+        "isNull": true,
+        "nullReason": "[core::date and time] invalid date or date and time '0999-12-31T23:59:59Z'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"0999-12-31T23:59:59Z\"",
+        "feel": "0999-12-31T23:59:59Z",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0999-12-31T23:59:59Z",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date and time(date(-5,1,1), time(10,0,0), \"Z\")",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-005-01-01T10:00:00Z\"",
+        "feel": "-005-01-01T10:00:00Z",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-005-01-01T10:00:00Z",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-0005-01-01T10:00:00Z\"",
+        "feel": "-0005-01-01T10:00:00Z",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-0005-01-01T10:00:00Z",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date and time(date(-5,1,1), time(10,0,0))",
+    "why": "Found in F3, not in the audit: a year of a date string is four digits with leading zeros or more digits without one (XML Schema Part 2, yearFrag; DMN 1.7 Beta 1, 10.3.4.1: the date string is an xs:date), and the year 0000 is none (owner Q-T7). The parser refused every year that starts with 0, so date(\"0044-01-01\") and date(\"-0044-03-15\") were null although string(date(44, 1, 1)) is \"0044-01-01\"; and a negative year was written with three digits after its sign (-044-03-15), which no parser reads back.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-005-01-01T10:00:00\"",
+        "feel": "-005-01-01T10:00:00",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-005-01-01T10:00:00",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-0005-01-01T10:00:00\"",
+        "feel": "-0005-01-01T10:00:00",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-0005-01-01T10:00:00",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]

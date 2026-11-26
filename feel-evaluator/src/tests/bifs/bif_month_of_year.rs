@@ -158,7 +158,12 @@ fn _0030() {
 
 #[test]
 fn _0031() {
-  te_null(false, &scope!(), r#"month of year(d:date(2019,12,17))"#, "parameter 'date' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"month of year(d:date(2019,12,17))"#,
+    "expected the parameters of month of year(date): string, found the parameter name 'd'",
+  );
 }
 
 #[test]
@@ -193,10 +198,5 @@ fn _0034() {
 
 #[test]
 fn _0035() {
-  te_null(
-    false,
-    &scope!(),
-    r#"month of year(@"999999999-01-01")"#,
-    "[core::month of year] invalid argument type, expected date, date and time, actual type is Null",
-  );
+  te_be_value(false, &scope!(), r#"month of year(@"999999999-01-01")"#, r#""January""#);
 }

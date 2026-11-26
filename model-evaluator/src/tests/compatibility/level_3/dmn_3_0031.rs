@@ -12,7 +12,7 @@ fn _0001() {
     &MODEL_NAME,
     "fn invocation positional parameters",
     &CTX,
-    r#"{divisionResultPositional: 2, multiplicationResultPositional: 50, sumResult: 15}"#,
+    r#"{sumResult: 15, multiplicationResultPositional: 50, divisionResultPositional: 2}"#,
   );
 }
 
@@ -24,7 +24,7 @@ fn _0002() {
     &MODEL_NAME,
     "fn invocation named parameters",
     &CTX,
-    r#"{divisionResultNamed: 2, multiplicationResultNamed: 50, subResult: 5, subResultMixed: -5}"#,
+    r#"{subResult: 5, multiplicationResultNamed: 50, subResultMixed: -5, divisionResultNamed: 2}"#,
   );
 }
 
@@ -36,6 +36,6 @@ fn _0003() {
     &MODEL_NAME,
     "fn invocation complex parameters",
     &CTX,
-    r#"{circumference: 94.24776, functionInvocationInParameter: 200, functionInvocationLiteralExpressionInParameter: 500}"#,
+    r#"{functionInvocationInParameter: 200, functionInvocationLiteralExpressionInParameter: 500, circumference: 94.24776}"#,
   );
 }

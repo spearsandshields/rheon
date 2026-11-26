@@ -138,7 +138,12 @@ fn _0023() {
 
 #[test]
 fn _0024() {
-  te_null(false, &scope!(), r#"duration(f: "PT24H")"#, r#"parameter 'from' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"duration(f: "PT24H")"#,
+    r#"expected the parameters of duration(from): days and time duration or years and months duration, found the parameter name 'f'"#,
+  );
 }
 
 #[test]

@@ -14,9 +14,10 @@ mod program;
 mod resolve;
 #[cfg(test)]
 mod tests;
+pub(crate) mod trace;
 mod vm;
 
-pub(crate) use resolve::variables;
+pub(crate) use resolve::{Info, LayoutKind, NONE, Place, Read, Region, RegionKind, Resolved, Target, resolve_names, variables};
 pub(crate) use vm::{code_of, run_function};
 
 use crate::Dialect;
@@ -63,6 +64,15 @@ pub(crate) fn kind_of(node: &AstNode) -> String {
 /// The evaluator of `node` in `dialect`, or the node that makes the tree malformed.
 pub(crate) fn lower(node: &AstNode, dialect: Dialect) -> Result<Evaluator, Malformed<'_>> {
   let resolved = resolve::resolve(node);
-  let program = lower::lower(resolved, dialect)?;
+  let program = lower::lower(resolved, dialect, None)?;
+  Ok(Box::new(move |scope: &FeelScope| program.run(scope)))
+}
+
+/// [lower] with a recording instruction after the value of each node that `targets` gives a
+/// number for, and where the loops are that it gives one for: an evaluation inside
+/// [trace::recording] keeps those values.
+pub(crate) fn lower_traced<'a>(node: &'a AstNode, dialect: Dialect, targets: &crate::Tracing<'_>) -> Result<Evaluator, Malformed<'a>> {
+  let resolved = resolve::resolve(node);
+  let program = lower::lower(resolved, dialect, Some(targets))?;
   Ok(Box::new(move |scope: &FeelScope| program.run(scope)))
 }

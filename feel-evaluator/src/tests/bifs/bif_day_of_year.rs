@@ -23,17 +23,17 @@ fn _0004() {
 
 #[test]
 fn _0005() {
-  te_null(false, &scope!(), r#"day of year(d: date and time("2019-09-17T00:00:00"))"#, "parameter 'date' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"day of year(d: date and time("2019-09-17T00:00:00"))"#,
+    "expected the parameters of day of year(date): number, found the parameter name 'd'",
+  );
 }
 
 #[test]
 fn _0006() {
-  te_null(
-    false,
-    &scope!(),
-    r#"day of year(date: date(999999999,9,17))"#,
-    "[core::day of year] invalid argument type, expected date, date and time, actual type is Null",
-  );
+  te_be_value(false, &scope!(), r#"day of year(date: date(999999999,9,17))"#, r#"260"#);
 }
 
 #[test]

@@ -1,16 +1,17 @@
-//! The range functions on a range with an undefined endpoint.
+//! The range functions (DMN 1.7 Beta 1, 10.3.4.7, Table 79).
 //!
-//! DMN 1.6 Table 42: a range written with one endpoint (`< 10`, `range("(..10)")`) has the other
-//! endpoint undefined and not included. Table 79 gives each range function as a FEEL formula
-//! over the endpoints of its arguments and whether they are included ("Evaluates to true if and
-//! only if"). An undefined endpoint is null there (`(< 10).start`), so the formula is evaluated
-//! with the three values of FEEL: an ordering comparison with an undefined endpoint is null, an
-//! equality with it is true for two undefined endpoints and false otherwise, and `and`, `or` and
-//! `not` are those of Table 51. The result is the value of the formula: true or false where the
-//! endpoints that are defined decide it, and null with an error where they do not.
+//! Table 79 gives each range function as a FEEL formula over its points and the endpoints of its
+//! ranges and whether they are included ("Evaluates to true if and only if"). Every argument is
+//! taken through that formula, with the comparisons of FEEL: `<` on values of one ordered type,
+//! null where they have no order (a time without an offset against one with an offset, 10.3.2.3.4),
+//! and `=` of FEEL. A range written with one endpoint (`< 10`, `range("(..10)")`, Table 42) has
+//! the other endpoint undefined and not included; it is null in the formula (`(< 10).start`), so an
+//! ordering comparison with it is null, and an equality with it is true for two undefined endpoints
+//! and false otherwise. `and`, `or` and `not` are those of Table 51. The result is the value of the
+//! formula: true or false where the values decide it, and null with an error where they do not.
 
 use crate::equality::{eval_ternary_equality, range_parts};
-use crate::kernels::compare_lt;
+use crate::kernels::{Order, order};
 use rheon_feel::message::arg;
 use rheon_feel::value_null;
 use rheon_feel::values::Value;
@@ -77,11 +78,13 @@ fn or(a: Truth, b: Truth) -> Truth {
 /// An endpoint: a value, or None when it is undefined.
 type Endpoint<'a> = Option<&'a Value>;
 
-/// `a < b`: null with an undefined endpoint.
+/// `a < b` by the ordering kernel: null with an undefined endpoint and for values without an order.
+/// It records nothing: a comparison that does not decide the formula is no error, and the formula's
+/// null gets its one reason in [relation].
 fn lt(a: Endpoint, b: Endpoint) -> Truth {
-  match compare_lt(a?.clone(), b?.clone()) {
-    Value::Boolean(result) => Some(result),
-    _ => None,
+  match order(a?, b?) {
+    Order::Ordered(ordering) => Some(ordering.is_lt()),
+    Order::Indeterminate | Order::Unordered => None,
   }
 }
 
@@ -122,24 +125,27 @@ fn operand(value: &Value) -> Operand<'_> {
   }
 }
 
-/// The value of the range function `relation` on `value1` and `value2` when either is a range
-/// with an undefined endpoint, and the values that are there are of one ordered type. None
-/// otherwise: the function takes its arguments as for ranges with both endpoints.
-pub(crate) fn relation(relation: Relation, value1: &Value, value2: &Value) -> Option<Value> {
+/// The value of the range function `relation` on `value1` and `value2` (Table 79): a boolean, or
+/// null with an error where the values do not decide the formula. When the points and the defined
+/// endpoints are not values of one ordered type, or the function has no signature for the two
+/// arguments, null with an error that names the argument that does not fit.
+pub(crate) fn relation(relation: Relation, value1: &Value, value2: &Value) -> Value {
   let (first, second) = (operand(value1), operand(value2));
+  let Some(truth) = one_ordered_type(&[first, second]).then(|| formula(relation, first, second)).flatten() else {
+    return invalid(relation, value1, value2);
+  };
   let open = |operand: &Operand| matches!(operand, Operand::Range(range) if range.start.is_none() || range.end.is_none());
   let named = if open(&first) {
     value1
   } else if open(&second) {
     value2
   } else {
-    return None;
+    return match truth {
+      Some(result) => Value::Boolean(result),
+      None => value_null!("[{}] expected values that have an order, found {} and {}", relation.name(), arg(value1), arg(value2)),
+    };
   };
-  if !one_ordered_type(&[first, second]) {
-    return None;
-  }
-  let truth = formula(relation, first, second)?;
-  Some(match truth {
+  match truth {
     Some(result) => Value::Boolean(result),
     None => value_null!(
       "[{}] expected endpoints that decide the result, found the range {} with an undefined endpoint{}",
@@ -152,18 +158,70 @@ pub(crate) fn relation(relation: Relation, value1: &Value, value2: &Value) -> Op
         _ => "",
       }
     ),
-  })
+  }
 }
 
-/// Whether the points and the defined endpoints of `operands` are values of one ordered type.
+/// The error of a range function given arguments it does not take (the signatures of Table 79).
+/// The first argument that is no point or range of an ordered type, or not of a shape the
+/// function takes there, is named; when the first one fits, the second is named with the type it
+/// must have: `number or range<number>`, `range<number>`, or for `coincides` the first one's shape.
+#[cold]
+#[inline(never)]
+fn invalid(relation: Relation, value1: &Value, value2: &Value) -> Value {
+  use Relation::*;
+  /// What a function takes as its second argument.
+  enum Second {
+    PointOrRange,
+    Range,
+    SameShapeAsFirst,
+  }
+  // whether the function takes a point as its first argument, and what it takes as its second
+  let (point1, second) = match relation {
+    Before | After => (true, Second::PointOrRange),
+    Coincides => (true, Second::SameShapeAsFirst),
+    Finishes | Starts | During => (true, Second::Range),
+    FinishedBy | StartedBy | Includes => (false, Second::PointOrRange),
+    Meets | MetBy | Overlaps | OverlapsBefore | OverlapsAfter => (false, Second::Range),
+  };
+  let ordered = |value: &Value| !matches!(value, Value::Null(_)) && one_ordered_type(&[operand(value)]);
+  let is_range = |value: &Value| matches!(operand(value), Operand::Range(_));
+  if !ordered(value1) || !(point1 || is_range(value1)) {
+    let expected = if point1 { "scalar or range of scalars" } else { "range of scalars" };
+    return crate::macros::invalid_argument_type!(module "core", relation.name(), expected, value1);
+  }
+  // the kind the first argument holds: its point, or a defined endpoint of its range
+  let kind = match operand(value1) {
+    Operand::Point(point) => Some(point),
+    Operand::Range(range) => range.start.filter(|start| !start.is_null()).or(range.end.filter(|end| !end.is_null())),
+  }
+  .map(|value| rheon_feel::values::TypeOf(value).to_string())
+  .unwrap_or_else(|| "scalar".to_string());
+  let expected = match second {
+    Second::PointOrRange => format!("{kind} or range<{kind}>"),
+    Second::Range => format!("range<{kind}>"),
+    Second::SameShapeAsFirst if is_range(value1) => format!("range<{kind}>"),
+    Second::SameShapeAsFirst => kind,
+  };
+  crate::macros::invalid_argument_type!(module "core", relation.name(), expected, value2)
+}
+
+/// Whether the points and the defined endpoints of `operands` are values of one ordered type, an
+/// endpoint written as null aside.
 fn one_ordered_type(operands: &[Operand]) -> bool {
   let mut kind = None;
+  // (a value, and whether it is an endpoint of a range)
   let mut values = operands.iter().flat_map(|operand| match operand {
-    Operand::Point(point) => [Some(*point), None],
-    Operand::Range(range) => [range.start, range.end],
+    Operand::Point(point) => [Some((*point, false)), None],
+    Operand::Range(range) => [range.start.map(|start| (start, true)), range.end.map(|end| (end, true))],
   });
   values.all(|value| {
-    let Some(value) = value else { return true };
+    let Some((value, endpoint)) = value else { return true };
+    // an endpoint written as null: the formula compares it as null (a comparison with null has no
+    // answer, an equality with it is false), as `in` does; a null point is no argument the
+    // function takes
+    if endpoint && value.is_null() {
+      return true;
+    }
     let ordered = matches!(
       value,
       Value::Number(_) | Value::String(_) | Value::Date(_) | Value::DateTime(_) | Value::Time(_) | Value::DaysAndTimeDuration(_) | Value::YearsAndMonthsDuration(_)
@@ -179,6 +237,9 @@ fn formula(relation: Relation, first: Operand, second: Operand) -> Option<Truth>
   use Operand::{Point, Range};
   let point = |value| Some(value);
   Some(match (relation, first, second) {
+    (Relation::Before, Point(a), Point(b)) => lt(point(a), point(b)),
+    (Relation::After, Point(a), Point(b)) => gt(point(a), point(b)),
+    (Relation::Coincides, Point(a), Point(b)) => eq(point(a), point(b)),
     (Relation::Before, Point(p), Range(r)) => or(lt(point(p), r.start), and(eq(point(p), r.start), Some(!r.start_in))),
     (Relation::Before, Range(r), Point(p)) => or(lt(r.end, point(p)), and(eq(r.end, point(p)), Some(!r.end_in))),
     (Relation::Before, Range(a), Range(b)) => or(lt(a.end, b.start), and(Some(!a.end_in || !b.start_in), eq(a.end, b.start))),

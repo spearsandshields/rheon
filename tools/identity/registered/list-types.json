@@ -1,0 +1,3903 @@
+[
+  {
+    "expression": "[{a: null}, {b: 1}, {}, {item: null}][a = null]",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'a'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a\": null}, {\"b\": 1}, {}, {\"item\": null}]",
+        "feel": "[{a: null}, {b: 1}, {}, {item: null}]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": true,
+                        "text": null,
+                        "type": null
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "b",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "item",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": true,
+                        "text": null,
+                        "type": null
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'a'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a\": null}, {\"b\": 1}, {}, {\"item\": null}]",
+        "feel": "[{a: null}, {b: 1}, {}, {item: null}]",
+        "isNull": false,
+        "type": "list<context<>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": true,
+                        "text": null,
+                        "type": null
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "b",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "item",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": true,
+                        "text": null,
+                        "type": null
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "for x in [1,2,3] return partial",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]], [[], [[]]]]",
+        "feel": "[[], [[]], [[], [[]]]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    },
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": []
+                            },
+                            "simple": null
+                          }
+                        ]
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]], [[], [[]]]]",
+        "feel": "[[], [[]], [[], [[]]]]",
+        "isNull": false,
+        "type": "list<list<list<list<Null>>>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    },
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": []
+                            },
+                            "simple": null
+                          }
+                        ]
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[null, 1] instance of list<number>",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[null, 1]",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 1]",
+        "feel": "[null, 1]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 1]",
+        "feel": "[null, 1]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[null, 1, null, 2] instance of list<number>",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[null, 1, null, 2]",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 1, null, 2]",
+        "feel": "[null, 1, null, 2]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 1, null, 2]",
+        "feel": "[null, 1, null, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[[null], [1]] instance of list<list<number>>",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[[null], [1]]",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[null], [1]]",
+        "feel": "[[null], [1]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": true,
+                        "text": null,
+                        "type": null
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[null], [1]]",
+        "feel": "[[null], [1]]",
+        "isNull": false,
+        "type": "list<list<number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": true,
+                        "text": null,
+                        "type": null
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[{a: null}, {a: 1}] instance of list<context<a: number>>",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[{a: null}, {a: 1}]",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a\": null}, {\"a\": 1}]",
+        "feel": "[{a: null}, {a: 1}]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": true,
+                        "text": null,
+                        "type": null
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a\": null}, {\"a\": 1}]",
+        "feel": "[{a: null}, {a: 1}]",
+        "isNull": false,
+        "type": "list<context<a: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": true,
+                        "text": null,
+                        "type": null
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[{a: 1, b: 2}, {a: 1}] instance of list<context<a: number>>",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[{a: 1, b: 2}, {a: 1}]",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a\": 1, \"b\": 2}, {\"a\": 1}]",
+        "feel": "[{a: 1, b: 2}, {a: 1}]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "b",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a\": 1, \"b\": 2}, {\"a\": 1}]",
+        "feel": "[{a: 1, b: 2}, {a: 1}]",
+        "isNull": false,
+        "type": "list<context<a: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "b",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[[], [1]] instance of list<list<number>>",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[[], [1]]",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [1]]",
+        "feel": "[[], [1]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [1]]",
+        "feel": "[[], [1]]",
+        "isNull": false,
+        "type": "list<list<number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "abs([null, 1, 2])",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::abs] invalid argument type, expected number, actual type is list<Any>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::abs] invalid argument type, expected number, actual type is list<Any>)",
+        "isNull": true,
+        "nullReason": "[core::abs] invalid argument type, expected number, actual type is list<Any>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::abs] invalid argument type, expected number, actual type is list<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::abs] invalid argument type, expected number, actual type is list<number>)",
+        "isNull": true,
+        "nullReason": "[core::abs] invalid argument type, expected number, actual type is list<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "for x in [[null, 1], [1, null]] return x instance of list<number>",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, true]",
+        "feel": "[false, true]",
+        "isNull": false,
+        "type": "list<boolean>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[true, true]",
+        "feel": "[true, true]",
+        "isNull": false,
+        "type": "list<boolean>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[null, {unit price: 2}].unit price",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 2]",
+        "feel": "[null, 2]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 2]",
+        "feel": "[null, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[{b: 1}, {unit price: 3}].unit price",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 3]",
+        "feel": "[null, 3]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 3]",
+        "feel": "[null, 3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "rows.unit price",
+      "context": {
+        "rows": [
+          null,
+          {
+            "unit price": 2
+          }
+        ]
+      }
+    },
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 2]",
+        "feel": "[null, 2]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 2]",
+        "feel": "[null, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "rows.unit price",
+      "context": {
+        "rows": [
+          {
+            "b": 1
+          },
+          {
+            "unit price": 3
+          }
+        ]
+      }
+    },
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 3]",
+        "feel": "[null, 3]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 3]",
+        "feel": "[null, 3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "rows instance of list<number>",
+      "context": {
+        "rows": [
+          null,
+          1
+        ]
+      }
+    },
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{partial: 1, r: for i in [1, 2] return partial}.r",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<list<list<Null>>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{partial: 1, r: for i in [1, 2] return partial}.r",
+      "errorMode": "strict"
+    },
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<list<list<Null>>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function(m, n) [m, n], r: f(n: 1)}.r",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 1]",
+        "feel": "[null, 1]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 1]",
+        "feel": "[null, 1]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(m, n) [m, n], r: f(n: 1)}.r",
+      "errorMode": "strict"
+    },
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 1]",
+        "feel": "[null, 1]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 1]",
+        "feel": "[null, 1]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(m, n) [m, n], r: f(n: 1)}.r",
+      "language": "b-feel"
+    },
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 1]",
+        "feel": "[null, 1]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, 1]",
+        "feel": "[null, 1]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "for partial in [1, 2] return partial",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<list<list<Null>>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for partial in [1, 2] return partial",
+      "errorMode": "strict"
+    },
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<list<list<Null>>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "for partial in [1, 2], y in [1] return partial",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<list<list<Null>>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for partial in [1, 2], y in [1] return partial",
+      "errorMode": "strict"
+    },
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<list<list<Null>>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "for i in 1..2 return if i = 1 then (function(f) f(f, 99))(function(g, n) if n = 0 then [[[]]] else [[[[[g(g, n - 1)]]]]]) else [partial[-1]]",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "sha256": "07ef94e30871bb79965c2924051c322230819c446e0bda920f46e19cab693755"
+    },
+    "new": {
+      "sha256": "b112c3a207098e91cd020467b4ef13f2dfb4ccc9ee23bb174dbd32a5d0302e67"
+    }
+  },
+  {
+    "expression": "for i in 1..4 return partial",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]], [[], [[]]], [[], [[]], [[], [[]]]]]",
+        "feel": "[[], [[]], [[], [[]]], [[], [[]], [[], [[]]]]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    },
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": []
+                            },
+                            "simple": null
+                          }
+                        ]
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    },
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": []
+                            },
+                            "simple": null
+                          }
+                        ]
+                      },
+                      "simple": null
+                    },
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": []
+                            },
+                            "simple": null
+                          },
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": [
+                                {
+                                  "components": null,
+                                  "list": {
+                                    "isNil": false,
+                                    "items": []
+                                  },
+                                  "simple": null
+                                }
+                              ]
+                            },
+                            "simple": null
+                          }
+                        ]
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]], [[], [[]]], [[], [[]], [[], [[]]]]]",
+        "feel": "[[], [[]], [[], [[]]], [[], [[]], [[], [[]]]]]",
+        "isNull": false,
+        "type": "list<list<list<list<list<Null>>>>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    },
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": []
+                            },
+                            "simple": null
+                          }
+                        ]
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    },
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": []
+                            },
+                            "simple": null
+                          }
+                        ]
+                      },
+                      "simple": null
+                    },
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": []
+                            },
+                            "simple": null
+                          },
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": [
+                                {
+                                  "components": null,
+                                  "list": {
+                                    "isNil": false,
+                                    "items": []
+                                  },
+                                  "simple": null
+                                }
+                              ]
+                            },
+                            "simple": null
+                          }
+                        ]
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{l: [[1], [2, [3]]], s: flatten(l), r: [l, s]}.r",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[[1], [2, [3]]], [1, 2, 3]]",
+        "feel": "[[[1], [2, [3]]], [1, 2, 3]]",
+        "isNull": false,
+        "type": "list<list<Any>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "1",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        ]
+                      },
+                      "simple": null
+                    },
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "2",
+                              "type": "xsd:decimal"
+                            }
+                          },
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": [
+                                {
+                                  "components": null,
+                                  "list": null,
+                                  "simple": {
+                                    "isNil": false,
+                                    "text": "3",
+                                    "type": "xsd:decimal"
+                                  }
+                                }
+                              ]
+                            },
+                            "simple": null
+                          }
+                        ]
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "3",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[[1], [2, [3]]], [1, 2, 3]]",
+        "feel": "[[[1], [2, [3]]], [1, 2, 3]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "1",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        ]
+                      },
+                      "simple": null
+                    },
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "2",
+                              "type": "xsd:decimal"
+                            }
+                          },
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": [
+                                {
+                                  "components": null,
+                                  "list": null,
+                                  "simple": {
+                                    "isNil": false,
+                                    "text": "3",
+                                    "type": "xsd:decimal"
+                                  }
+                                }
+                              ]
+                            },
+                            "simple": null
+                          }
+                        ]
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "3",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{l: [{item: 1, v: 2}, {v: 3}], r: [l[item = 1], l[v > 2], l]}.r",
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '{v: 3}' =?= '1'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[[{\"item\": 1, \"v\": 2}], [{\"v\": 3}], [{\"item\": 1, \"v\": 2}, {\"v\": 3}]]",
+        "feel": "[[{item: 1, v: 2}], [{v: 3}], [{item: 1, v: 2}, {v: 3}]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": [
+                        {
+                          "isNil": false,
+                          "name": "item",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "1",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        },
+                        {
+                          "isNil": false,
+                          "name": "v",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "2",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        }
+                      ],
+                      "list": null,
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": [
+                        {
+                          "isNil": false,
+                          "name": "v",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "3",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        }
+                      ],
+                      "list": null,
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": [
+                        {
+                          "isNil": false,
+                          "name": "item",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "1",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        },
+                        {
+                          "isNil": false,
+                          "name": "v",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "2",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        }
+                      ],
+                      "list": null,
+                      "simple": null
+                    },
+                    {
+                      "components": [
+                        {
+                          "isNil": false,
+                          "name": "v",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "3",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        }
+                      ],
+                      "list": null,
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '{v: 3}' =?= '1'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[[{\"item\": 1, \"v\": 2}], [{\"v\": 3}], [{\"item\": 1, \"v\": 2}, {\"v\": 3}]]",
+        "feel": "[[{item: 1, v: 2}], [{v: 3}], [{item: 1, v: 2}, {v: 3}]]",
+        "isNull": false,
+        "type": "list<list<context<v: number>>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": [
+                        {
+                          "isNil": false,
+                          "name": "item",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "1",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        },
+                        {
+                          "isNil": false,
+                          "name": "v",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "2",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        }
+                      ],
+                      "list": null,
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": [
+                        {
+                          "isNil": false,
+                          "name": "v",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "3",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        }
+                      ],
+                      "list": null,
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": [
+                        {
+                          "isNil": false,
+                          "name": "item",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "1",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        },
+                        {
+                          "isNil": false,
+                          "name": "v",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "2",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        }
+                      ],
+                      "list": null,
+                      "simple": null
+                    },
+                    {
+                      "components": [
+                        {
+                          "isNil": false,
+                          "name": "v",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "3",
+                              "type": "xsd:decimal"
+                            }
+                          }
+                        }
+                      ],
+                      "list": null,
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(c) context merge([c, {q: 2}]), r: [f(a), a, f(a)]}.r",
+      "context": {
+        "a": {
+          "p": 1
+        }
+      }
+    },
+    "why": "TYP-8: the type of the items of a list is the type that the types of all its items conform to (DMN 1.6, 10.3.2.9.2: Null conforms to every type, and a context type with more entries to one with fewer), wherever the item of that type stands. It was the type of the first item when the others conformed to it and Any otherwise, so [null, 1] was list<Any> and no instance of list<number> while [1, null] was. The answers that change are instance of, the type shown for a result, the type that a message names, and the names found in such a list.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"p\": 1, \"q\": 2}, {\"p\": 1}, {\"p\": 1, \"q\": 2}]",
+        "feel": "[{p: 1, q: 2}, {p: 1}, {p: 1, q: 2}]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "p",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "q",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "p",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "p",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "q",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"p\": 1, \"q\": 2}, {\"p\": 1}, {\"p\": 1, \"q\": 2}]",
+        "feel": "[{p: 1, q: 2}, {p: 1}, {p: 1, q: 2}]",
+        "isNull": false,
+        "type": "list<context<p: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "p",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "q",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "p",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "p",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "q",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  }
+]

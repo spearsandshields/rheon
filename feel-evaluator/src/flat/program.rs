@@ -118,6 +118,8 @@ pub(crate) enum Kernel2 {
   Range,
   /// `a instance of b`.
   InstanceOf,
+  /// `e as T` (DMN 1.7 Beta 1, Table 62).
+  As,
   /// An entry `name: type` of a context type.
   ContextTypeEntry,
   /// The type `function<t1, …> -> r`.
@@ -153,9 +155,8 @@ pub(crate) enum ListKind {
 pub(crate) enum Domain {
   /// The numbers or dates from the first operand to the second (`a..b`).
   Interval,
-  /// The numbers or dates of a range literal of a `for` (`[a..b]`), from its start and end.
-  Range,
-  /// The items of the value of the first operand, or the value itself when it is no list.
+  /// The items of the value of the first operand, or the value itself when it is no list; a
+  /// range is no domain.
   Of,
 }
 
@@ -178,7 +179,21 @@ pub(crate) enum Op {
   /// `dst` is null with the error `messages[msg]`, recorded at every evaluation.
   Fail { dst: Slot, msg: Ix },
   /// Records the warning `messages[msg]`.
-  Warn { msg: Ix },
+  Warn { msg: Ix, code: u8 },
+  /// Keeps the value of `src` as the record of the node `target` of a request ([super::trace]):
+  /// only in a program compiled for a request that asks for records.
+  Record { src: Opnd, target: Ix },
+  /// The loop `repeat` of a request is opened, or with `closed` closed ([super::trace]).
+  TraceLoop { repeat: Ix, closed: bool },
+  /// The loop `repeat` of a request evaluates its body or its predicate: the filter of `record`
+  /// for the item it visits, a walk for its next.
+  TraceStep { repeat: Ix, record: u32, filter: bool },
+  /// The invocation `site` of a request is about to invoke `function`, or with `done` has ended
+  /// ([super::trace]).
+  TraceCall { site: Ix, function: Opnd, done: bool },
+  /// The body of a function is entered, or with `left` has its value ([super::trace]): in every
+  /// body of a program compiled for a request that asks for records.
+  TraceBody { left: bool },
   /// `dst` is the value of the free name `names[name]` below the scopes of the body (in the
   /// scope of the host for the root expression), else the built-in function of that name, else
   /// null with an error; in a body, the value is kept in the activation's cell `cell` once read.
@@ -202,8 +217,20 @@ pub(crate) enum Op {
   /// `dst` is whether the value of the temporary `args` is between those of `args + 1` and
   /// `args + 2`.
   Between { dst: Slot, args: Slot },
-  /// B-FEEL: a null in `dst` becomes `ne` (`false` for `=` and the others, `true` for `!=`).
-  BoolDefault { dst: Slot, ne: bool },
+  /// B-FEEL: a null in `dst` becomes `ne` (`false` for `=` and the others, `true` for `!=`); with
+  /// `marked`, the errors recorded since the last [Op::DiagMark] (the operation's own, B-FEEL
+  /// defining its answer) become warnings, and the mark is taken off.
+  BoolDefault { dst: Slot, ne: bool, marked: bool },
+  /// B-FEEL: marks what the diagnostics hold before an operation whose answer a [Op::BoolDefault]
+  /// makes boolean, so that its errors become warnings (11.1, 11.2).
+  DiagMark,
+  /// Marks what the diagnostics hold before a name read of an [Op::TypeName], whose error is taken
+  /// off when the name holds nothing.
+  ReadMark,
+  /// `dst` is the value of `a`, a name read after an [Op::ReadMark], when it holds a value other than
+  /// the built-in function of its name, else the abstract type in `b`, with the error of the read
+  /// taken off (DMN 1.7 Beta 1, Figure 10-26: a name of the model or of the context wins).
+  TypeName { dst: Slot, a: Opnd, b: Opnd },
   /// `dst` is the kernel `kernel` on the value of `a`.
   Kernel1 { kernel: Kernel1, dst: Slot, a: Opnd },
   /// `dst` is the kernel `kernel` on the values of `a` and `b`.
@@ -318,6 +345,9 @@ pub(crate) struct CallInfo {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LoopInfo {
   pub(crate) kind: LoopKind,
+  /// B-FEEL `some` or `every`: a domain that is no iteration context makes the answer false, so
+  /// its reason is a warning, not an error.
+  pub(crate) defaulted: bool,
   pub(crate) step: Pc,
   pub(crate) exit: Pc,
   pub(crate) levels: Box<[(Slot, Pc)]>,
@@ -330,14 +360,17 @@ pub(crate) struct ProbeInfo {
   pub(crate) name: Ix,
 }
 
-/// A filter: where its value goes, where its predicate starts, and where it closes (at its
-/// [Op::FilterClose]) and ends.
+/// A filter: where its value goes, where its predicate starts, where it closes (at its
+/// [Op::FilterClose]) and ends, and whether its predicate is only a test of the items.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct FilterInfo {
   pub(crate) dst: Slot,
   pub(crate) body: Pc,
   pub(crate) close: Pc,
   pub(crate) after: Pc,
+  /// The predicate is a test whose value is never a number and whose evaluation takes no step
+  /// and can not stop: it selects no item by index, so it is evaluated for the items only.
+  pub(crate) test: bool,
 }
 
 /// A function definition: the proto of its body, the value of its formal parameters, the value
@@ -367,6 +400,9 @@ pub(crate) struct Proto {
   pub(crate) region: u32,
   pub(crate) closure: Closure,
   pub(crate) captures: Box<[u32]>,
+  /// The names that the body reads from its closure before the context literals it is written
+  /// in, sorted (as name resolution found them).
+  pub(crate) nearer: Box<[u32]>,
 }
 
 /// A qualified-name search: the segments in [Program::name_lists], the index of the first one in
@@ -470,6 +506,12 @@ impl Program {
           check.index(first, self.names.len(), "name out of range")?;
         }
       }
+      for &name in proto.nearer.iter() {
+        check.index(name, self.names.len(), "name out of range")?;
+      }
+      if !proto.nearer.is_sorted() {
+        return check.fail("the names read from the closure first are sorted");
+      }
       for &(name, cell) in proto.cells.iter() {
         check.index(name, self.names.len(), "name out of range")?;
         check.index(cell, proto.cells.len(), "cell out of range")?;
@@ -509,7 +551,10 @@ impl Program {
           check.slot(dst)?;
           check.index(msg, self.messages.len(), "message out of range")?;
         }
-        Op::Warn { msg } => check.index(msg, self.messages.len(), "message out of range")?,
+        Op::Warn { msg, .. } => check.index(msg, self.messages.len(), "message out of range")?,
+        Op::Record { src, .. } => check.opnd(src)?,
+        Op::TraceLoop { .. } | Op::TraceStep { .. } | Op::TraceBody { .. } => {}
+        Op::TraceCall { function, .. } => check.opnd(function)?,
         Op::LoadName { dst, name, cell } => {
           check.slot(dst)?;
           check.index(name, self.names.len(), "name out of range")?;
@@ -551,7 +596,7 @@ impl Program {
           check.slot(dst)?;
           check.opnd(a)?;
         }
-        Op::Kernel2 { dst, a, b, .. } => {
+        Op::Kernel2 { dst, a, b, .. } | Op::TypeName { dst, a, b } => {
           check.slot(dst)?;
           check.opnd(a)?;
           check.opnd(b)?;
@@ -607,7 +652,7 @@ impl Program {
           check.opnd(b)?;
         }
         Op::Visit { src, .. } => check.opnd(src)?,
-        Op::Step { .. } => {}
+        Op::Step { .. } | Op::DiagMark | Op::ReadMark => {}
         Op::LoopClose { dst, .. } | Op::LoadPartial { dst, .. } | Op::ItemSelf { dst, .. } => check.slot(dst)?,
         Op::FilterOpen { info, list, .. } => {
           check.index(info, self.filters.len(), "filter out of range")?;

@@ -163,7 +163,8 @@ fn _0017() {
     (vec![State::Interval("i", number("1"), number("5"))], "[{i: 1}, {i: 2}, {i: 3}, {i: 4}, {i: 5}]"),
     (vec![State::Interval("i", number("5"), number("1"))], "[{i: 5}, {i: 4}, {i: 3}, {i: 2}, {i: 1}]"),
     (vec![State::Interval("i", number("3"), number("3"))], "[{i: 3}]"),
-    (vec![State::Interval("i", number("1.5"), number("4"))], "[{i: 1.5}, {i: 2.5}, {i: 3.5}]"),
+    // an end that is no integer makes no interval (10.3.2.14: "two expressions that return integers")
+    (vec![State::Interval("i", number("1.5"), number("4"))], "[]"),
     (vec![State::Interval("i", number("-1"), number("1"))], "[{i: -1}, {i: 0}, {i: 1}]"),
     (vec![State::Interval("i", number("1e34"), number("1e34"))], "[{i: 10000000000000000000000000000000000}]"),
     (
@@ -247,7 +248,7 @@ fn _0020() {
         State::Variable("y", "x"),
         State::List("j", numbers(&[7, 8])),
       ],
-      "[{j: 7, x: [1, 2], y: 1}, {j: 8, x: [1, 2], y: 1}, {j: 7, x: [1, 2], y: 2}, {j: 8, x: [1, 2], y: 2}, {j: 7, x: [3], y: 3}, {j: 8, x: [3], y: 3}]",
+      "[{x: [1, 2], y: 1, j: 7}, {x: [1, 2], y: 1, j: 8}, {x: [1, 2], y: 2, j: 7}, {x: [1, 2], y: 2, j: 8}, {x: [3], y: 3, j: 7}, {x: [3], y: 3, j: 8}]",
     ),
     (
       vec![State::List("x", Value::List(vec![numbers(&[]), numbers(&[])].into())), State::Variable("y", "x")],
@@ -267,7 +268,7 @@ fn _0021() {
     ),
     (
       vec![State::List("j", numbers(&[7, 8, 9])), State::Interval("i", number("1"), number("2"))],
-      "[{i: 1, j: 7}, {i: 2, j: 7}, {i: 1, j: 8}, {i: 2, j: 8}, {i: 1, j: 9}, {i: 2, j: 9}]",
+      "[{j: 7, i: 1}, {j: 7, i: 2}, {j: 8, i: 1}, {j: 8, i: 2}, {j: 9, i: 1}, {j: 9, i: 2}]",
     ),
     (vec![State::Interval("i", number("1"), number("2")), State::List("x", numbers(&[]))], "[]"),
     (vec![State::List("x", numbers(&[])), State::Interval("i", number("1"), number("2"))], "[]"),
@@ -277,11 +278,11 @@ fn _0021() {
     ),
     (
       vec![State::Interval("i", number("2"), number("1")), State::Interval("d", date("2020-03-01"), date("2020-02-28"))],
-      "[{d: 2020-03-01, i: 2}, {d: 2020-02-29, i: 2}, {d: 2020-02-28, i: 2}, {d: 2020-03-01, i: 1}, {d: 2020-02-29, i: 1}, {d: 2020-02-28, i: 1}]",
+      "[{i: 2, d: 2020-03-01}, {i: 2, d: 2020-02-29}, {i: 2, d: 2020-02-28}, {i: 1, d: 2020-03-01}, {i: 1, d: 2020-02-29}, {i: 1, d: 2020-02-28}]",
     ),
     (
       vec![State::List("x", numbers(&[7])), State::Interval("i", number("1"), number("3"))],
-      "[{i: 1, x: 7}, {i: 2, x: 7}, {i: 3, x: 7}]",
+      "[{x: 7, i: 1}, {x: 7, i: 2}, {x: 7, i: 3}]",
     ),
     (
       vec![State::Interval("i", number("1"), number("3")), State::List("x", numbers(&[7]))],
@@ -289,7 +290,7 @@ fn _0021() {
     ),
     (
       vec![State::List("x", Value::String("single".into())), State::List("j", numbers(&[1, 2]))],
-      r#"[{j: 1, x: "single"}, {j: 2, x: "single"}]"#,
+      r#"[{x: "single", j: 1}, {x: "single", j: 2}]"#,
     ),
     (
       vec![State::List("j", numbers(&[1, 2])), State::List("x", Value::String("single".into()))],
@@ -301,7 +302,7 @@ fn _0021() {
     ),
     (
       vec![State::List("j", numbers(&[1, 2])), State::Interval("i", number("1e34"), number("1e34"))],
-      "[{i: 10000000000000000000000000000000000, j: 1}, {i: 10000000000000000000000000000000000, j: 2}]",
+      "[{j: 1, i: 10000000000000000000000000000000000}, {j: 2, i: 10000000000000000000000000000000000}]",
     ),
   ]);
 }
@@ -319,7 +320,7 @@ fn _0022() {
     ),
     (
       vec![State::List("j", numbers(&[7, 8, 9])), State::Interval("i", number("1"), number("2"))],
-      "[{i: 1, j: 7}, {i: 2, j: 7}]",
+      "[{j: 7, i: 1}, {j: 7, i: 2}]",
     ),
     (
       vec![
@@ -327,7 +328,7 @@ fn _0022() {
         State::Variable("y", "x"),
         State::List("j", numbers(&[7, 8])),
       ],
-      "[{j: 7, x: [1, 2], y: 1}, {j: 8, x: [1, 2], y: 1}]",
+      "[{x: [1, 2], y: 1, j: 7}, {x: [1, 2], y: 1, j: 8}]",
     ),
   ];
   for (index, (states, expected)) in cases.iter().enumerate() {
@@ -345,14 +346,14 @@ fn _0023() {
         State::Interval("i", number("1"), number("2")),
         State::Interval("d", date("262142-12-30"), date("262142-12-31")),
       ],
-      "[{d: 262142-12-30, i: 1}, {d: 262142-12-31, i: 1}, {d: 262142-12-30, i: 2}, {d: 262142-12-31, i: 2}]",
+      "[{i: 1, d: 262142-12-30}, {i: 1, d: 262142-12-31}, {i: 2, d: 262142-12-30}, {i: 2, d: 262142-12-31}]",
     ),
     (
       vec![
         State::Interval("i", number("1"), number("2")),
         State::Interval("d", date("-262143-01-02"), date("-262143-01-01")),
       ],
-      "[{d: -262143-01-02, i: 1}, {d: -262143-01-01, i: 1}, {d: -262143-01-02, i: 2}, {d: -262143-01-01, i: 2}]",
+      "[{i: 1, d: -262143-01-02}, {i: 1, d: -262143-01-01}, {i: 2, d: -262143-01-02}, {i: 2, d: -262143-01-01}]",
     ),
   ]);
 }
@@ -401,12 +402,9 @@ fn an_interval_of_integers_gives_the_numbers_that_stepping_by_one_gives() {
     ("-1", "0"),
     ("1", "0"),
     ("9007199254740990", "9007199254740994"),
-    // held with a scale, or not integers: stepped as numbers
+    // integers held with a scale: stepped as numbers
     ("1.0", "4"),
     ("1", "4.0"),
-    ("1.5", "4"),
-    ("1", "3.5"),
-    ("4", "1.5"),
     ("1e2", "103"),
   ];
   let mut pairs: Vec<(FeelNumber, FeelNumber)> = cases

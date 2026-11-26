@@ -1,0 +1,607 @@
+[
+  {
+    "expression": "{r: {x: Profit and Loss + 1, Profit and Loss: 2}.x}.r",
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'Profit'",
+          "context has no value for key 'Loss'",
+          "[addition] incompatible types: null(context has no value for key 'Loss') + 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{r: {x: a + b + 1, a + b: 2}.x}.r",
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'a'",
+          "context has no value for key 'b'",
+          "[addition] incompatible types: null(context has no value for key 'a') + null(context has no value for key 'b')",
+          "[addition] incompatible types: null([addition] incompatible types: null(context has no value for key 'a') + null(context has no value for key 'b')) + 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null([addition] incompatible types: null(context has no value for key 'a') + null(context has no value for key 'b')) + 1)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null([addition] incompatible types: null(context has no value for key 'a') + null(context has no value for key 'b')) + 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{r: {x: f(), f: function() Profit and Loss, Profit and Loss: 2}.x}.r",
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'Profit'",
+          "context has no value for key 'Loss'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[{a: 1}.a, {x: Profit and Loss + 1, Profit and Loss: 2}.x]",
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'Profit'",
+          "context has no value for key 'Loss'",
+          "[addition] incompatible types: null(context has no value for key 'Loss') + 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, null]",
+        "feel": "[1, null]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 3]",
+        "feel": "[1, 3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{a: 1}.a + {x: Profit and Loss + 1, Profit and Loss: 2}.x",
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'Profit'",
+          "context has no value for key 'Loss'",
+          "[addition] incompatible types: null(context has no value for key 'Loss') + 1",
+          "[addition] incompatible types: 1 + null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: 1 + null)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: 1 + null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "4",
+        "feel": "4",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "4",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function(n) {x: n or more + n, n or more: 5}.x, r: f(1)}.r",
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'more'",
+          "[addition] incompatible types: null(context has no value for key 'more') + 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "6",
+        "feel": "6",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "6",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{r: {s: {x: a - b, a - b: 7}.x}.s}.r",
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'a'",
+          "context has no value for key 'b'",
+          "[subtraction] incompatible types: null(context has no value for key 'a') - null(context has no value for key 'b')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: null(context has no value for key 'a') - null(context has no value for key 'b'))",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: null(context has no value for key 'a') - null(context has no value for key 'b')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "7",
+        "feel": "7",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "7",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[{a + b: 9}, {a: 1, b: 2, x: a + b}.x][2]",
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a+b'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'a+b')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'a+b'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{r: {x: Profit and Loss + 1, Profit and Loss: 2}.x}.r"
+    },
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Path\n │        ├─ Context\n │        │  ├─ ContextEntry\n │        │  │  ├─ ContextEntryKey\n │        │  │  │  └─ `x`\n │        │  │  └─ And\n │        │  │     ├─ Name\n │        │  │     │  └─ `Profit`\n │        │  │     └─ Add\n │        │  │        ├─ Name\n │        │  │        │  └─ `Loss`\n │        │  │        └─ Numeric\n │        │  │           └─ `1`\n │        │  └─ ContextEntry\n │        │     ├─ ContextEntryKey\n │        │     │  └─ `Profit and Loss`\n │        │     └─ Numeric\n │        │        └─ `2`\n │        └─ Name\n │           └─ `x`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Path\n │        ├─ Context\n │        │  ├─ ContextEntry\n │        │  │  ├─ ContextEntryKey\n │        │  │  │  └─ `x`\n │        │  │  └─ Add\n │        │  │     ├─ Name\n │        │  │     │  └─ `Profit and Loss`\n │        │  │     └─ Numeric\n │        │  │        └─ `1`\n │        │  └─ ContextEntry\n │        │     ├─ ContextEntryKey\n │        │     │  └─ `Profit and Loss`\n │        │     └─ Numeric\n │        │        └─ `2`\n │        └─ Name\n │           └─ `x`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{r: {x: a + b + 1, a + b: 2}.x}.r"
+    },
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Path\n │        ├─ Context\n │        │  ├─ ContextEntry\n │        │  │  ├─ ContextEntryKey\n │        │  │  │  └─ `x`\n │        │  │  └─ Add\n │        │  │     ├─ Add\n │        │  │     │  ├─ Name\n │        │  │     │  │  └─ `a`\n │        │  │     │  └─ Name\n │        │  │     │     └─ `b`\n │        │  │     └─ Numeric\n │        │  │        └─ `1`\n │        │  └─ ContextEntry\n │        │     ├─ ContextEntryKey\n │        │     │  └─ `a+b`\n │        │     └─ Numeric\n │        │        └─ `2`\n │        └─ Name\n │           └─ `x`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Path\n │        ├─ Context\n │        │  ├─ ContextEntry\n │        │  │  ├─ ContextEntryKey\n │        │  │  │  └─ `x`\n │        │  │  └─ Add\n │        │  │     ├─ Name\n │        │  │     │  └─ `a+b`\n │        │  │     └─ Numeric\n │        │  │        └─ `1`\n │        │  └─ ContextEntry\n │        │     ├─ ContextEntryKey\n │        │     │  └─ `a+b`\n │        │     └─ Numeric\n │        │        └─ `2`\n │        └─ Name\n │           └─ `x`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{r: {x: f(), f: function() Profit and Loss, Profit and Loss: 2}.x}.r"
+    },
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Path\n │        ├─ Context\n │        │  ├─ ContextEntry\n │        │  │  ├─ ContextEntryKey\n │        │  │  │  └─ `x`\n │        │  │  └─ FunctionInvocation\n │        │  │     ├─ Name\n │        │  │     │  └─ `f`\n │        │  │     └─ PositionalParameters\n │        │  │        └─ (empty)\n │        │  ├─ ContextEntry\n │        │  │  ├─ ContextEntryKey\n │        │  │  │  └─ `f`\n │        │  │  └─ FunctionDefinition\n │        │  │     ├─ FormalParameters\n │        │  │     │  └─ (empty)\n │        │  │     └─ FunctionBody\n │        │  │        └─ And\n │        │  │           ├─ Name\n │        │  │           │  └─ `Profit`\n │        │  │           └─ Name\n │        │  │              └─ `Loss`\n │        │  └─ ContextEntry\n │        │     ├─ ContextEntryKey\n │        │     │  └─ `Profit and Loss`\n │        │     └─ Numeric\n │        │        └─ `2`\n │        └─ Name\n │           └─ `x`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Path\n │        ├─ Context\n │        │  ├─ ContextEntry\n │        │  │  ├─ ContextEntryKey\n │        │  │  │  └─ `x`\n │        │  │  └─ FunctionInvocation\n │        │  │     ├─ Name\n │        │  │     │  └─ `f`\n │        │  │     └─ PositionalParameters\n │        │  │        └─ (empty)\n │        │  ├─ ContextEntry\n │        │  │  ├─ ContextEntryKey\n │        │  │  │  └─ `f`\n │        │  │  └─ FunctionDefinition\n │        │  │     ├─ FormalParameters\n │        │  │     │  └─ (empty)\n │        │  │     └─ FunctionBody\n │        │  │        └─ Name\n │        │  │           └─ `Profit and Loss`\n │        │  └─ ContextEntry\n │        │     ├─ ContextEntryKey\n │        │     │  └─ `Profit and Loss`\n │        │     └─ Numeric\n │        │        └─ `2`\n │        └─ Name\n │           └─ `x`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{a: 1, b: 2, r: {c: a+b, a+b: a+b}}.r"
+    },
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `a`\n │  │  └─ Numeric\n │  │     └─ `1`\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `b`\n │  │  └─ Numeric\n │  │     └─ `2`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Context\n │        ├─ ContextEntry\n │        │  ├─ ContextEntryKey\n │        │  │  └─ `c`\n │        │  └─ Add\n │        │     ├─ Name\n │        │     │  └─ `a`\n │        │     └─ Name\n │        │        └─ `b`\n │        └─ ContextEntry\n │           ├─ ContextEntryKey\n │           │  └─ `a+b`\n │           └─ Add\n │              ├─ Name\n │              │  └─ `a`\n │              └─ Name\n │                 └─ `b`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `a`\n │  │  └─ Numeric\n │  │     └─ `1`\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `b`\n │  │  └─ Numeric\n │  │     └─ `2`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Context\n │        ├─ ContextEntry\n │        │  ├─ ContextEntryKey\n │        │  │  └─ `c`\n │        │  └─ Name\n │        │     └─ `a+b`\n │        └─ ContextEntry\n │           ├─ ContextEntryKey\n │           │  └─ `a+b`\n │           └─ Add\n │              ├─ Name\n │              │  └─ `a`\n │              └─ Name\n │                 └─ `b`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[{a: 1}.a, {x: Profit and Loss + 1, Profit and Loss: 2}.x]"
+    },
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "ok": true,
+      "tree": " List\n ├─ Path\n │  ├─ Context\n │  │  └─ ContextEntry\n │  │     ├─ ContextEntryKey\n │  │     │  └─ `a`\n │  │     └─ Numeric\n │  │        └─ `1`\n │  └─ Name\n │     └─ `a`\n └─ Path\n    ├─ Context\n    │  ├─ ContextEntry\n    │  │  ├─ ContextEntryKey\n    │  │  │  └─ `x`\n    │  │  └─ And\n    │  │     ├─ Name\n    │  │     │  └─ `Profit`\n    │  │     └─ Add\n    │  │        ├─ Name\n    │  │        │  └─ `Loss`\n    │  │        └─ Numeric\n    │  │           └─ `1`\n    │  └─ ContextEntry\n    │     ├─ ContextEntryKey\n    │     │  └─ `Profit and Loss`\n    │     └─ Numeric\n    │        └─ `2`\n    └─ Name\n       └─ `x`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ Path\n │  ├─ Context\n │  │  └─ ContextEntry\n │  │     ├─ ContextEntryKey\n │  │     │  └─ `a`\n │  │     └─ Numeric\n │  │        └─ `1`\n │  └─ Name\n │     └─ `a`\n └─ Path\n    ├─ Context\n    │  ├─ ContextEntry\n    │  │  ├─ ContextEntryKey\n    │  │  │  └─ `x`\n    │  │  └─ Add\n    │  │     ├─ Name\n    │  │     │  └─ `Profit and Loss`\n    │  │     └─ Numeric\n    │  │        └─ `1`\n    │  └─ ContextEntry\n    │     ├─ ContextEntryKey\n    │     │  └─ `Profit and Loss`\n    │     └─ Numeric\n    │        └─ `2`\n    └─ Name\n       └─ `x`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{a: 1}.a + {x: Profit and Loss + 1, Profit and Loss: 2}.x"
+    },
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "ok": true,
+      "tree": " Add\n ├─ Path\n │  ├─ Context\n │  │  └─ ContextEntry\n │  │     ├─ ContextEntryKey\n │  │     │  └─ `a`\n │  │     └─ Numeric\n │  │        └─ `1`\n │  └─ Name\n │     └─ `a`\n └─ Path\n    ├─ Context\n    │  ├─ ContextEntry\n    │  │  ├─ ContextEntryKey\n    │  │  │  └─ `x`\n    │  │  └─ And\n    │  │     ├─ Name\n    │  │     │  └─ `Profit`\n    │  │     └─ Add\n    │  │        ├─ Name\n    │  │        │  └─ `Loss`\n    │  │        └─ Numeric\n    │  │           └─ `1`\n    │  └─ ContextEntry\n    │     ├─ ContextEntryKey\n    │     │  └─ `Profit and Loss`\n    │     └─ Numeric\n    │        └─ `2`\n    └─ Name\n       └─ `x`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Path\n │  ├─ Context\n │  │  └─ ContextEntry\n │  │     ├─ ContextEntryKey\n │  │     │  └─ `a`\n │  │     └─ Numeric\n │  │        └─ `1`\n │  └─ Name\n │     └─ `a`\n └─ Path\n    ├─ Context\n    │  ├─ ContextEntry\n    │  │  ├─ ContextEntryKey\n    │  │  │  └─ `x`\n    │  │  └─ Add\n    │  │     ├─ Name\n    │  │     │  └─ `Profit and Loss`\n    │  │     └─ Numeric\n    │  │        └─ `1`\n    │  └─ ContextEntry\n    │     ├─ ContextEntryKey\n    │     │  └─ `Profit and Loss`\n    │     └─ Numeric\n    │        └─ `2`\n    └─ Name\n       └─ `x`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{f: function(n) {x: n or more + n, n or more: 5}.x, r: f(1)}.r"
+    },
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `f`\n │  │  └─ FunctionDefinition\n │  │     ├─ FormalParameters\n │  │     │  └─ FormalParameter\n │  │     │     ├─ ParameterName\n │  │     │     │  └─ `n`\n │  │     │     └─ FeelType\n │  │     │        └─ Any\n │  │     └─ FunctionBody\n │  │        └─ Path\n │  │           ├─ Context\n │  │           │  ├─ ContextEntry\n │  │           │  │  ├─ ContextEntryKey\n │  │           │  │  │  └─ `x`\n │  │           │  │  └─ Or\n │  │           │  │     ├─ Name\n │  │           │  │     │  └─ `n`\n │  │           │  │     └─ Add\n │  │           │  │        ├─ Name\n │  │           │  │        │  └─ `more`\n │  │           │  │        └─ Name\n │  │           │  │           └─ `n`\n │  │           │  └─ ContextEntry\n │  │           │     ├─ ContextEntryKey\n │  │           │     │  └─ `n or more`\n │  │           │     └─ Numeric\n │  │           │        └─ `5`\n │  │           └─ Name\n │  │              └─ `x`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `f`\n │        └─ PositionalParameters\n │           └─ Numeric\n │              └─ `1`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `f`\n │  │  └─ FunctionDefinition\n │  │     ├─ FormalParameters\n │  │     │  └─ FormalParameter\n │  │     │     ├─ ParameterName\n │  │     │     │  └─ `n`\n │  │     │     └─ FeelType\n │  │     │        └─ Any\n │  │     └─ FunctionBody\n │  │        └─ Path\n │  │           ├─ Context\n │  │           │  ├─ ContextEntry\n │  │           │  │  ├─ ContextEntryKey\n │  │           │  │  │  └─ `x`\n │  │           │  │  └─ Add\n │  │           │  │     ├─ Name\n │  │           │  │     │  └─ `n or more`\n │  │           │  │     └─ Name\n │  │           │  │        └─ `n`\n │  │           │  └─ ContextEntry\n │  │           │     ├─ ContextEntryKey\n │  │           │     │  └─ `n or more`\n │  │           │     └─ Numeric\n │  │           │        └─ `5`\n │  │           └─ Name\n │  │              └─ `x`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `f`\n │        └─ PositionalParameters\n │           └─ Numeric\n │              └─ `1`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{r: {s: {x: a - b, a - b: 7}.x}.s}.r"
+    },
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Path\n │        ├─ Context\n │        │  └─ ContextEntry\n │        │     ├─ ContextEntryKey\n │        │     │  └─ `s`\n │        │     └─ Path\n │        │        ├─ Context\n │        │        │  ├─ ContextEntry\n │        │        │  │  ├─ ContextEntryKey\n │        │        │  │  │  └─ `x`\n │        │        │  │  └─ Sub\n │        │        │  │     ├─ Name\n │        │        │  │     │  └─ `a`\n │        │        │  │     └─ Name\n │        │        │  │        └─ `b`\n │        │        │  └─ ContextEntry\n │        │        │     ├─ ContextEntryKey\n │        │        │     │  └─ `a-b`\n │        │        │     └─ Numeric\n │        │        │        └─ `7`\n │        │        └─ Name\n │        │           └─ `x`\n │        └─ Name\n │           └─ `s`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Path\n │        ├─ Context\n │        │  └─ ContextEntry\n │        │     ├─ ContextEntryKey\n │        │     │  └─ `s`\n │        │     └─ Path\n │        │        ├─ Context\n │        │        │  ├─ ContextEntry\n │        │        │  │  ├─ ContextEntryKey\n │        │        │  │  │  └─ `x`\n │        │        │  │  └─ Name\n │        │        │  │     └─ `a-b`\n │        │        │  └─ ContextEntry\n │        │        │     ├─ ContextEntryKey\n │        │        │     │  └─ `a-b`\n │        │        │     └─ Numeric\n │        │        │        └─ `7`\n │        │        └─ Name\n │        │           └─ `x`\n │        └─ Name\n │           └─ `s`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[{a + b: 9}, {a: 1, b: 2, x: a + b}.x][2]"
+    },
+    "why": "The keys of a context literal that are names of several tokens are in scope for its entries wherever the literal stands (DMN 1.6 clause 10.3.2.11.1): the strict parse looked for them in the first literal of the text, so an entry of a literal after it, or inside it, did not read a later key with a keyword or a symbol in it.",
+    "old": {
+      "ok": true,
+      "tree": " Filter\n ├─ List\n │  ├─ Context\n │  │  └─ ContextEntry\n │  │     ├─ ContextEntryKey\n │  │     │  └─ `a+b`\n │  │     └─ Numeric\n │  │        └─ `9`\n │  └─ Path\n │     ├─ Context\n │     │  ├─ ContextEntry\n │     │  │  ├─ ContextEntryKey\n │     │  │  │  └─ `a`\n │     │  │  └─ Numeric\n │     │  │     └─ `1`\n │     │  ├─ ContextEntry\n │     │  │  ├─ ContextEntryKey\n │     │  │  │  └─ `b`\n │     │  │  └─ Numeric\n │     │  │     └─ `2`\n │     │  └─ ContextEntry\n │     │     ├─ ContextEntryKey\n │     │     │  └─ `x`\n │     │     └─ Name\n │     │        └─ `a+b`\n │     └─ Name\n │        └─ `x`\n └─ Numeric\n    └─ `2`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Filter\n ├─ List\n │  ├─ Context\n │  │  └─ ContextEntry\n │  │     ├─ ContextEntryKey\n │  │     │  └─ `a+b`\n │  │     └─ Numeric\n │  │        └─ `9`\n │  └─ Path\n │     ├─ Context\n │     │  ├─ ContextEntry\n │     │  │  ├─ ContextEntryKey\n │     │  │  │  └─ `a`\n │     │  │  └─ Numeric\n │     │  │     └─ `1`\n │     │  ├─ ContextEntry\n │     │  │  ├─ ContextEntryKey\n │     │  │  │  └─ `b`\n │     │  │  └─ Numeric\n │     │  │     └─ `2`\n │     │  └─ ContextEntry\n │     │     ├─ ContextEntryKey\n │     │     │  └─ `x`\n │     │     └─ Add\n │     │        ├─ Name\n │     │        │  └─ `a`\n │     │        └─ Name\n │     │           └─ `b`\n │     └─ Name\n │        └─ `x`\n └─ Numeric\n    └─ `2`\n"
+    }
+  }
+]

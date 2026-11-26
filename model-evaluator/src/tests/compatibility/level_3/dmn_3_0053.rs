@@ -89,7 +89,7 @@ fn _0007() {
     &MODEL_NAME,
     "decision007",
     &ctx,
-    r#"null(parameter 'number' not found)"#,
+    r#"null(expected the parameters of log(number): number, found the parameter name 'n')"#,
   );
 }
 

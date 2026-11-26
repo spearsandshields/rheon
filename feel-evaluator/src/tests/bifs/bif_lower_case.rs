@@ -38,5 +38,10 @@ fn _0006() {
 
 #[test]
 fn _0007() {
-  te_null(false, &scope!(), r#"lower case(s: "ABc")"#, r#"parameter 'string' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"lower case(s: "ABc")"#,
+    r#"expected the parameters of lower case(string): string, found the parameter name 's'"#,
+  );
 }

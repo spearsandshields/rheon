@@ -11,7 +11,7 @@ fn _0001() {
     &MODEL_NAME,
     "Profile of Color",
     &ctx,
-    r##"{CMYK notation: {C: 100, K: 67, M: 22, Y: 0}, Hex notation: "#004153", RGB notation: {B: 83, G: 65, R: 0}}"##,
+    r##"{RGB notation: {R: 0, G: 65, B: 83}, Hex notation: "#004153", CMYK notation: {C: 100, M: 22, Y: 0, K: 67}}"##,
   );
 }
 
@@ -24,7 +24,7 @@ fn _0002() {
     &MODEL_NAME,
     "Profile of Color",
     &ctx,
-    r##"{CMYK notation: {C: 0, K: 100, M: 0, Y: 0}, Hex notation: "#000000", RGB notation: {B: 0, G: 0, R: 0}}"##,
+    r##"{RGB notation: {R: 0, G: 0, B: 0}, Hex notation: "#000000", CMYK notation: {C: 0, M: 0, Y: 0, K: 100}}"##,
   );
 }
 
@@ -37,6 +37,6 @@ fn _0003() {
     &MODEL_NAME,
     "Profile of Color",
     &ctx,
-    r##"{CMYK notation: {C: 0, K: 20, M: 100, Y: 100}, Hex notation: "#CC0000", RGB notation: {B: 0, G: 0, R: 204}}"##,
+    r##"{RGB notation: {R: 204, G: 0, B: 0}, Hex notation: "#CC0000", CMYK notation: {C: 0, M: 100, Y: 100, K: 20}}"##,
   );
 }

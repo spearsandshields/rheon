@@ -83,14 +83,14 @@ fn _0011() {
 #[test]
 fn _0012() {
   let invocable = "decision012";
-  let expected = "null(expected 1,2 parameters, actual number of parameters is 3)";
+  let expected = "null(expected the parameters of ceiling(n, scale?): number, found the parameter name 'stuff')";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 
 #[test]
 fn _0013() {
   let invocable = "decision013";
-  let expected = "null(parameter 'scale' not found)";
+  let expected = "null(expected the parameters of ceiling(n, scale?): number, found the parameter name 'scal')";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 

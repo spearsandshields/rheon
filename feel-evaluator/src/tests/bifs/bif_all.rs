@@ -148,7 +148,12 @@ fn _0024() {
 #[test]
 fn _0025() {
   let scope = scope!();
-  te_null(false, &scope, "all(l: [true,true,true])", r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope,
+    "all(l: [true,true,true])",
+    r#"expected the parameters of all(list): boolean, found the parameter name 'l'"#,
+  );
 }
 
 #[test]

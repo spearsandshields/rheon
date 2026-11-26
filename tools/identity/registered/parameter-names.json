@@ -1,0 +1,4611 @@
+[
+  {
+    "expression": "substring(string: \"abc\", start: 2)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'start position' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'start position' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'start position' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of substring(string, start position, length?): string, found the parameter name 'start'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of substring(string, start position, length?): string, found the parameter name 'start')",
+        "isNull": true,
+        "nullReason": "expected the parameters of substring(string, start position, length?): string, found the parameter name 'start'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "substring(string: \"abc\", start: 2)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: parameter 'start position' not found"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of substring(string, start position, length?): string, found the parameter name 'start'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "substring(string: \"abc\", start: 2)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'start position' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"\"",
+        "feel": "\"\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"\"",
+        "feel": "\"\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of substring(string, start position, length?): string, found the parameter name 'start'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "abs(m: -1)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'n' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'n' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'n' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of abs(n): number or duration, found the parameter name 'm'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of abs(n): number or duration, found the parameter name 'm')",
+        "isNull": true,
+        "nullReason": "expected the parameters of abs(n): number or duration, found the parameter name 'm'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs(m: -1)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: parameter 'n' not found"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of abs(n): number or duration, found the parameter name 'm'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs(m: -1)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'n' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of abs(n): number or duration, found the parameter name 'm'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "all(lst: [1])",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of all(list): boolean, found the parameter name 'lst'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of all(list): boolean, found the parameter name 'lst')",
+        "isNull": true,
+        "nullReason": "expected the parameters of all(list): boolean, found the parameter name 'lst'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "any(lst: [1])",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of any(list): boolean, found the parameter name 'lst'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of any(list): boolean, found the parameter name 'lst')",
+        "isNull": true,
+        "nullReason": "expected the parameters of any(list): boolean, found the parameter name 'lst'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "max(lst: [1])",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of max(list): Any, found the parameter name 'lst'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of max(list): Any, found the parameter name 'lst')",
+        "isNull": true,
+        "nullReason": "expected the parameters of max(list): Any, found the parameter name 'lst'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "mean(lst: [1])",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of mean(list): number, found the parameter name 'lst'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of mean(list): number, found the parameter name 'lst')",
+        "isNull": true,
+        "nullReason": "expected the parameters of mean(list): number, found the parameter name 'lst'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "median(lst: [1])",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of median(list): number, found the parameter name 'lst'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of median(list): number, found the parameter name 'lst')",
+        "isNull": true,
+        "nullReason": "expected the parameters of median(list): number, found the parameter name 'lst'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "min(lst: [1])",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of min(list): Any, found the parameter name 'lst'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of min(list): Any, found the parameter name 'lst')",
+        "isNull": true,
+        "nullReason": "expected the parameters of min(list): Any, found the parameter name 'lst'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "mode(lst: [1])",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of mode(list): list<number>, found the parameter name 'lst'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of mode(list): list<number>, found the parameter name 'lst')",
+        "isNull": true,
+        "nullReason": "expected the parameters of mode(list): list<number>, found the parameter name 'lst'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "product(lst: [1])",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of product(list): number, found the parameter name 'lst'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of product(list): number, found the parameter name 'lst')",
+        "isNull": true,
+        "nullReason": "expected the parameters of product(list): number, found the parameter name 'lst'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "stddev(lst: [1])",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of stddev(list): number, found the parameter name 'lst'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of stddev(list): number, found the parameter name 'lst')",
+        "isNull": true,
+        "nullReason": "expected the parameters of stddev(list): number, found the parameter name 'lst'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sum(lst: [1])",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of sum(list): number, found the parameter name 'lst'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of sum(list): number, found the parameter name 'lst')",
+        "isNull": true,
+        "nullReason": "expected the parameters of sum(list): number, found the parameter name 'lst'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "abs(n: -1, x: 2)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of abs(n): number or duration, found the parameter name 'x'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of abs(n): number or duration, found the parameter name 'x')",
+        "isNull": true,
+        "nullReason": "expected the parameters of abs(n): number or duration, found the parameter name 'x'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs(n: -1, x: 2)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of abs(n): number or duration, found the parameter name 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs(n: -1, x: 2)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of abs(n): number or duration, found the parameter name 'x'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "abs(x: 2)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'n' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'n' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'n' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of abs(n): number or duration, found the parameter name 'x'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of abs(n): number or duration, found the parameter name 'x')",
+        "isNull": true,
+        "nullReason": "expected the parameters of abs(n): number or duration, found the parameter name 'x'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs(x: 2)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: parameter 'n' not found"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of abs(n): number or duration, found the parameter name 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs(x: 2)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'n' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of abs(n): number or duration, found the parameter name 'x'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "abs(n: -1, n: 2)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected each parameter name once, found the name 'n' twice"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected each parameter name once, found the name 'n' twice)",
+        "isNull": true,
+        "nullReason": "expected each parameter name once, found the name 'n' twice",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs(n: -1, n: 2)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected each parameter name once, found the name 'n' twice"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs(n: -1, n: 2)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected each parameter name once, found the name 'n' twice"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "abs(n: 1, n: 1)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected each parameter name once, found the name 'n' twice"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected each parameter name once, found the name 'n' twice)",
+        "isNull": true,
+        "nullReason": "expected each parameter name once, found the name 'n' twice",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs(n: 1, n: 1)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected each parameter name once, found the name 'n' twice"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs(n: 1, n: 1)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected each parameter name once, found the name 'n' twice"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "substring(string: \"abc\", start position: 2, size: 1)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"bc\"",
+        "feel": "\"bc\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "bc",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of substring(string, start position, length?): string, found the parameter name 'size'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of substring(string, start position, length?): string, found the parameter name 'size')",
+        "isNull": true,
+        "nullReason": "expected the parameters of substring(string, start position, length?): string, found the parameter name 'size'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "substring(string: \"abc\", start position: 2, size: 1)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"bc\"",
+        "feel": "\"bc\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "bc",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of substring(string, start position, length?): string, found the parameter name 'size'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "substring(string: \"abc\", start position: 2, size: 1)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"bc\"",
+        "feel": "\"bc\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "bc",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"\"",
+        "feel": "\"\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of substring(string, start position, length?): string, found the parameter name 'size'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "substring(start position: 1, string: \"abc\", start position: 2)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"bc\"",
+        "feel": "\"bc\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "bc",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected each parameter name once, found the name 'start position' twice"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected each parameter name once, found the name 'start position' twice)",
+        "isNull": true,
+        "nullReason": "expected each parameter name once, found the name 'start position' twice",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "substring(start position: 1, string: \"abc\", start position: 2)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"bc\"",
+        "feel": "\"bc\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "bc",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected each parameter name once, found the name 'start position' twice"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "substring(start position: 1, string: \"abc\", start position: 2)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"bc\"",
+        "feel": "\"bc\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "bc",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"\"",
+        "feel": "\"\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected each parameter name once, found the name 'start position' twice"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "before(point: 1, range: [2..3], point1: 5)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of one of before(point1, point2): boolean, before(point, range): boolean, before(range, point): boolean, before(range1, range2): boolean, found the parameter names 'point', 'range', 'point1'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of one of before(point1, point2): boolean, before(point, range): boolean, before(range, point): boolean, before(range1, range2): boolean, found the parameter names 'point', 'range', 'point1')",
+        "isNull": true,
+        "nullReason": "expected the parameters of one of before(point1, point2): boolean, before(point, range): boolean, before(range, point): boolean, before(range1, range2): boolean, found the parameter names 'point', 'range', 'point1'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "before(point: 1, range: [2..3], point1: 5)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of one of before(point1, point2): boolean, before(point, range): boolean, before(range, point): boolean, before(range1, range2): boolean, found the parameter names 'point', 'range', 'point1'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "before(point: 1, range: [2..3], point1: 5)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of one of before(point1, point2): boolean, before(point, range): boolean, before(range, point): boolean, before(range1, range2): boolean, found the parameter names 'point', 'range', 'point1'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "date(from: \"2020-01-01\", year: 1)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2020-01-01\"",
+        "feel": "2020-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2020-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of one of date(from): date, date(year, month, day): date, found the parameter names 'from', 'year'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of one of date(from): date, date(year, month, day): date, found the parameter names 'from', 'year')",
+        "isNull": true,
+        "nullReason": "expected the parameters of one of date(from): date, date(year, month, day): date, found the parameter names 'from', 'year'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date(from: \"2020-01-01\", year: 1)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2020-01-01\"",
+        "feel": "2020-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2020-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of one of date(from): date, date(year, month, day): date, found the parameter names 'from', 'year'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date(from: \"2020-01-01\", year: 1)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2020-01-01\"",
+        "feel": "2020-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2020-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"1970-01-01\"",
+        "feel": "1970-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1970-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of one of date(from): date, date(year, month, day): date, found the parameter names 'from', 'year'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "is(1)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected 2 parameters, actual number of parameters is 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected 2 parameters, actual number of parameters is 1)",
+        "isNull": true,
+        "nullReason": "expected 2 parameters, actual number of parameters is 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "is(1)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected 2 parameters, actual number of parameters is 1"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "is(1)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected 2 parameters, actual number of parameters is 1"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "is(value1: 1, value3: 1)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'value2' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'value2' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'value2' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of is(value1, value2): boolean, found the parameter name 'value3'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of is(value1, value2): boolean, found the parameter name 'value3')",
+        "isNull": true,
+        "nullReason": "expected the parameters of is(value1, value2): boolean, found the parameter name 'value3'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "is(value1: 1, value3: 1)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: parameter 'value2' not found"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of is(value1, value2): boolean, found the parameter name 'value3'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "is(value1: 1, value3: 1)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'value2' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of is(value1, value2): boolean, found the parameter name 'value3'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "{f: function(n) n, r: f(n: 1, n: 2)}.r",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected each parameter name once, found the name 'n' twice"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected each parameter name once, found the name 'n' twice)",
+        "isNull": true,
+        "nullReason": "expected each parameter name once, found the name 'n' twice",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(n) n, r: f(n: 1, n: 2)}.r",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected each parameter name once, found the name 'n' twice"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(n) n, r: f(n: 1, n: 2)}.r",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected each parameter name once, found the name 'n' twice"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected each parameter name once, found the name 'n' twice)",
+        "isNull": true,
+        "nullReason": "expected each parameter name once, found the name 'n' twice",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function(m, n) [m, n], r: f(n: 1, m: 0, n: 2)}.r",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[0, 2]",
+        "feel": "[0, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "0",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected each parameter name once, found the name 'n' twice"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected each parameter name once, found the name 'n' twice)",
+        "isNull": true,
+        "nullReason": "expected each parameter name once, found the name 'n' twice",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(m, n) [m, n], r: f(n: 1, m: 0, n: 2)}.r",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[0, 2]",
+        "feel": "[0, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "0",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected each parameter name once, found the name 'n' twice"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(m, n) [m, n], r: f(n: 1, m: 0, n: 2)}.r",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[0, 2]",
+        "feel": "[0, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "0",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected each parameter name once, found the name 'n' twice"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected each parameter name once, found the name 'n' twice)",
+        "isNull": true,
+        "nullReason": "expected each parameter name once, found the name 'n' twice",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sum(list: [1, 2], n: 3)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of sum(list): number, found the parameter name 'n'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of sum(list): number, found the parameter name 'n')",
+        "isNull": true,
+        "nullReason": "expected the parameters of sum(list): number, found the parameter name 'n'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sum(list: [1, 2], n: 3)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of sum(list): number, found the parameter name 'n'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sum(list: [1, 2], n: 3)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of sum(list): number, found the parameter name 'n'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "contains(string: \"abc\", match: \"b\", flags: \"i\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of contains(string, match): boolean, found the parameter name 'flags'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of contains(string, match): boolean, found the parameter name 'flags')",
+        "isNull": true,
+        "nullReason": "expected the parameters of contains(string, match): boolean, found the parameter name 'flags'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "contains(string: \"abc\", match: \"b\", flags: \"i\")",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of contains(string, match): boolean, found the parameter name 'flags'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "contains(string: \"abc\", match: \"b\", flags: \"i\")",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of contains(string, match): boolean, found the parameter name 'flags'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "number(from: \"1\", grouping separator: \",\", decimal separator: \".\", scale: 2)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of one of number(from): number, number(from, grouping separator, decimal separator): number, found the parameter name 'scale'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of one of number(from): number, number(from, grouping separator, decimal separator): number, found the parameter name 'scale')",
+        "isNull": true,
+        "nullReason": "expected the parameters of one of number(from): number, number(from, grouping separator, decimal separator): number, found the parameter name 'scale'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "number(from: \"1\", grouping separator: \",\", decimal separator: \".\", scale: 2)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of one of number(from): number, number(from, grouping separator, decimal separator): number, found the parameter name 'scale'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "number(from: \"1\", grouping separator: \",\", decimal separator: \".\", scale: 2)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of one of number(from): number, number(from, grouping separator, decimal separator): number, found the parameter name 'scale'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "sort(list: [2, 1], precedes: function(a, b) a < b, key: 1)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of sort(list, precedes): list, found the parameter name 'key'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of sort(list, precedes): list, found the parameter name 'key')",
+        "isNull": true,
+        "nullReason": "expected the parameters of sort(list, precedes): list, found the parameter name 'key'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sort(list: [2, 1], precedes: function(a, b) a < b, key: 1)",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of sort(list, precedes): list, found the parameter name 'key'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sort(list: [2, 1], precedes: function(a, b) a < b, key: 1)",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of sort(list, precedes): list, found the parameter name 'key'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "string(from: 1, mask: \"0\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"1\"",
+        "feel": "\"1\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of string(from): string, found the parameter name 'mask'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of string(from): string, found the parameter name 'mask')",
+        "isNull": true,
+        "nullReason": "expected the parameters of string(from): string, found the parameter name 'mask'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "string(from: 1, mask: \"0\")",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"1\"",
+        "feel": "\"1\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected the parameters of string(from): string, found the parameter name 'mask'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "string(from: 1, mask: \"0\")",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"1\"",
+        "feel": "\"1\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"\"",
+        "feel": "\"\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected the parameters of string(from): string, found the parameter name 'mask'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "count(list: [1], list: [2])",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected each parameter name once, found the name 'list' twice"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected each parameter name once, found the name 'list' twice)",
+        "isNull": true,
+        "nullReason": "expected each parameter name once, found the name 'list' twice",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "count(list: [1], list: [2])",
+      "errorMode": "strict"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected each parameter name once, found the name 'list' twice"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "count(list: [1], list: [2])",
+      "language": "b-feel"
+    },
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected each parameter name once, found the name 'list' twice"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "list replace(lists: [1, 7, 3], position: 2, newItem: 4)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'lists'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'lists')",
+        "isNull": true,
+        "nullReason": "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'lists'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "list replace(list: [1, 7, 3], positions: 2, newItem: 4)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'position' or 'match' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'position' or 'match' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'position' or 'match' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'positions'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'positions')",
+        "isNull": true,
+        "nullReason": "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'positions'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "list replace(list: [1, 7, 3], position: 2, newItems: 4)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'newItem' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'newItem' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'newItem' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'newItems'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'newItems')",
+        "isNull": true,
+        "nullReason": "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'newItems'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "list replace(list: [2, 4, 7, 8], matches: function(item, newItem) item < newItem, newItem: 5)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'position' or 'match' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'position' or 'match' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'position' or 'match' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'matches'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'matches')",
+        "isNull": true,
+        "nullReason": "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'matches'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "list replace(list: [2, 4, 7, 8], matche: function(item, newItem) item < newItem, newItem: 5, oldItem: 12)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected 3 parameters, actual number of parameters is 4"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected 3 parameters, actual number of parameters is 4)",
+        "isNull": true,
+        "nullReason": "expected 3 parameters, actual number of parameters is 4",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'matche'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'matche')",
+        "isNull": true,
+        "nullReason": "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'matche'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "matches(i: \"foobar\", pattern: \"^fo*b\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'input' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'input' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'input' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'i'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'i')",
+        "isNull": true,
+        "nullReason": "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'i'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "matches(input: \"foobar\", p: \"^fo*b\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'pattern' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'pattern' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'pattern' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'p'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'p')",
+        "isNull": true,
+        "nullReason": "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'p'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "matches(i: \"foobar\", pattern: \"^fo*b\", flags: \"s\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'input' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'input' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'input' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'i'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'i')",
+        "isNull": true,
+        "nullReason": "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'i'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "matches(input: \"foobar\", p: \"^fo*b\", flags: \"s\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'pattern' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'pattern' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'pattern' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'p'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'p')",
+        "isNull": true,
+        "nullReason": "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'p'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "matches(input: \"foobar\", pattern: \"^fo*b\", f: \"s\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'flags' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'flags' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'flags' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'f'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'f')",
+        "isNull": true,
+        "nullReason": "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'f'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "matches(input: \"abc\", pattern: \"a\", flags: \"x\", other: \"c\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected 2,3 parameters, actual number of parameters is 4"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected 2,3 parameters, actual number of parameters is 4)",
+        "isNull": true,
+        "nullReason": "expected 2,3 parameters, actual number of parameters is 4",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'other'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'other')",
+        "isNull": true,
+        "nullReason": "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'other'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "replace(i:\"abc\",pattern:\".^[d-z]*\",replacement:\"#\",flags:\"smix\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'input' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'input' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'input' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'i'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'i')",
+        "isNull": true,
+        "nullReason": "expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'i'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "replace(input:\"abc\",p:\".^[d-z]*\",replacement:\"#\",flags:\"smix\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'pattern' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'pattern' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'pattern' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'p'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'p')",
+        "isNull": true,
+        "nullReason": "expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'p'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "replace(input: \"abc\", pattern: \".^[d-z]*\", r:\"\", flags: \"smix\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'replacement' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'replacement' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'replacement' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'r'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'r')",
+        "isNull": true,
+        "nullReason": "expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'r'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "split(s: \"John Doe\", delimiter: \"\\\\s\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'string' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'string' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'string' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of split(string, delimiter): list<string>, found the parameter name 's'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of split(string, delimiter): list<string>, found the parameter name 's')",
+        "isNull": true,
+        "nullReason": "expected the parameters of split(string, delimiter): list<string>, found the parameter name 's'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "split(string: \"John Doe\", d: \"\\\\s\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'delimiter' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'delimiter' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'delimiter' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of split(string, delimiter): list<string>, found the parameter name 'd'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of split(string, delimiter): list<string>, found the parameter name 'd')",
+        "isNull": true,
+        "nullReason": "expected the parameters of split(string, delimiter): list<string>, found the parameter name 'd'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "split(delimiter: \",\", str:\"foo,bar\")",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'string' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'string' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'string' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of split(string, delimiter): list<string>, found the parameter name 'str'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of split(string, delimiter): list<string>, found the parameter name 'str')",
+        "isNull": true,
+        "nullReason": "expected the parameters of split(string, delimiter): list<string>, found the parameter name 'str'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "list replace(position: 2, newItem: 4, list: [1,2,3], foo: 1)",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected 3 parameters, actual number of parameters is 4"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected 3 parameters, actual number of parameters is 4)",
+        "isNull": true,
+        "nullReason": "expected 3 parameters, actual number of parameters is 4",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'foo'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'foo')",
+        "isNull": true,
+        "nullReason": "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'foo'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]

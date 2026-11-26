@@ -138,7 +138,7 @@ fn _0020() {
     false,
     &scope!(),
     r#"number(f: "1", grouping separator: ",", decimal separator: ".")"#,
-    r#"parameter 'from' not found"#,
+    r#"expected the parameters of one of number(from): number, number(from, grouping separator, decimal separator): number, found the parameter name 'f'"#,
   );
 }
 
@@ -148,7 +148,7 @@ fn _0021() {
     false,
     &scope!(),
     r#"number(from: "1", grouping sep: ",", decimal separator: ".")"#,
-    r#"parameter 'grouping separator' not found"#,
+    r#"expected the parameters of one of number(from): number, number(from, grouping separator, decimal separator): number, found the parameter name 'grouping sep'"#,
   );
 }
 
@@ -158,7 +158,7 @@ fn _0022() {
     false,
     &scope!(),
     r#"number(from: "1", grouping separator: ",", decimal sep: ".")"#,
-    r#"parameter 'decimal separator' not found"#,
+    r#"expected the parameters of one of number(from): number, number(from, grouping separator, decimal separator): number, found the parameter name 'decimal sep'"#,
   );
 }
 

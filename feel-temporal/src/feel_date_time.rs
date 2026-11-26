@@ -8,7 +8,8 @@ use crate::FeelDaysAndTimeDuration;
 use crate::defs::*;
 use crate::errors::err_date_time_conversion_failed;
 use crate::feel_ym_duration::FeelYearsAndMonthsDuration;
-use chrono::{DateTime, Datelike, Duration, FixedOffset, Timelike};
+use crate::parts::split_date_and_time;
+use chrono::{DateTime, Datelike, Duration, FixedOffset, NaiveDate, Timelike};
 use dsntk_common::{DsntkError, Result};
 use std::cmp::Ordering;
 use std::fmt;
@@ -36,61 +37,97 @@ impl TryFrom<&str> for FeelDateTime {
 }
 
 impl PartialEq for FeelDateTime {
+  /// `valuedt(e1) = valuedt(e2)` (DMN 1.7 Beta 1, Table 54 and 10.3.2.3.6): the two as instants in
+  /// whole seconds, a local date and time taking the offset of the other (the rule of Table 55,
+  /// which the owner applies to `=` too, Q-T1). Two local ones are compared as written. One whose
+  /// zone gives it no single instant (the hour that a clock change of its zone skips or repeats)
+  /// equals only a date and time written as it is.
   fn eq(&self, rhs: &Self) -> bool {
-    let lhs_zone = self.1.zone();
-    let rhs_zone = rhs.1.zone();
-    let lhs_date_tuple = self.0.as_tuple();
-    let lhs_time_tuple = ((self.1).hour() as u32, (self.1).minute() as u32, (self.1).second() as u32, 0);
-    let lhs_offset_opt = match lhs_zone {
-      FeelZone::Utc => Some(0),
-      FeelZone::Local => get_local_offset_t(lhs_time_tuple),
-      FeelZone::Offset(offset) => Some(offset.seconds()),
-      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, lhs_date_tuple, lhs_time_tuple),
-    };
-    let rhs_date_tuple = rhs.0.as_tuple();
-    let rhs_time_tuple = ((rhs.1).hour() as u32, (rhs.1).minute() as u32, (rhs.1).second() as u32, 0);
-    let rhs_offset_opt = match rhs_zone {
-      FeelZone::Utc => Some(0),
-      FeelZone::Local => get_local_offset_t(rhs_time_tuple),
-      FeelZone::Offset(offset) => Some(offset.seconds()),
-      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, rhs_date_tuple, rhs_time_tuple),
-    };
-    if let Some((lhs_offset, rhs_offset)) = lhs_offset_opt.zip(rhs_offset_opt) {
-      let lhs_date_opt = date_time_offset_dt(lhs_date_tuple, lhs_time_tuple, lhs_offset);
-      let rhs_date_opt = date_time_offset_dt(rhs_date_tuple, rhs_time_tuple, rhs_offset);
-      if let Some((lhs_date, rhs_date)) = lhs_date_opt.zip(rhs_date_opt) {
-        return lhs_date == rhs_date;
-      }
+    match self.compared_instants(rhs, false) {
+      Some((lhs, rhs)) => lhs == rhs,
+      None => self.written_alike(rhs),
     }
-    false
   }
 }
 
 impl PartialOrd for FeelDateTime {
-  /// Returns the ordering of two date and times, compared as instants in UTC
-  /// (`2026-10-17T10:00:00+01:00 < 2026-10-17T10:00:00Z`). Like subtraction, a local date and
-  /// time is ordered only against another local one (`2023-02-09T23:59:59Z >= 2023-02-09T00:00:00`
-  /// is not comparable); when a zone has no known offset, the date and time parts are compared
-  /// as written.
+  /// `valuedt(e1) < valuedt(e2)` (DMN 1.7 Beta 1, Table 55): the two as instants, the fraction of the
+  /// second included;
+  /// "if one input has a null timezone offset, that input uses the timezone offset of the other
+  /// input". Two local ones are compared as written. Without instants (a zone without a single
+  /// offset there), only date and times written in the same zone are ordered, as written.
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    if self.1.zone().has_offset() == other.1.zone().has_offset() {
-      let lhs: Result<DateTime<FixedOffset>, DsntkError> = self.clone().try_into();
-      let rhs: Result<DateTime<FixedOffset>, DsntkError> = other.clone().try_into();
-      if let (Ok(lhs), Ok(rhs)) = (lhs, rhs) {
-        return Some(lhs.cmp(&rhs));
+    match self.compared_instants(other, true) {
+      Some((lhs, rhs)) => Some(lhs.cmp(&rhs)),
+      None if self.1.zone_written_alike(&other.1) => Some((self.written(), self.1.nanos()).cmp(&(other.written(), other.1.nanos()))),
+      None => None,
+    }
+  }
+}
+
+impl FeelDateTime {
+  /// The [crate::EqualityKey] of this date and time: its date and wall-clock time in whole
+  /// seconds, and its instant at its own offset when that is known.
+  pub fn equality_key(&self) -> crate::EqualityKey {
+    let (date, (hour, minute, second)) = self.written();
+    let Some(wall) = date_time_offset_dt(date, (hour, minute, second, 0), 0).map(|wall| wall.timestamp()) else {
+      return crate::EqualityKey::Loose;
+    };
+    match (self.1.zone(), self.known_offset()) {
+      (FeelZone::Local, _) => crate::EqualityKey::Local { wall },
+      (_, Some(offset)) => crate::EqualityKey::Zoned {
+        wall,
+        instant: wall - i64::from(offset),
+      },
+      (_, None) => crate::EqualityKey::Loose,
+    }
+  }
+
+  /// The date and the time of day as written, in whole seconds.
+  fn written(&self) -> ((i32, u32, u32), (u32, u32, u32)) {
+    (self.0.as_tuple(), (self.1.hour() as u32, self.1.minute() as u32, self.1.second() as u32))
+  }
+
+  /// Whether the two are written alike: the same date, time of day in whole seconds and zone.
+  fn written_alike(&self, other: &FeelDateTime) -> bool {
+    self.written() == other.written() && self.1.zone_written_alike(&other.1)
+  }
+
+  /// The offset of this date and time's own zone in seconds at its date and time; `None` for a
+  /// local one and where the zone has no single offset.
+  fn known_offset(&self) -> Option<i32> {
+    let (date, (hour, minute, second)) = self.written();
+    match self.1.zone() {
+      FeelZone::Utc => Some(0),
+      FeelZone::Local => None,
+      FeelZone::Offset(offset) => Some(offset.seconds()),
+      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, date, (hour, minute, second, 0)),
+    }
+  }
+
+  /// This date and time as an instant at `offset` seconds; the fraction of the second only with
+  /// `with_nanos`.
+  fn instant_at(&self, offset: i32, with_nanos: bool) -> Option<DateTime<FixedOffset>> {
+    let (date, (hour, minute, second)) = self.written();
+    date_time_offset_dt(date, (hour, minute, second, if with_nanos { self.1.nanos() as u32 } else { 0 }), offset)
+  }
+
+  /// The two as instants for `=` and `<` (Tables 54 and 55): two local ones as written (at offset
+  /// zero), and a local one at the offset of the other when only one is local.
+  fn compared_instants(&self, other: &FeelDateTime, with_nanos: bool) -> Option<(DateTime<FixedOffset>, DateTime<FixedOffset>)> {
+    let (lhs_offset, rhs_offset) = match (self.1.zone(), other.1.zone()) {
+      (FeelZone::Local, FeelZone::Local) => (0, 0),
+      (FeelZone::Local, _) => {
+        let offset = other.known_offset()?;
+        (offset, offset)
       }
-    }
-    let d = self.0.cmp(&other.0);
-    if let Some(t) = self.1.partial_cmp(&other.1) {
-      return match (d, t) {
-        (Ordering::Equal, Ordering::Equal) => Some(Ordering::Equal),
-        (Ordering::Equal, Ordering::Less) => Some(Ordering::Less),
-        (Ordering::Equal, Ordering::Greater) => Some(Ordering::Greater),
-        (Ordering::Less, _) => Some(Ordering::Less),
-        (Ordering::Greater, _) => Some(Ordering::Greater),
-      };
-    }
-    None
+      (_, FeelZone::Local) => {
+        let offset = self.known_offset()?;
+        (offset, offset)
+      }
+      _ => (self.known_offset()?, other.known_offset()?),
+    };
+    Some((self.instant_at(lhs_offset, with_nanos)?, other.instant_at(rhs_offset, with_nanos)?))
   }
 }
 
@@ -99,7 +136,7 @@ impl Add<FeelYearsAndMonthsDuration> for FeelDateTime {
   /// Adds [FeelYearsAndMonthsDuration] to [FeelDateTime]: the date moves as a date does, the time
   /// stays.
   fn add(self, rhs: FeelYearsAndMonthsDuration) -> Self::Output {
-    Some(FeelDateTime(self.0.add_months(rhs.as_months())?, self.1))
+    FeelDateTime::try_new(self.0.add_months(rhs.as_months())?, self.1)
   }
 }
 
@@ -108,7 +145,7 @@ impl Sub<FeelYearsAndMonthsDuration> for FeelDateTime {
   /// Subtracts [FeelYearsAndMonthsDuration] from [FeelDateTime]: the date moves as a date does, the
   /// time stays.
   fn sub(self, rhs: FeelYearsAndMonthsDuration) -> Self::Output {
-    Some(FeelDateTime(self.0.add_months((-rhs).as_months())?, self.1))
+    FeelDateTime::try_new(self.0.add_months((-rhs).as_months())?, self.1)
   }
 }
 
@@ -168,7 +205,7 @@ impl FeelDateTime {
   /// assert_eq!(("2018-10-01T12:32:59.123123123", Some("123")), (date_time.to_string().as_str(), dropped));
   /// ```
   pub fn parse_reporting_truncation(s: &str) -> Result<(Self, Option<&str>), DsntkError> {
-    if let Some(captures) = RE_DATE_AND_TIME.captures(s)
+    if let Some(captures) = split_date_and_time(s)
       && let Some(year_match) = captures.name("year")
       && let Ok(mut year) = year_match.as_str().parse::<Year>()
     {
@@ -202,8 +239,10 @@ impl FeelDateTime {
               return Err(err_invalid_date_time_literal(s));
             }
           }
-          if let Some(time) = FeelTime::zone_opt(hour, min, sec, nanos, zone) {
-            return Ok((FeelDateTime(date, time), dropped));
+          if let Some(time) = FeelTime::zone_opt(hour, min, sec, nanos, zone)
+            && let Some(date_time) = FeelDateTime::try_new(date, time)
+          {
+            return Ok((date_time, dropped));
           }
         }
       }
@@ -214,6 +253,15 @@ impl FeelDateTime {
   /// Creates date and time from provided [FeelDate] and [FeelTime] values.
   pub fn new(date: FeelDate, time: FeelTime) -> Self {
     Self(date, time)
+  }
+
+  /// Creates date and time from provided [FeelDate] and [FeelTime] values; `None` when the
+  /// year of the date is beyond the years that have instants here. A date has the years of
+  /// FEEL (to 999,999,999); the instants of a date and time, its zones and its arithmetic are
+  /// those of chrono, whose years end at 262,142.
+  pub fn try_new(date: FeelDate, time: FeelTime) -> Option<Self> {
+    NaiveDate::try_from(date.clone()).ok()?;
+    Some(Self(date, time))
   }
 
   /// Returns this date and time moved by `nanos` nanoseconds, forward or back, in the same zone:
@@ -274,21 +322,21 @@ impl FeelDateTime {
   pub fn utc(year: Year, month: Month, day: Day, hour: u8, minute: u8, second: u8, nanosecond: u64) -> Option<Self> {
     let date = FeelDate::new(year, month, day)?;
     let time = FeelTime::utc_opt(hour, minute, second, nanosecond)?;
-    Some(Self(date, time))
+    Self::try_new(date, time)
   }
 
   /// Creates local date and time from specified date and time values.
   pub fn local(year: Year, month: Month, day: Day, hour: u8, minute: u8, second: u8, nanosecond: u64) -> Option<Self> {
     let date = FeelDate::new(year, month, day)?;
     let time = FeelTime::local_opt(hour, minute, second, nanosecond)?;
-    Some(Self(date, time))
+    Self::try_new(date, time)
   }
 
   /// Creates  date and time from specified date, time and offset values.
   pub fn offset(date: (Year, Month, Day), time: (u8, u8, u8, u64), offset: i32) -> Option<Self> {
     let date = FeelDate::new(date.0, date.1, date.2)?;
     let time = FeelTime::offset_opt(time.0, time.1, time.2, time.3, offset)?;
-    Some(Self(date, time))
+    Self::try_new(date, time)
   }
 
   /// Returns today's date and time (local time).
@@ -363,30 +411,32 @@ impl FeelDateTime {
     feel_time_zone(self)
   }
 
+  /// The text of this date and time in JSON (DMN 1.7 Beta 1, Table 48): ISO 8601, and for a date
+  /// and time with an IANA zone `<date>T<time><±hh:mm>[<zone>]`, the offset being the zone's at
+  /// that date and time, with `:ss` when it has seconds (local mean time before the standard
+  /// zones, `+00:09:21` in Paris before 1911). Every other date and time is written in its FEEL
+  /// form, which is ISO 8601.
+  pub fn json_text(&self) -> String {
+    self.zoned_json_text().unwrap_or_else(|| self.to_string())
+  }
+
+  /// [FeelDateTime::json_text] of a date and time with an IANA zone.
+  fn zoned_json_text(&self) -> Option<String> {
+    let zone = self.feel_time_zone()?;
+    let offset = self.feel_time_offset()?;
+    let text = self.to_string();
+    let mut out = String::from(text.split('@').next()?);
+    crate::FeelOffset::write_seconds(&mut out, offset).ok()?;
+    out.push('[');
+    out.push_str(&zone);
+    out.push(']');
+    Some(out)
+  }
+
+  /// Whether the two are the same element of the semantic domain (DMN 1.7 Beta 1, 10.3.2.2): the
+  /// same date and the same time ([FeelTime::is]), zone or offset included, not only the same
+  /// instant.
   pub fn is(&self, rhs: &FeelDateTime) -> bool {
-    match (self.1.zone(), rhs.1.zone()) {
-      (FeelZone::Offset(offset_1), FeelZone::Offset(offset_2)) if offset_1 != offset_2 => {
-        // When offsets differ, then even the date and times are equal,
-        // then treat them semantically not equal.
-        return false;
-      }
-      (FeelZone::Offset(_), FeelZone::Zone(_)) => {
-        // When one date time has offset, and the other one has zone name
-        // then treat them semantically not equal.
-        return false;
-      }
-      (FeelZone::Zone(zone_name_1), FeelZone::Zone(zone_name_2)) if zone_name_1 != zone_name_2 => {
-        // When zone names differ, then even the date and times are equal,
-        // then treat them semantically not equal.
-        return false;
-      }
-      (FeelZone::Zone(_), FeelZone::Offset(_)) => {
-        // When one date time has zone name, and the other one has offset
-        // then treat them semantically not equal.
-        return false;
-      }
-      _ => {}
-    };
-    self == rhs
+    self.0 == rhs.0 && self.1.is(&rhs.1)
   }
 }

@@ -63,22 +63,38 @@ fn _0011() {
 
 #[test]
 fn _0012() {
-  te_null(false, &scope!(), r#"context put(context: {}, ky: "a", value: 1)"#, "parameter 'key' or 'keys' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"context put(context: {}, ky: "a", value: 1)"#,
+    "expected the parameters of one of context put(context, key, value): context, context put(context, keys, value): context, found the parameter name 'ky'",
+  );
 }
 
 #[test]
 fn _0013() {
-  te_null(false, &scope!(), r#"context put(context: {}, key: "a", v: 1)"#, "parameter 'value' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"context put(context: {}, key: "a", v: 1)"#,
+    "expected the parameters of one of context put(context, key, value): context, context put(context, keys, value): context, found the parameter name 'v'",
+  );
 }
 
 #[test]
 fn _0014() {
-  te_null(false, &scope!(), r#"context put(c: {}, key: "a", value: 1)"#, "parameter 'context' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"context put(c: {}, key: "a", value: 1)"#,
+    "expected the parameters of one of context put(context, key, value): context, context put(context, keys, value): context, found the parameter name 'c'",
+  );
 }
 
 #[test]
 fn _0015() {
-  te_null(false, &scope!(), r#"context put(context: {}, keys: "a", value: 1)"#, "");
+  // a value that is no list is the list of it where a list is taken (10.3.2.9.4)
+  te_be_value(false, &scope!(), r#"context put(context: {}, keys: "a", value: 1)"#, r#"{a: 1}"#);
 }
 
 #[test]
@@ -113,5 +129,28 @@ fn _0019() {
     &scope!(),
     r#"context put(context: {}, keys: [1], value: 1)"#,
     "[core::context put] invalid argument type, expected string, actual type is number",
+  );
+}
+
+#[test]
+fn _0020() {
+  // context put(context, keys, value) puts under the first key the result of context put of the
+  // entry under it (10.3.4.10): a key the context does not have gives that entry null, and the key
+  // list builds no context
+  te_string(false, &scope!(), r#"string(context put({x: 1}, ["y", "a"], 2))"#, r#"{x: 1, y: null}"#);
+  te_string(false, &scope!(), r#"string(context put({}, ["a", "b", "c"], 1))"#, r#"{a: null}"#);
+  te_string(false, &scope!(), r#"string(context put({x: {}}, ["x", "a", "b"], 1))"#, r#"{x: {a: null}}"#);
+  te_value(false, &scope!(), r#"context put({x: {y: {}}}, ["x", "y", "z"], 1)"#, r#"{x: {y: {z: 1}}}"#);
+  // an entry that holds null is to context.key' what a missing entry is (review of
+  // v0.9.0..feel/f1)
+  te_string(false, &scope!(), r#"string(context put({a: null}, ["a", "b"], 1))"#, r#"{a: null}"#);
+  te_string(false, &scope!(), r#"string(context put({x: {a: null}}, ["x", "a", "b"], 1))"#, r#"{x: {a: null}}"#);
+  te_value(false, &scope!(), r#"context put({a: null}, ["a", "b"], 1) = context put({}, ["a", "b"], 1)"#, "true");
+  // an entry on the path that is no context: the whole result is null (TCK 1146 nested009)
+  te_null(
+    false,
+    &scope!(),
+    r#"context put({x: 1, y: 3}, ["y", "a"], 2)"#,
+    "context put: the entry 'y' on the key path holds number, not a context",
   );
 }

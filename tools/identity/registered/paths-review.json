@@ -1,0 +1,616 @@
+[
+  {
+    "request": {
+      "op": "paths",
+      "expression": "loans[status = \"a\"].amount",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "customer": {
+            "name": "n"
+          },
+          "tags": [
+            1
+          ]
+        },
+        "loans": [
+          {
+            "amount": 3,
+            "customer": {
+              "name": "b"
+            }
+          },
+          {
+            "amount": 1,
+            "status": "a",
+            "customer": {
+              "name": "c"
+            }
+          }
+        ],
+        "n": [
+          3,
+          1,
+          2
+        ]
+      }
+    },
+    "why": "Review of paths (2026-11-25): the paths did not cover a list whose later items have entries that the first has not, a function that reads a binder whose slot was used again, a function that invokes itself, a function in the contexts of a list, the results so far of a loop around another loop, a key of a context of the text in another form, and a function that a context of the scope holds. Only answers of the operation paths change.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              0,
+              5
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "amount"
+          ],
+          "places": [
+            [
+              0,
+              26
+            ]
+          ],
+          "text": "loans[].amount",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "status"
+          ],
+          "places": [
+            [
+              6,
+              12
+            ]
+          ],
+          "text": "loans[].status",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "{a: {x: loan, f: function() x}, b: {y: n}, r: a.f().amount}.r",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "customer": {
+            "name": "n"
+          },
+          "tags": [
+            1
+          ]
+        },
+        "loans": [
+          {
+            "amount": 3,
+            "customer": {
+              "name": "b"
+            }
+          },
+          {
+            "amount": 1,
+            "status": "a",
+            "customer": {
+              "name": "c"
+            }
+          }
+        ],
+        "n": [
+          3,
+          1,
+          2
+        ]
+      }
+    },
+    "why": "Review of paths (2026-11-25): the paths did not cover a list whose later items have entries that the first has not, a function that reads a binder whose slot was used again, a function that invokes itself, a function in the contexts of a list, the results so far of a loop around another loop, a key of a context of the text in another form, and a function that a context of the scope holds. Only answers of the operation paths change.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              8,
+              12
+            ]
+          ],
+          "text": "loan",
+          "whole": false
+        },
+        {
+          "path": [
+            "n"
+          ],
+          "places": [
+            [
+              39,
+              40
+            ]
+          ],
+          "text": "n",
+          "whole": false
+        },
+        {
+          "path": [
+            "loan",
+            "amount"
+          ],
+          "places": [
+            [
+              46,
+              58
+            ]
+          ],
+          "text": "loan.amount",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "{f: function(k) if k = 0 then loan else f(k - 1).customer, r: f(1).name}.r",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "customer": {
+            "name": "n"
+          },
+          "tags": [
+            1
+          ]
+        },
+        "loans": [
+          {
+            "amount": 3,
+            "customer": {
+              "name": "b"
+            }
+          },
+          {
+            "amount": 1,
+            "status": "a",
+            "customer": {
+              "name": "c"
+            }
+          }
+        ],
+        "n": [
+          3,
+          1,
+          2
+        ]
+      }
+    },
+    "why": "Review of paths (2026-11-25): the paths did not cover a list whose later items have entries that the first has not, a function that reads a binder whose slot was used again, a function that invokes itself, a function in the contexts of a list, the results so far of a loop around another loop, a key of a context of the text in another form, and a function that a context of the scope holds. Only answers of the operation paths change.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              30,
+              34
+            ]
+          ],
+          "text": "loan",
+          "whole": true
+        },
+        {
+          "path": [
+            "loan",
+            "name"
+          ],
+          "places": [
+            [
+              62,
+              71
+            ]
+          ],
+          "text": "loan.name",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "for h in [{f: function() loan.amount}].f return h()",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "customer": {
+            "name": "n"
+          },
+          "tags": [
+            1
+          ]
+        },
+        "loans": [
+          {
+            "amount": 3,
+            "customer": {
+              "name": "b"
+            }
+          },
+          {
+            "amount": 1,
+            "status": "a",
+            "customer": {
+              "name": "c"
+            }
+          }
+        ],
+        "n": [
+          3,
+          1,
+          2
+        ]
+      }
+    },
+    "why": "Review of paths (2026-11-25): the paths did not cover a list whose later items have entries that the first has not, a function that reads a binder whose slot was used again, a function that invokes itself, a function in the contexts of a list, the results so far of a loop around another loop, a key of a context of the text in another form, and a function that a context of the scope holds. Only answers of the operation paths change.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              25,
+              29
+            ]
+          ],
+          "text": "loan",
+          "whole": false
+        },
+        {
+          "path": [
+            "loan",
+            "amount"
+          ],
+          "places": [
+            [
+              25,
+              36
+            ]
+          ],
+          "text": "loan.amount",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "(for x in loans return if x.amount = 3 then x else {amount: partial[1].customer.name, z: (for y in [1] return y)})[2].amount",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "customer": {
+            "name": "n"
+          },
+          "tags": [
+            1
+          ]
+        },
+        "loans": [
+          {
+            "amount": 3,
+            "customer": {
+              "name": "b"
+            }
+          },
+          {
+            "amount": 1,
+            "status": "a",
+            "customer": {
+              "name": "c"
+            }
+          }
+        ],
+        "n": [
+          3,
+          1,
+          2
+        ]
+      }
+    },
+    "why": "Review of paths (2026-11-25): the paths did not cover a list whose later items have entries that the first has not, a function that reads a binder whose slot was used again, a function that invokes itself, a function in the contexts of a list, the results so far of a loop around another loop, a key of a context of the text in another form, and a function that a context of the scope holds. Only answers of the operation paths change.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans",
+            []
+          ],
+          "places": [
+            [
+              0,
+              117
+            ]
+          ],
+          "text": "loans[]",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "amount"
+          ],
+          "places": [
+            [
+              0,
+              124
+            ],
+            [
+              26,
+              34
+            ]
+          ],
+          "text": "loans[].amount",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              10,
+              15
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "get value({\"a  b\": loan}, \"a b\").amount",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "customer": {
+            "name": "n"
+          },
+          "tags": [
+            1
+          ]
+        },
+        "loans": [
+          {
+            "amount": 3,
+            "customer": {
+              "name": "b"
+            }
+          },
+          {
+            "amount": 1,
+            "status": "a",
+            "customer": {
+              "name": "c"
+            }
+          }
+        ],
+        "n": [
+          3,
+          1,
+          2
+        ]
+      }
+    },
+    "why": "Review of paths (2026-11-25): the paths did not cover a list whose later items have entries that the first has not, a function that reads a binder whose slot was used again, a function that invokes itself, a function in the contexts of a list, the results so far of a loop around another loop, a key of a context of the text in another form, and a function that a context of the scope holds. Only answers of the operation paths change.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              0,
+              32
+            ],
+            [
+              19,
+              23
+            ]
+          ],
+          "text": "loan",
+          "whole": false
+        },
+        {
+          "path": [
+            "loan",
+            "amount"
+          ],
+          "places": [
+            [
+              0,
+              39
+            ]
+          ],
+          "text": "loan.amount",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "f() + 1",
+      "contextFormat": "feel",
+      "context": "{k: 5, m: {n: 1}, f: function() k}"
+    },
+    "why": "Review of paths (2026-11-25): the paths did not cover a list whose later items have entries that the first has not, a function that reads a binder whose slot was used again, a function that invokes itself, a function in the contexts of a list, the results so far of a loop around another loop, a key of a context of the text in another form, and a function that a context of the scope holds. Only answers of the operation paths change.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "f"
+          ],
+          "places": [
+            [
+              0,
+              1
+            ]
+          ],
+          "text": "f",
+          "whole": true
+        },
+        {
+          "path": [
+            "k"
+          ],
+          "places": [],
+          "text": "k",
+          "whole": true
+        },
+        {
+          "path": [
+            "m"
+          ],
+          "places": [],
+          "text": "m",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "k + 1",
+      "contextFormat": "feel",
+      "context": "{k: 5, m: {n: 1}, f: function() k}"
+    },
+    "why": "Review of paths (2026-11-25): the paths did not cover a list whose later items have entries that the first has not, a function that reads a binder whose slot was used again, a function that invokes itself, a function in the contexts of a list, the results so far of a loop around another loop, a key of a context of the text in another form, and a function that a context of the scope holds. Only answers of the operation paths change.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "k"
+          ],
+          "places": [
+            [
+              0,
+              1
+            ]
+          ],
+          "text": "k",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  }
+]

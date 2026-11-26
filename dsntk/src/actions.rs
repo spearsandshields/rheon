@@ -922,7 +922,7 @@ fn evaluate_decision_table(input_file_name: &str, dectab_file_name: &str, dectab
     }
   };
   match Session::new().run(|| evaluator(&scope)).into_result() {
-    Ok(result) => println!("{}", result.jsonify()),
+    Ok(result) => print_result(&result),
     Err(abort) => eprintln!("evaluating decision table failed with reason: {abort}"),
   }
 }
@@ -1024,7 +1024,7 @@ fn evaluate_dmn_model(input_file_name: &str, dmn_file_name: &str, invocable_name
             let model_name = definitions.name().to_string();
             match dsntk_evaluator::ModelEvaluator::new(&[definitions]) {
               Ok(model_evaluator) => match model_evaluator.evaluate_invocable(&model_namespace, &model_name, invocable_name, &input_data).into_result() {
-                Ok(result) => println!("{}", result.jsonify()),
+                Ok(result) => print_result(&result),
                 Err(abort) => eprintln!("evaluating invocable failed with reason: {abort}"),
               },
               Err(reason) => eprintln!("building model evaluator failed with reason: {reason}"),
@@ -1188,4 +1188,13 @@ fn display_test_summary(passed: usize, failed: usize, summary_only: bool, cm: Co
     text = text.green().s("ok");
   }
   println!("{}\n", text.reset().s(". ").s(passed).s(" passed; ").s(failed).s(" failed."));
+}
+
+/// Prints `result` as JSON on the standard output, and the reason of a null result on the standard
+/// error: a null is JSON null, and its reason is no part of the value (DMN 1.7 Beta 1, Table 48).
+fn print_result(result: &Value) {
+  println!("{}", result.jsonify());
+  if let Value::Null(Some(reason)) = result {
+    eprintln!("the result is null: {reason}");
+  }
 }

@@ -23,22 +23,14 @@ fn _0004() {
 
 #[test]
 fn _0005() {
-  te_null(
-    false,
-    &scope!(),
-    r#"reverse(10)"#,
-    r#"[core::reverse] invalid argument type, expected list, actual type is number"#,
-  );
+  // a value that is no list is the list of it where a list is taken (10.3.2.9.4)
+  te_be_value(false, &scope!(), r#"reverse(10)"#, r#"[10]"#);
 }
 
 #[test]
 fn _0006() {
-  te_null(
-    false,
-    &scope!(),
-    r#"reverse(list:true)"#,
-    r#"[core::reverse] invalid argument type, expected list, actual type is boolean"#,
-  );
+  // a value that is no list is the list of it where a list is taken (10.3.2.9.4)
+  te_be_value(false, &scope!(), r#"reverse(list:true)"#, r#"[true]"#);
 }
 
 #[test]
@@ -48,5 +40,10 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  te_null(false, &scope!(), r#"reverse(l:[10,11,12])"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"reverse(l:[10,11,12])"#,
+    r#"expected the parameters of reverse(list): list, found the parameter name 'l'"#,
+  );
 }

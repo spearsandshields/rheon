@@ -28,7 +28,12 @@ fn _0004() {
 
 #[test]
 fn _0005() {
-  te_null(false, &scope!(), r#"modulo(a:1,b:2)"#, r#"parameter 'dividend' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"modulo(a:1,b:2)"#,
+    r#"expected the parameters of modulo(dividend, divisor): number, found the parameter name 'a'"#,
+  );
 }
 
 #[test]
@@ -118,12 +123,22 @@ fn _0020() {
 
 #[test]
 fn _0021() {
-  te_null(false, &scope!(), r#"modulo(dividend: 12, d: 6)"#, r#"parameter 'divisor' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"modulo(dividend: 12, d: 6)"#,
+    r#"expected the parameters of modulo(dividend, divisor): number, found the parameter name 'd'"#,
+  );
 }
 
 #[test]
 fn _0022() {
-  te_null(false, &scope!(), r#"modulo(d: 12, divisor: 6)"#, r#"parameter 'dividend' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"modulo(d: 12, divisor: 6)"#,
+    r#"expected the parameters of modulo(dividend, divisor): number, found the parameter name 'd'"#,
+  );
 }
 
 #[test]

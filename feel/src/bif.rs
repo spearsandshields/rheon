@@ -21,6 +21,7 @@ const BIF_CONTEXT_PUT: &str = "context put";
 const BIF_COUNT: &str = "count";
 const BIF_DATE: &str = "date";
 const BIF_DATE_AND_TIME: &str = "date and time";
+const BIF_DAYS_AND_TIME_DURATION: &str = "days and time duration";
 const BIF_DAY_OF_WEEK: &str = "day of week";
 const BIF_DAY_OF_YEAR: &str = "day of year";
 const BIF_DECIMAL: &str = "decimal";
@@ -115,6 +116,7 @@ pub enum Bif {
   DateAndTime,
   DayOfWeek,
   DayOfYear,
+  DaysAndTimeDuration,
   Decimal,
   DistinctValues,
   Duration,
@@ -209,6 +211,7 @@ impl FromStr for Bif {
       BIF_COUNT => Ok(Self::Count),
       BIF_DATE => Ok(Self::Date),
       BIF_DATE_AND_TIME => Ok(Self::DateAndTime),
+      BIF_DAYS_AND_TIME_DURATION => Ok(Self::DaysAndTimeDuration),
       BIF_DAY_OF_WEEK => Ok(Self::DayOfWeek),
       BIF_DAY_OF_YEAR => Ok(Self::DayOfYear),
       BIF_DECIMAL => Ok(Self::Decimal),
@@ -302,7 +305,7 @@ impl Bif {
 }
 
 /// The names of the built-in functions, in the order of their definitions above.
-pub const BUILT_IN_FUNCTION_NAMES: [&str; 89] = [
+pub const BUILT_IN_FUNCTION_NAMES: [&str; 90] = [
   BIF_ABS,
   BIF_AFTER,
   BIF_ANY,
@@ -321,6 +324,7 @@ pub const BUILT_IN_FUNCTION_NAMES: [&str; 89] = [
   BIF_DATE_AND_TIME,
   BIF_DAY_OF_WEEK,
   BIF_DAY_OF_YEAR,
+  BIF_DAYS_AND_TIME_DURATION,
   BIF_DECIMAL,
   BIF_DISTINCT_VALUES,
   BIF_DURATION,
@@ -416,6 +420,7 @@ pub fn is_built_in_function_name(name: impl AsRef<str>) -> bool {
       | BIF_DATE_AND_TIME
       | BIF_DAY_OF_WEEK
       | BIF_DAY_OF_YEAR
+      | BIF_DAYS_AND_TIME_DURATION
       | BIF_DECIMAL
       | BIF_DISTINCT_VALUES
       | BIF_DURATION
@@ -496,7 +501,10 @@ pub fn is_built_in_function_name(name: impl AsRef<str>) -> bool {
 /// - `date and time`,
 /// - `duration`.
 pub fn is_built_in_date_time_function_name(name: impl AsRef<str>) -> bool {
-  matches!(name.as_ref(), BIF_DATE | BIF_TIME | BIF_DATE_AND_TIME | BIF_DURATION)
+  matches!(
+    name.as_ref(),
+    BIF_DATE | BIF_TIME | BIF_DATE_AND_TIME | BIF_DURATION | BIF_DAYS_AND_TIME_DURATION | BIF_YEARS_AND_MONTHS_DURATION
+  )
 }
 
 #[cfg(test)]

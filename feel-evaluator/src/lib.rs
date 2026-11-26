@@ -4,19 +4,16 @@
 #[macro_use]
 extern crate dsntk_macros;
 
+mod analysis;
 mod bfeel;
 mod bifs;
 mod equality;
 mod errors;
-#[cfg(not(target_arch = "wasm32"))]
-mod evaluator_java;
-#[cfg(target_arch = "wasm32")]
-#[path = "evaluator_java_stub.rs"]
 mod evaluator_java;
 mod evaluator_pmml;
 mod evaluators;
 mod filters;
-mod flat;
+pub(crate) mod flat;
 mod infer;
 mod invocation;
 mod iterations;
@@ -25,10 +22,12 @@ mod macros;
 mod session;
 mod tests;
 
+pub use crate::analysis::{MissingEntry, ReadPath, Reads, Segment, TypeId, Typing, path_text};
 pub use crate::bfeel::Dialect;
 pub use crate::evaluators::*;
 pub use crate::filters::FilterExpressionEvaluator;
-pub use crate::infer::{infer_type, members_of, type_of_text, type_of_value};
+pub use crate::flat::trace::{PartFrame, Plan, Recorded, Step, Trace, Tracing, Wanted, body, parts, recording};
+pub use crate::infer::{infer_type, infer_type_with, members_of, type_of_text, type_of_value};
 pub use crate::invocation::MAX_CALL_DEPTH;
 pub use crate::iterations::{Domain, Iteration, Sequence};
 pub use crate::session::{Outcome, Session};

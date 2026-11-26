@@ -132,7 +132,11 @@ fn process_input_node_dto_list(input_values: Vec<InputNodeDto>) -> Result<FeelCo
 
 fn prepare_output_node_dto(value: Value) -> OutputNodeDto {
   match ValueDto::try_from(&value) {
-    Ok(value_dto) => OutputNodeDto { value: Some(value_dto) },
+    // the runner of the TCK compares the components of a context by their places, with the
+    // expected ones in the order of their names
+    Ok(value_dto) => OutputNodeDto {
+      value: Some(value_dto.with_components_by_name()),
+    },
     _ => OutputNodeDto { value: None },
   }
 }

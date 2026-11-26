@@ -144,6 +144,26 @@ pub enum AstNode {
   /// Node representing `in` operator.
   In(Box<AstNode>, Box<AstNode>),
 
+  /// `e as T`, the value of `e` when it is an instance of the type `T`, otherwise null (DMN 1.7
+  /// Beta 1, grammar rule 51, Table 62).
+  As(
+    /// The converted value.
+    Box<AstNode>,
+    /// The type.
+    Box<AstNode>,
+  ),
+
+  /// A type name that may be an abstract type of DMN 1.7 (Figure 10-26): `comparable`,
+  /// `temporal`, `duration` or `context`. The name is read where it is evaluated: a name that holds
+  /// a type or another value is that (a type of the model or of the context, a value of the
+  /// user), and a name that nothing holds, or the built-in function of that name, is the type.
+  AbstractType(
+    /// The name, read as a name is.
+    Box<AstNode>,
+    /// The abstract type.
+    Box<AstNode>,
+  ),
+
   /// Node representing type checking function.
   InstanceOf(
     /// Node representing the tested value.
@@ -369,6 +389,8 @@ impl AstNode {
       | AstNode::Gt(lhs, rhs)
       | AstNode::In(lhs, rhs)
       | AstNode::InstanceOf(lhs, rhs)
+      | AstNode::As(lhs, rhs)
+      | AstNode::AbstractType(lhs, rhs)
       | AstNode::IterationContextSingle(lhs, rhs)
       | AstNode::Le(lhs, rhs)
       | AstNode::Lt(lhs, rhs)
@@ -454,6 +476,8 @@ impl AstNode {
       | AstNode::Gt(lhs, rhs)
       | AstNode::In(lhs, rhs)
       | AstNode::InstanceOf(lhs, rhs)
+      | AstNode::As(lhs, rhs)
+      | AstNode::AbstractType(lhs, rhs)
       | AstNode::IterationContextSingle(lhs, rhs)
       | AstNode::Le(lhs, rhs)
       | AstNode::Lt(lhs, rhs)
@@ -577,6 +601,8 @@ fn ast_node_to_tree(node: &AstNode, cm: ColorMode) -> TreeNode {
     AstNode::If(lhs, mid, rhs) => ast_node_3("If", lhs, mid, rhs, cm),
     AstNode::In(lhs, rhs) => ast_node_2("In", lhs, rhs, cm),
     AstNode::InstanceOf(lhs, rhs) => ast_node_2("InstanceOf", lhs, rhs, cm),
+    AstNode::As(lhs, rhs) => ast_node_2("As", lhs, rhs, cm),
+    AstNode::AbstractType(lhs, rhs) => ast_node_2("AbstractType", lhs, rhs, cm),
     AstNode::IntervalEnd(lhs, interval_type) => ast_node_and_label("IntervalEnd", lhs, interval_type.to_string(), cm),
     AstNode::IntervalStart(lhs, interval_type) => ast_node_and_label("IntervalStart", lhs, interval_type.to_string(), cm),
     AstNode::Irrelevant => ast_leaf("Irrelevant", cm),

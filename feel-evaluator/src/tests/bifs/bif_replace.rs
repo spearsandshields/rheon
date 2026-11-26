@@ -202,7 +202,7 @@ fn _0038() {
     false,
     &scope!(),
     "replace(i:\"abc\",pattern:\".^[d-z]*\",replacement:\"#\",flags:\"smix\")",
-    r#"parameter 'input' not found"#,
+    r#"expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'i'"#,
   );
 }
 
@@ -212,7 +212,7 @@ fn _0039() {
     false,
     &scope!(),
     "replace(input:\"abc\",p:\".^[d-z]*\",replacement:\"#\",flags:\"smix\")",
-    r#"parameter 'pattern' not found"#,
+    r#"expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'p'"#,
   );
 }
 
@@ -222,7 +222,7 @@ fn _0040() {
     false,
     &scope!(),
     "replace(input: \"abc\", pattern: \".^[d-z]*\", r:\"\", flags: \"smix\")",
-    r#"parameter 'replacement' not found"#,
+    r#"expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'r'"#,
   );
 }
 
@@ -273,7 +273,9 @@ fn every_character_of_the_flags_is_a_flag() {
 #[test]
 fn flags_that_are_no_string_are_null() {
   te_null(false, &scope!(), r#"replace("abc","b","x",1)"#, "replace: flags must be a string");
-  te_null(false, &scope!(), r#"replace("abc","b","x",["i"])"#, "replace: flags must be a string");
+  te_null(false, &scope!(), r#"replace("abc","b","x",["i","s"])"#, "replace: flags must be a string");
+  // a list of one string is that string
+  te_string(false, &scope!(), r#"replace("abc","B","x",["i"])"#, "axc");
   // null flags are no flags
   te_string(false, &scope!(), r#"replace("abc","b","x",null)"#, "axc");
 }

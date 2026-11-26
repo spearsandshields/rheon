@@ -13,7 +13,6 @@ edition = { workspace = true }
 
 [dependencies]
 fancy-regex = { workspace = true }
-regex = { workspace = true }
 regex-syntax = { workspace = true }
 dsntk-common = { workspace = true }
 dsntk-macros = { workspace = true }

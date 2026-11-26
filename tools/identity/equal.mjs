@@ -43,6 +43,7 @@
 // Exit status: 0 when every response is identical or registered, 1 on a difference, a ledger entry
 // that does not reproduce, a malformed response or a cache mismatch, 2 on a usage or input error.
 import { createHash } from 'node:crypto';
+import { strip } from './strip.mjs';
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -319,15 +320,6 @@ async function answerOf(answer, { request, text }) {
     throw new MalformedResponse(e.message);
   }
   return new Answer(canonical(strip(value, request)));
-}
-
-/** The response without the fields that identify the build rather than the answer. */
-function strip(response, request) {
-  const r = { ...response };
-  delete r.elapsedMicros;
-  delete r.engineCommit;
-  if (request && request.op === 'info') delete r.version;
-  return r;
 }
 
 /** The result text of a success: `display`, with the JSON quoting of a string removed. */

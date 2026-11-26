@@ -273,17 +273,32 @@ fn _0042() {
 
 #[test]
 fn _0043() {
-  te_null(false, &scope!(), r#"coincides(p1: 10, point2: 1)"#, r#"[named::coincides] invalid named parameters"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"coincides(p1: 10, point2: 1)"#,
+    r#"expected the parameters of one of coincides(point1, point2): boolean, coincides(range1, range2): boolean, found the parameter name 'p1'"#,
+  );
 }
 
 #[test]
 fn _0044() {
-  te_null(false, &scope!(), r#"coincides(point1: 10, p2: 1)"#, r#"[named::coincides] invalid named parameters"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"coincides(point1: 10, p2: 1)"#,
+    r#"expected the parameters of one of coincides(point1, point2): boolean, coincides(range1, range2): boolean, found the parameter name 'p2'"#,
+  );
 }
 
 #[test]
 fn _0045() {
-  te_null(false, &scope!(), r#"coincides(p1: 10, p2: 1)"#, r#"[named::coincides] invalid named parameters"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"coincides(p1: 10, p2: 1)"#,
+    r#"expected the parameters of one of coincides(point1, point2): boolean, coincides(range1, range2): boolean, found the parameter name 'p1'"#,
+  );
 }
 
 #[test]
@@ -292,7 +307,7 @@ fn _0046() {
     false,
     &scope!(),
     r#"coincides(r1: [1..10], range2: [1..10])"#,
-    r#"[named::coincides] invalid named parameters"#,
+    r#"expected the parameters of one of coincides(point1, point2): boolean, coincides(range1, range2): boolean, found the parameter name 'r1'"#,
   );
 }
 
@@ -302,13 +317,18 @@ fn _0047() {
     false,
     &scope!(),
     r#"coincides(range1: [1..10], r2: [1..10])"#,
-    r#"[named::coincides] invalid named parameters"#,
+    r#"expected the parameters of one of coincides(point1, point2): boolean, coincides(range1, range2): boolean, found the parameter name 'r2'"#,
   );
 }
 
 #[test]
 fn _0048() {
-  te_null(false, &scope!(), r#"coincides(r1: [1..10], r2: [1..10])"#, r#"[named::coincides] invalid named parameters"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"coincides(r1: [1..10], r2: [1..10])"#,
+    r#"expected the parameters of one of coincides(point1, point2): boolean, coincides(range1, range2): boolean, found the parameter name 'r1'"#,
+  );
 }
 
 #[test]

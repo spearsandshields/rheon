@@ -43,12 +43,22 @@ fn _0006() {
 
 #[test]
 fn _0007() {
-  te_null(false, &scope!(), r#"starts with(s:"foo",match:"o")"#, r#"parameter 'string' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"starts with(s:"foo",match:"o")"#,
+    r#"expected the parameters of starts with(string, match): boolean, found the parameter name 's'"#,
+  );
 }
 
 #[test]
 fn _0008() {
-  te_null(false, &scope!(), r#"starts with(string:"foo",m:"o")"#, r#"parameter 'match' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"starts with(string:"foo",m:"o")"#,
+    r#"expected the parameters of starts with(string, match): boolean, found the parameter name 'm'"#,
+  );
 }
 
 #[test]

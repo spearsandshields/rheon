@@ -143,17 +143,32 @@ fn _0020() {
 
 #[test]
 fn _0021() {
-  te_null(false, &scope!(), r#"meets(range1: [1..5],r2: [3..8])"#, "parameter 'range2' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"meets(range1: [1..5],r2: [3..8])"#,
+    "expected the parameters of meets(range1, range2): boolean, found the parameter name 'r2'",
+  );
 }
 
 #[test]
 fn _0022() {
-  te_null(false, &scope!(), r#"meets(r1: [1..5],range2: [3..8])"#, "parameter 'range1' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"meets(r1: [1..5],range2: [3..8])"#,
+    "expected the parameters of meets(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
 fn _0023() {
-  te_null(false, &scope!(), r#"meets(r1: [1..5], r2: [3..8])"#, "parameter 'range1' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"meets(r1: [1..5], r2: [3..8])"#,
+    "expected the parameters of meets(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
@@ -172,6 +187,6 @@ fn _0025() {
     false,
     &scope!(),
     r#"meets(["a".."b"],[time("11:59:59")..time("23:59:59")])"#,
-    "[core::meets] invalid argument type, expected range of scalars, actual type is range<string>",
+    "[core::meets] invalid argument type, expected range<string>, actual type is range<time>",
   );
 }

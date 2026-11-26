@@ -53,27 +53,52 @@ fn _0010() {
 
 #[test]
 fn _0011() {
-  te_null(false, &scope!(), r#"sublist(l:[1,2,3], start position: 1, length: 1)"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist(l:[1,2,3], start position: 1, length: 1)"#,
+    r#"expected the parameters of sublist(list, start position, length?): list, found the parameter name 'l'"#,
+  );
 }
 
 #[test]
 fn _0012() {
-  te_null(false, &scope!(), r#"sublist(list:[1,2,3], sp: 1, length: 1)"#, r#"parameter 'start position' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist(list:[1,2,3], sp: 1, length: 1)"#,
+    r#"expected the parameters of sublist(list, start position, length?): list, found the parameter name 'sp'"#,
+  );
 }
 
 #[test]
 fn _0013() {
-  te_null(false, &scope!(), r#"sublist(list:[1,2,3], start position: 1, l: 1)"#, r#"parameter 'length' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist(list:[1,2,3], start position: 1, l: 1)"#,
+    r#"expected the parameters of sublist(list, start position, length?): list, found the parameter name 'l'"#,
+  );
 }
 
 #[test]
 fn _0014() {
-  te_null(false, &scope!(), r#"sublist(list:[1,2,3], sp: 1)"#, r#"parameter 'start position' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist(list:[1,2,3], sp: 1)"#,
+    r#"expected the parameters of sublist(list, start position, length?): list, found the parameter name 'sp'"#,
+  );
 }
 
 #[test]
 fn _0015() {
-  te_null(false, &scope!(), r#"sublist(lista:[1,2,3], start position: 1)"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist(lista:[1,2,3], start position: 1)"#,
+    r#"expected the parameters of sublist(list, start position, length?): list, found the parameter name 'lista'"#,
+  );
 }
 
 #[test]
@@ -82,7 +107,7 @@ fn _0016() {
     false,
     &scope!(),
     r#"sublist(list:[1,2,3], start position: 1, l: 1, k:5)"#,
-    r#"expected 2,3 parameters, actual number of parameters is 4"#,
+    r#"expected the parameters of sublist(list, start position, length?): list, found the parameter name 'l'"#,
   );
 }
 
@@ -133,7 +158,7 @@ fn _0022() {
 
 #[test]
 fn _0023() {
-  te_null(false, &scope!(), r#"sublist("[1,2,3]", 2)"#, r#"sublist: expected list, actual value type is string"#);
+  te_null(false, &scope!(), r#"sublist("[1,2,3]", 2)"#, r#"sublist: position is out of range, len = 1, position = 2"#);
 }
 
 #[test]
@@ -217,7 +242,7 @@ fn _0032() {
     false,
     &scope!(),
     r#"sublist("[1,2,3,4,5]", 2, 3)"#,
-    r#"sublist: expected list, actual value type is string"#,
+    r#"sublist: invalid range, len = 1, start position = 2, end position = 5"#,
   );
 }
 
@@ -243,4 +268,25 @@ fn dmn_1_6_fractional_position() {
   te_null(false, &scope!(), "sublist([1,2,3], -0.5)", "sublist: position must not be zero");
   te_be_value(false, &scope!(), "sublist([1,2,3], -1.5)", "[3]");
   te_be_value(false, &scope!(), "sublist([1,2,3], 1.5, 2.9)", "[1,2]");
+}
+
+#[test]
+fn _0034() {
+  // the length is in [1..E]; a decimal length is converted to an integer first
+  te_null(false, &scope!(), r#"sublist([1, 2, 3], 1, 0)"#, r#"sublist: length must be at least 1, actual length is 0"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist([1, 2, 3], 2, 0.5)"#,
+    r#"sublist: length must be at least 1, actual length is 0.5"#,
+  );
+  te_be_value(false, &scope!(), r#"sublist([1, 2, 3], 2, 1.5)"#, r#"[2]"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist([1, 2, 3], 1, -1)"#,
+    r#"sublist: length must be at least 1, actual length is -1"#,
+  );
+  // the position is checked first
+  te_null(false, &scope!(), r#"sublist([1, 2, 3], 0, 0)"#, r#"sublist: position must not be zero"#);
 }

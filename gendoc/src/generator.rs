@@ -169,7 +169,10 @@ impl HTMLGenerator {
     // prepare shared styles
     if let Some(dmndi) = definitions.dmndi() {
       for dmn_style in &dmndi.styles {
-        self.diagram_shared_styles.insert(dmn_style.id.clone(), dmn_style.clone());
+        // a style without an id can not be referred to
+        if let Some(id) = &dmn_style.id {
+          self.diagram_shared_styles.insert(id.clone(), dmn_style.clone());
+        }
       }
     }
     // prepare the document body

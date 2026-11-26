@@ -59,7 +59,12 @@ fn _0011() {
 
 #[test]
 fn _0012() {
-  te_null(false, &scope!(), "sqrt(n:64.0)", r#"parameter 'number' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    "sqrt(n:64.0)",
+    r#"expected the parameters of sqrt(number): number, found the parameter name 'n'"#,
+  );
 }
 
 #[test]
@@ -76,7 +81,12 @@ fn _0014() {
 #[test]
 fn _0015() {
   let scope = &te_scope("{ Area: 144.0 }");
-  te_null(false, scope, "sqrt(n  :Area)", r#"parameter 'number' not found"#);
+  te_null(
+    false,
+    scope,
+    "sqrt(n  :Area)",
+    r#"expected the parameters of sqrt(number): number, found the parameter name 'n'"#,
+  );
 }
 
 #[test]

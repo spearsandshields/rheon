@@ -117,12 +117,7 @@ fn _0021() {
 
 #[test]
 fn _0022() {
-  te_null(
-    false,
-    &scope!(),
-    r#" @"2023-02-06" - @"P999999Y" "#,
-    "[subtraction] incompatible types: 2023-02-06 - P999999Y",
-  );
+  te_be_value(false, &scope!(), r#" @"2023-02-06" - @"P999999Y" "#, r#"date("-997976-02-06")"#);
 }
 
 #[test]
@@ -147,12 +142,7 @@ fn _0025() {
 
 #[test]
 fn _0026() {
-  te_null(
-    false,
-    &scope!(),
-    r#" @"23746-01-01" + @"P99999999Y" "#,
-    r#"invalid result while adding years and months duration to date"#,
-  );
+  te_be_value(false, &scope!(), r#" @"23746-01-01" + @"P99999999Y" "#, r#"date("100023745-01-01")"#);
 }
 
 #[test]

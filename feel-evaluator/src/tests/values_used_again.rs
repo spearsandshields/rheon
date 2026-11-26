@@ -329,7 +329,11 @@ fn values_nested_100_and_499_levels_are_built_by_every_channel() {
         (through_partial(n, "{}", "{a: partial[-1]}"), nested("{a: ", "{}", "}", n - 1)),
         (recursion_times_literal(n), nested("[", "0", "]", n)),
         (chain(n, |before| format!("{{x: {before}}}")), nested("{x: ", "0", "}", n)),
-        (format!("context put({{}}, for i in 1..{n} return \"a\", 0)"), nested("{a: ", "0", "}", n)),
+        // a key list puts into the contexts its path names; it builds none (10.3.4.10)
+        (
+          format!("context put({}, for i in 1..{n} return \"a\", 0)", nested("{a: ", "{}", "}", n - 1)),
+          nested("{a: ", "0", "}", n),
+        ),
         (chain(n, |before| format!("[{before}..0]")), nested("[", "0", "..0]", n)),
         (closures(n), closures_text(n / 2 - 1)),
       ];

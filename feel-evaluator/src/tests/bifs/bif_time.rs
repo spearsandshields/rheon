@@ -256,7 +256,12 @@ fn _0041() {
 
 #[test]
 fn _0042() {
-  te_null(false, &scope!(), r#"time(f: "11:22:33-00:00")"#, r#"invalid parameters in bif time"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"time(f: "11:22:33-00:00")"#,
+    r#"expected the parameters of one of time(from): time, time(hour, minute, second, offset?): time, found the parameter name 'f'"#,
+  );
 }
 
 #[test]
@@ -265,18 +270,28 @@ fn _0043() {
     false,
     &scope!(),
     r#"time(h: 11, minute: 59, second: 45, offset: null)"#,
-    r#"invalid parameters in bif time"#,
+    r#"expected the parameters of one of time(from): time, time(hour, minute, second, offset?): time, found the parameter name 'h'"#,
   );
 }
 
 #[test]
 fn _0044() {
-  te_null(false, &scope!(), r#"time(hour: 11, m: 59, second: 45, offset: null)"#, r#"invalid parameters in bif time"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"time(hour: 11, m: 59, second: 45, offset: null)"#,
+    r#"expected the parameters of one of time(from): time, time(hour, minute, second, offset?): time, found the parameter name 'm'"#,
+  );
 }
 
 #[test]
 fn _0045() {
-  te_null(false, &scope!(), r#"time(hour: 11, minute: 59, s: 45, offset: null)"#, r#"invalid parameters in bif time"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"time(hour: 11, minute: 59, s: 45, offset: null)"#,
+    r#"expected the parameters of one of time(from): time, time(hour, minute, second, offset?): time, found the parameter name 's'"#,
+  );
 }
 
 #[test]

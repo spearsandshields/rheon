@@ -78,5 +78,9 @@ fn _0012() {
 
 #[test]
 fn _0013() {
-  eq("decision013", &CTX, r#"null(parameter 'list' not found)"#);
+  eq(
+    "decision013",
+    &CTX,
+    r#"null(expected the parameters of product(list): number, found the parameter name 'l')"#,
+  );
 }

@@ -6,6 +6,7 @@ use crate::message::arg;
 use crate::values::Value;
 use crate::{Name, value_null};
 use dsntk_common::DsntkError;
+use rheon_feel_temporal::FeelZone;
 use serde::{Deserialize, Serialize};
 
 pub const XSD_STRING: &str = "xsd:string";
@@ -17,6 +18,9 @@ pub const XSD_DATE: &str = "xsd:date";
 pub const XSD_DATE_TIME: &str = "xsd:dateTime";
 pub const XSD_TIME: &str = "xsd:time";
 pub const XSD_DURATION: &str = "xsd:duration";
+pub const XSD_DATE_TIME_STAMP: &str = "xsd:dateTimeStamp";
+pub const XSD_YEAR_MONTH_DURATION: &str = "xsd:yearMonthDuration";
+pub const XSD_DAY_TIME_DURATION: &str = "xsd:dayTimeDuration";
 
 /// Type alias for an object value represented as a vector of components.
 type ObjectDto = Vec<ComponentDto>;
@@ -33,6 +37,29 @@ pub struct ValueDto {
   /// List value.
   #[serde(rename = "list")]
   list: Option<ListDto>,
+}
+
+impl ValueDto {
+  /// This value with the components of every context in it in the order of their names. A
+  /// context has its components in the order its entries were written in; this is for a reader
+  /// that takes the components of two values by their places (the runner of the DMN TCK).
+  pub fn with_components_by_name(mut self) -> Self {
+    if let Some(components) = self.object.take() {
+      let mut components: Vec<ComponentDto> = components
+        .into_iter()
+        .map(|mut component| {
+          component.value = component.value.map(ValueDto::with_components_by_name);
+          component
+        })
+        .collect();
+      components.sort_by(|a, b| a.name.cmp(&b.name));
+      self.object = Some(components);
+    }
+    if let Some(list) = &mut self.list {
+      list.items = std::mem::take(&mut list.items).into_iter().map(ValueDto::with_components_by_name).collect();
+    }
+    self
+  }
 }
 
 /// DTO representing a simple value.
@@ -140,7 +167,7 @@ impl TryFrom<&Value> for ValueDto {
       }),
       Value::Context(ctx) => {
         let mut components = vec![];
-        for (name, value) in ctx.iter() {
+        for (name, value) in ctx.iter_written() {
           components.push(ComponentDto {
             name: Some(name.to_string()),
             value: Some(value.try_into()?),
@@ -203,6 +230,29 @@ impl TryFrom<&SimpleDto> for Value {
           XSD_TIME => Ok(Value::try_from_xsd_time(text)?),
           XSD_DATE_TIME => Ok(Value::try_from_xsd_date_time(text)?),
           XSD_DURATION => Ok(Value::try_from_xsd_duration(text)?),
+          // the other XSD types of Table 47 (DMN 1.7 Beta 1): a date and time that has a time zone,
+          // and the two kinds of duration
+          XSD_DATE_TIME_STAMP => match Value::try_from_xsd_date_time(text)? {
+            Value::DateTime(date_time) if *date_time.time().zone() != FeelZone::Local => Ok(Value::DateTime(date_time)),
+            _ => Err(err_invalid_attribute(&format!(
+              "expected an xsd:dateTimeStamp, which has a time zone, found '{}'",
+              arg(text)
+            ))),
+          },
+          XSD_YEAR_MONTH_DURATION => match Value::try_from_xsd_duration(text)? {
+            duration @ Value::YearsAndMonthsDuration(_) => Ok(duration),
+            _ => Err(err_invalid_attribute(&format!(
+              "expected an xsd:yearMonthDuration, of years and months only, found '{}'",
+              arg(text)
+            ))),
+          },
+          XSD_DAY_TIME_DURATION => match Value::try_from_xsd_duration(text)? {
+            duration @ Value::DaysAndTimeDuration(_) => Ok(duration),
+            _ => Err(err_invalid_attribute(&format!(
+              "expected an xsd:dayTimeDuration, of days and time only, found '{}'",
+              arg(text)
+            ))),
+          },
           _ => Err(err_invalid_attribute(&format!("invalid type '{}'", arg(typ)))),
         }
       } else {

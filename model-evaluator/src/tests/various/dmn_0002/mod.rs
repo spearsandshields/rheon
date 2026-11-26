@@ -18,7 +18,7 @@ fn _0001() {
     ]
   }"#,
   );
-  assert_decision(&MODEL_EVALUATOR, MODEL_NAMESPACE, MODEL_NAME, "Echo", &ctx, r#"[{Max: 360, Min: 12}]"#);
+  assert_decision(&MODEL_EVALUATOR, MODEL_NAMESPACE, MODEL_NAME, "Echo", &ctx, r#"[{Min: 12, Max: 360}]"#);
 }
 
 #[test]
@@ -37,7 +37,7 @@ fn _0002() {
     MODEL_NAME,
     "Echo",
     &ctx,
-    r#"[{Max: 360, Min: 102}, {Max: 267, Min: 108}]"#,
+    r#"[{Min: 102, Max: 360}, {Min: 108, Max: 267}]"#,
   );
 }
 
@@ -57,7 +57,7 @@ fn _0003() {
     MODEL_NAME,
     "Echo",
     &ctx,
-    r#"[{Max: 360, Min: 102}, {Max: 267, Min: null}]"#,
+    r#"[{Min: 102, Max: 360}, {Min: null, Max: 267}]"#,
   );
 }
 
@@ -77,7 +77,7 @@ fn _0004() {
     MODEL_NAME,
     "Echo",
     &ctx,
-    r#"[{Max: null, Min: 102}, {Max: 267, Min: null}]"#,
+    r#"[{Min: 102, Max: null}, {Min: null, Max: 267}]"#,
   );
 }
 
@@ -99,6 +99,6 @@ fn _0005() {
     MODEL_NAME,
     "Echo",
     &ctx,
-    r#"[{Max: null, Min: null}, {Max: 267, Min: null}, {Max: null, Min: 84}, {Max: 12, Min: 3}]"#,
+    r#"[{Min: null, Max: null}, {Min: null, Max: 267}, {Min: 84, Max: null}, {Min: 3, Max: 12}]"#,
   );
 }

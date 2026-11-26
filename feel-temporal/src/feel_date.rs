@@ -1,11 +1,13 @@
 //! Implementation of FEEL date.
 
 use crate::FeelDaysAndTimeDuration;
+use crate::FeelZone;
 use crate::defs::*;
 use crate::errors::*;
 use crate::feel_dt_duration::NANOSECONDS_IN_DAY;
 use crate::feel_ym_duration::FeelYearsAndMonthsDuration;
-use chrono::{DateTime, Datelike, Days, FixedOffset, LocalResult, Months, NaiveDate, TimeZone, Weekday};
+use crate::parts::split_date;
+use chrono::{DateTime, Datelike, FixedOffset, LocalResult, NaiveDate, TimeZone};
 use dsntk_common::DsntkError;
 use rheon_feel_number::FeelNumber;
 use std::cmp::Ordering;
@@ -21,7 +23,9 @@ pub struct FeelDate(Year, Month, Day);
 impl Display for FeelDate {
   /// Converts [FeelDate] into [String].
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{:04}-{:02}-{:02}", self.0, self.1, self.2)
+    // at least four digits of the year after its sign (XML Schema Part 2, yearFrag): -0044, not -044
+    let sign = if self.0 < 0 { "-" } else { "" };
+    write!(f, "{sign}{:04}-{:02}-{:02}", self.0.unsigned_abs(), self.1, self.2)
   }
 }
 
@@ -29,7 +33,7 @@ impl FromStr for FeelDate {
   type Err = DsntkError;
   /// Converts [String] into [FeelDate].
   fn from_str(date: &str) -> Result<Self, Self::Err> {
-    let captures = RE_DATE.captures(date).ok_or_else(|| err_invalid_date_literal(date))?;
+    let captures = split_date(date).ok_or_else(|| err_invalid_date_literal(date))?;
     if let Some(year_match) = captures.name("year")
       && let Ok(mut year) = year_match.as_str().parse::<Year>()
     {
@@ -46,6 +50,38 @@ impl FromStr for FeelDate {
       }
     }
     Err(err_invalid_date_literal(date))
+  }
+}
+
+impl FeelDate {
+  /// Parses a date string of the XML Schema date lexical space (DMN 1.7 Beta 1, 10.3.4.1: the date
+  /// string is an xs:date), which allows a zone suffix after the date: `Z` or an offset `±hh:mm`
+  /// (`2020-01-01Z`, `2020-01-01+02:00`). A FEEL date has no zone (10.3.2.3.5), so the zone is
+  /// dropped and returned beside the date for the warning that says so.
+  ///
+  /// ```
+  /// use rheon_feel_temporal::FeelDate;
+  /// let (date, zone) = FeelDate::parse_reporting_zone("2020-01-01+02:00").unwrap();
+  /// assert_eq!(("2020-01-01", Some("+02:00")), (date.to_string().as_str(), zone));
+  /// assert_eq!(None, FeelDate::parse_reporting_zone("2020-01-01").unwrap().1);
+  /// assert!(FeelDate::parse_reporting_zone("2020-01-01@Europe/Paris").is_err());
+  /// ```
+  pub fn parse_reporting_zone(text: &str) -> Result<(Self, Option<&str>), DsntkError> {
+    if let Ok(date) = text.parse::<FeelDate>() {
+      return Ok((date, None));
+    }
+    let split = if text.ends_with(['Z', 'z']) {
+      text.len() - 1
+    } else if text.len() > 6 && text.is_char_boundary(text.len() - 6) && text[text.len() - 6..].starts_with(['+', '-']) {
+      text.len() - 6
+    } else {
+      return Err(err_invalid_date_literal(text));
+    };
+    let (date, zone) = text.split_at(split);
+    match (date.parse::<FeelDate>(), FeelZone::from_designator(zone)) {
+      (Ok(date), Some(_)) => Ok((date, Some(zone))),
+      _ => Err(err_invalid_date_literal(text)),
+    }
   }
 }
 
@@ -192,31 +228,44 @@ impl FeelDate {
   }
 
   pub fn day_of_week(&self) -> Option<DayOfWeek> {
-    NaiveDate::from_ymd_opt(self.0, self.1, self.2).map(|naive_date| match naive_date.weekday() {
-      Weekday::Mon => ("Monday".to_string(), 1_u8),
-      Weekday::Tue => ("Tuesday".to_string(), 2_u8),
-      Weekday::Wed => ("Wednesday".to_string(), 3_u8),
-      Weekday::Thu => ("Thursday".to_string(), 4_u8),
-      Weekday::Fri => ("Friday".to_string(), 5_u8),
-      Weekday::Sat => ("Saturday".to_string(), 6_u8),
-      Weekday::Sun => ("Sunday".to_string(), 7_u8),
-    })
+    // the day 0 is a Thursday
+    let (name, number) = match (self.day_number()? + 3).rem_euclid(7) {
+      0 => ("Monday", 1_u8),
+      1 => ("Tuesday", 2),
+      2 => ("Wednesday", 3),
+      3 => ("Thursday", 4),
+      4 => ("Friday", 5),
+      5 => ("Saturday", 6),
+      _ => ("Sunday", 7),
+    };
+    Some((name.to_string(), number))
   }
 
   pub fn day_of_year(&self) -> Option<DayOfYear> {
-    NaiveDate::from_ymd_opt(self.0, self.1, self.2).map(|naive_date| naive_date.ordinal() as u16)
+    Some((self.day_number()? - day_number(self.0, 1, 1) + 1) as u16)
   }
 
+  /// The week of the year of ISO 8601: the week of a date is that of its Thursday.
   pub fn week_of_year(&self) -> Option<WeekOfYear> {
-    NaiveDate::from_ymd_opt(self.0, self.1, self.2).map(|naive_date| naive_date.iso_week().week() as u8)
+    let (ordinal, weekday) = (i64::from(self.day_of_year()?), i64::from(self.day_of_week()?.1));
+    // the weeks of a year: 53 when it starts on a Thursday, or on a Wednesday when it is a leap year
+    let weeks = |year: Year| {
+      let first = (day_number(year, 1, 1) + 3).rem_euclid(7);
+      if first == 3 || (first == 2 && is_leap_year(year)) { 53_i64 } else { 52 }
+    };
+    let week = (ordinal - weekday + 10) / 7;
+    let week = if week < 1 {
+      weeks(self.0 - 1)
+    } else if week > weeks(self.0) {
+      1
+    } else {
+      week
+    };
+    Some(week as u8)
   }
 
   pub fn month_of_year(&self) -> Option<MonthOfYear> {
-    if let Some(naive_date) = NaiveDate::from_ymd_opt(self.0, self.1, self.2) {
-      month_of_year(naive_date.month())
-    } else {
-      None
-    }
+    if is_valid_date(self.0, self.1, self.2) { month_of_year(self.1) } else { None }
   }
 
   pub fn as_tuple(&self) -> (Year, Month, Day) {
@@ -224,21 +273,11 @@ impl FeelDate {
   }
 
   pub fn add_days(&self, days: u64) -> Option<Self> {
-    if let Some(naive_date) = NaiveDate::from_ymd_opt(self.0, self.1, self.2)
-      && let Some(updated_date) = naive_date.checked_add_days(Days::new(days))
-    {
-      return Some(Self(updated_date.year(), updated_date.month(), updated_date.day()));
-    }
-    None
+    self.moved_by_days(i64::try_from(days).ok()?)
   }
 
   pub fn sub_days(&self, days: u64) -> Option<Self> {
-    if let Some(naive_date) = NaiveDate::from_ymd_opt(self.0, self.1, self.2)
-      && let Some(updated_date) = naive_date.checked_sub_days(Days::new(days))
-    {
-      return Some(Self(updated_date.year(), updated_date.month(), updated_date.day()));
-    }
-    None
+    self.moved_by_days(i64::try_from(days).ok()?.checked_neg()?)
   }
 
   /// Returns the date of the instant `nanos` nanoseconds after (or before) this date, or `None`
@@ -247,15 +286,7 @@ impl FeelDate {
   /// UTC midnight (§10.3.2.3.5), so the nanoseconds are rounded down to whole days:
   /// `2020-01-02` minus `PT0.5S` is `2020-01-01`.
   fn add_nanos(&self, nanos: i64) -> Option<Self> {
-    let days = nanos.div_euclid(NANOSECONDS_IN_DAY);
-    let naive_date = NaiveDate::from_ymd_opt(self.0, self.1, self.2)?;
-    let count = Days::new(days.unsigned_abs());
-    let updated_date = if days < 0 {
-      naive_date.checked_sub_days(count)
-    } else {
-      naive_date.checked_add_days(count)
-    }?;
-    Some(Self(updated_date.year(), updated_date.month(), updated_date.day()))
+    self.moved_by_days(nanos.div_euclid(NANOSECONDS_IN_DAY))
   }
 
   /// Returns this date moved by `months` months, forward or back, or `None` when the result is
@@ -269,25 +300,90 @@ impl FeelDate {
   /// e2.months - floor((e1.month +/- e2.months)/12) * 12, e1.day)`, which has no value for such a
   /// day; the month-end date of §9.4 is the result here.
   pub(crate) fn add_months(&self, months: i64) -> Option<Self> {
-    let naive_date = NaiveDate::from_ymd_opt(self.0, self.1, self.2)?;
-    let count = Months::new(u32::try_from(months.unsigned_abs()).ok()?);
-    let updated_date = if months < 0 {
-      naive_date.checked_sub_months(count)
-    } else {
-      naive_date.checked_add_months(count)
-    }?;
-    Some(Self(updated_date.year(), updated_date.month(), updated_date.day()))
+    if !is_valid_date(self.0, self.1, self.2) {
+      return None;
+    }
+    // the months since the year 0
+    let total = (i64::from(self.0) * 12 + i64::from(self.1) - 1).checked_add(months)?;
+    let year = Year::try_from(total.div_euclid(12)).ok()?;
+    let month = total.rem_euclid(12) as Month + 1;
+    Self::new(year, month, self.2.min(days_in_month(year, month)))
+  }
+
+  /// The time from `other` to this date, both at midnight: whole days, negative when this date
+  /// is the earlier one; `None` when either is no date or the time is beyond a duration.
+  pub fn time_since(&self, other: &FeelDate) -> Option<FeelDaysAndTimeDuration> {
+    let days = self.day_number()? - other.day_number()?;
+    FeelDaysAndTimeDuration::from_n(days.checked_mul(NANOSECONDS_IN_DAY)?)
+  }
+
+  /// The number of days from 1970-01-01 to this date; `None` when it is no date.
+  pub(crate) fn day_number(&self) -> Option<i64> {
+    is_valid_date(self.0, self.1, self.2).then(|| day_number(self.0, self.1, self.2))
+  }
+
+  /// The date `days` days after this one, or before it; `None` when it is out of range.
+  fn moved_by_days(&self, days: i64) -> Option<Self> {
+    let (year, month, day) = date_of_day_number(self.day_number()?.checked_add(days)?)?;
+    Self::new(year, month, day)
   }
 }
 
-/// Returns `true` when specified `year`, `month` and `day` form a valid date.
+/// The first and the last year of FEEL (DMN 1.6, 10.3.4.1, `date(year, month, day)`).
+const YEARS: std::ops::RangeInclusive<Year> = -999_999_999..=999_999_999;
+
+/// Whether `year` is a leap year of the proleptic Gregorian calendar.
+fn is_leap_year(year: Year) -> bool {
+  year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+/// The number of days of the month `month` (1 to 12) of `year`.
+fn days_in_month(year: Year, month: Month) -> Day {
+  match month {
+    4 | 6 | 9 | 11 => 30,
+    2 if is_leap_year(year) => 29,
+    2 => 28,
+    _ => 31,
+  }
+}
+
+/// The number of days from 1970-01-01 to a date of the proleptic Gregorian calendar, by eras of
+/// 400 years (146,097 days) whose years begin in March, so that the leap day is the last day.
+fn day_number(year: Year, month: Month, day: Day) -> i64 {
+  let (year, month, day) = (i64::from(year) - i64::from(month <= 2), i64::from(month), i64::from(day));
+  let era = year.div_euclid(400);
+  let year_of_era = year.rem_euclid(400);
+  let day_of_year = (153 * (if month > 2 { month - 3 } else { month + 9 }) + 2) / 5 + day - 1;
+  let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+  era * 146_097 + day_of_era - 719_468
+}
+
+/// The date of a number of days from 1970-01-01 ([day_number]); `None` when its year is beyond
+/// those of a [Year].
+fn date_of_day_number(days: i64) -> Option<(Year, Month, Day)> {
+  let days = days.checked_add(719_468)?;
+  let era = days.div_euclid(146_097);
+  let day_of_era = days.rem_euclid(146_097);
+  let year_of_era = (day_of_era - day_of_era / 1_460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
+  let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+  // the month of a year that begins in March
+  let shifted = (5 * day_of_year + 2) / 153;
+  let day = day_of_year - (153 * shifted + 2) / 5 + 1;
+  let month = if shifted < 10 { shifted + 3 } else { shifted - 9 };
+  let year = era.checked_mul(400)?.checked_add(year_of_era + i64::from(month <= 2))?;
+  Some((Year::try_from(year).ok()?, month as Month, day as Day))
+}
+
+/// Returns `true` when specified `year`, `month` and `day` form a valid date: a day of the
+/// proleptic Gregorian calendar in the years of FEEL.
 pub fn is_valid_date(year: Year, month: Month, day: Day) -> bool {
-  NaiveDate::from_ymd_opt(year, month, day).is_some()
+  YEARS.contains(&year) && (1..=12).contains(&month) && (1..=days_in_month(year, month)).contains(&day)
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use chrono::{Days, Months, Weekday};
   use dsntk_common::Result;
 
   #[test]
@@ -310,7 +406,9 @@ mod tests {
     assert_eq!("2020-01-31", format!("{}", FeelDate(2020, 1, 31).add_months(0).unwrap()));
     assert_eq!("2020-02-29", format!("{}", FeelDate(2020, 1, 31).add_months(1).unwrap()));
     assert_eq!("2021-02-28", format!("{}", FeelDate(2020, 3, 31).add_months(11).unwrap()));
-    assert_eq!(None, FeelDate(262142, 12, 1).add_months(1));
+    assert_eq!("262143-01-01", format!("{}", FeelDate(262142, 12, 1).add_months(1).unwrap()));
+    assert_eq!("999999999-12-31", format!("{}", FeelDate(999_999_999, 11, 30).add_months(1).unwrap().add_days(1).unwrap()));
+    assert_eq!(None, FeelDate(999_999_999, 12, 1).add_months(1));
     assert_eq!(None, FeelDate(2020, 1, 1).add_months(i64::MAX));
   }
 
@@ -325,21 +423,117 @@ mod tests {
     assert_eq!("-262143-01-01", NaiveDate::MIN.to_string());
     assert_eq!("2020-02-29", format!("{}", FeelDate(2020, 3, 31).add_months(-1).unwrap()));
     assert_eq!("2019-02-28", format!("{}", FeelDate(2020, 1, 31).add_months(-11).unwrap()));
-    assert_eq!(None, FeelDate(-262143, 1, 1).add_months(-1));
+    assert_eq!("-262144-12-01", format!("{}", FeelDate(-262143, 1, 1).add_months(-1).unwrap()));
+    assert_eq!(None, FeelDate(-999_999_999, 1, 1).add_months(-1));
     assert_eq!(None, FeelDate(2020, 1, 1).add_months(-i64::MAX));
   }
 
   #[test]
   fn test_is_valid_date() {
-    assert!(!is_valid_date(999_999_999, 12, 13));
+    // the years of FEEL (DMN 1.6, 10.3.4.1, date(year, month, day)): -999,999,999 to 999,999,999
+    assert!(is_valid_date(999_999_999, 12, 31));
     assert!(!is_valid_date(1_000_000_000, 1, 1));
-    assert!(!is_valid_date(-999_999_999, 1, 1));
+    assert!(is_valid_date(-999_999_999, 1, 1));
     assert!(!is_valid_date(-1_000_000_000, 12, 31));
     assert!(!is_valid_date(2021, 2, 29));
-    assert!(is_valid_date(262142, 12, 31));
-    assert!(!is_valid_date(262143, 1, 1));
-    assert!(is_valid_date(-262143, 1, 1));
-    assert!(!is_valid_date(-262144, 12, 31));
+    assert!(is_valid_date(2020, 2, 29));
+    assert!(!is_valid_date(1900, 2, 29));
+    assert!(is_valid_date(2000, 2, 29));
+    assert!(is_valid_date(262143, 1, 1));
+    assert!(is_valid_date(-262144, 12, 31));
+    assert!(!is_valid_date(2020, 0, 1) && !is_valid_date(2020, 13, 1) && !is_valid_date(2020, 1, 0) && !is_valid_date(2020, 4, 31));
+  }
+
+  /// The calendar of this module is that of chrono wherever chrono has dates: the day of the
+  /// week, of the year and the week of the year, and the dates some days or months away.
+  #[test]
+  fn the_calendar_is_that_of_chrono_in_its_range() {
+    let mut state = 0x9E37_79B9_7F4A_7C15_u64;
+    let mut next = |below: u64| {
+      state ^= state << 13;
+      state ^= state >> 7;
+      state ^= state << 17;
+      state % below
+    };
+    let name = |weekday: Weekday| match weekday {
+      Weekday::Mon => ("Monday", 1_u8),
+      Weekday::Tue => ("Tuesday", 2),
+      Weekday::Wed => ("Wednesday", 3),
+      Weekday::Thu => ("Thursday", 4),
+      Weekday::Fri => ("Friday", 5),
+      Weekday::Sat => ("Saturday", 6),
+      Weekday::Sun => ("Sunday", 7),
+    };
+    let feel = |date: NaiveDate| FeelDate(date.year(), date.month(), date.day());
+    let mut compared = 0;
+    for round in 0..200_000 {
+      // near the present, near the year 0, and over the whole range of chrono
+      let year = match round % 3 {
+        0 => 1900 + next(300) as i32,
+        1 => next(900) as i32 - 450,
+        _ => next(524_000) as i32 - 262_000,
+      };
+      let (month, day) = (1 + next(12) as u32, 1 + next(31) as u32);
+      let naive = NaiveDate::from_ymd_opt(year, month, day);
+      assert_eq!(naive.is_some(), is_valid_date(year, month, day), "{year}-{month}-{day}");
+      let Some(naive) = naive else { continue };
+      let date = FeelDate(year, month, day);
+      let (weekday, number) = name(naive.weekday());
+      assert_eq!(Some((weekday.to_string(), number)), date.day_of_week(), "{date}");
+      assert_eq!(Some(naive.ordinal() as u16), date.day_of_year(), "{date}");
+      assert_eq!(Some(naive.iso_week().week() as u8), date.week_of_year(), "{date}");
+      let days = if round % 2 == 0 { next(800) } else { next(40_000_000) };
+      assert_eq!(
+        naive.checked_add_days(Days::new(days)).map(feel),
+        date.add_days(days).filter(|date| NaiveDate::try_from(date.clone()).is_ok()),
+        "{date} + {days}"
+      );
+      assert_eq!(
+        naive.checked_sub_days(Days::new(days)).map(feel),
+        date.sub_days(days).filter(|date| NaiveDate::try_from(date.clone()).is_ok()),
+        "{date} - {days}"
+      );
+      let months = if round % 2 == 0 { next(50) } else { next(3_000_000) } as u32;
+      assert_eq!(
+        naive.checked_add_months(Months::new(months)).map(feel),
+        date.add_months(months as i64).filter(|date| NaiveDate::try_from(date.clone()).is_ok()),
+        "{date} + {months} months"
+      );
+      assert_eq!(
+        naive.checked_sub_months(Months::new(months)).map(feel),
+        date.add_months(-(months as i64)).filter(|date| NaiveDate::try_from(date.clone()).is_ok()),
+        "{date} - {months} months"
+      );
+      compared += 1;
+    }
+    assert!(compared > 190_000, "{compared}");
+  }
+
+  /// The dates beyond the range of chrono: the ends of the years of FEEL.
+  #[test]
+  fn the_first_and_the_last_date_of_feel() {
+    let (first, last) = (FeelDate(-999_999_999, 1, 1), FeelDate(999_999_999, 12, 31));
+    assert_eq!(Some(last.clone()), "999999999-12-31".parse().ok());
+    assert_eq!(Some(first.clone()), "-999999999-01-01".parse().ok());
+    assert!("1000000000-01-01".parse::<FeelDate>().is_err());
+    assert_eq!(None, last.add_days(1));
+    assert_eq!(None, first.sub_days(1));
+    assert_eq!(Some(FeelDate(999_999_999, 12, 30)), last.sub_days(1));
+    assert_eq!(Some(FeelDate(-999_999_999, 1, 2)), first.add_days(1));
+    assert_eq!(None, last.add_days(u64::MAX));
+    assert_eq!(None, first.sub_days(u64::MAX));
+    // the calendar repeats every 400 years: 146,097 days, a whole number of weeks
+    for (year, month, day) in [(2024, 2, 29), (1999, 12, 31), (2000, 1, 1), (1, 1, 1)] {
+      let (near, far) = (FeelDate(year, month, day), FeelDate(year + 999_990_000, month, day));
+      assert_eq!(near.day_of_week(), far.day_of_week(), "{far}");
+      assert_eq!(near.day_of_year(), far.day_of_year(), "{far}");
+      assert_eq!(near.week_of_year(), far.week_of_year(), "{far}");
+      assert_eq!(Some(far.clone()), near.add_days(146_097 * (999_990_000 / 400)), "{far}");
+      assert_eq!(Some(near.clone()), far.sub_days(146_097 * (999_990_000 / 400)), "{near}");
+      assert_eq!(Some(far.clone()), near.add_months(12 * 999_990_000), "{far}");
+    }
+    assert_eq!(Some(("December".to_string(), 12)), last.month_of_year());
+    assert_eq!(Some(365), last.day_of_year());
   }
 
   #[allow(unused_parens)]

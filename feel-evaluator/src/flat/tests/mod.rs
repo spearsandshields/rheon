@@ -79,9 +79,32 @@ fn agree_case(dialect: Dialect, scope: &FeelScope, node: &AstNode, text: &str) {
   let (module, test, position) = next_case();
   let header = format!("{test} #{position} {text}");
   let resolved = resolve(node);
-  let program = lower(resolved, dialect).unwrap_or_else(|malformed| panic!("{node:?}: {}", malformed.message()));
+  let program = lower(resolved, dialect, None).unwrap_or_else(|malformed| panic!("{node:?}: {}", malformed.message()));
   let flat: Evaluator = Box::new(move |scope: &FeelScope| program.run(scope));
   let flat = outcome(flat, scope);
+  // a program that records the value of every node gives the same value and diagnostics: the
+  // recording instructions read, and change nothing
+  let every_node = |_: &AstNode| Some(0);
+  let every_loop = |_: &AstNode| Some(0);
+  let every_call = |_: &AstNode| Some(0);
+  let tracing = crate::Tracing {
+    node: &every_node,
+    repeat: &every_loop,
+    call: &every_call,
+  };
+  let traced = lower(resolve(node), dialect, Some(&tracing)).unwrap_or_else(|malformed| panic!("{node:?}: {}", malformed.message()));
+  let traced: Evaluator = Box::new(move |scope: &FeelScope| traced.run(scope));
+  let plan = crate::Plan {
+    wanted: vec![vec![crate::Wanted::default()]],
+    limit: 1_000,
+  };
+  let (traced, trace) = crate::recording(plan, || outcome(traced, scope));
+  assert_eq!(
+    (&flat.0, format!("{:?}", flat.1)),
+    (&traced.0, format!("{:?}", traced.1)),
+    "{header}: with the value of every node recorded"
+  );
+  assert!(trace.records.len() <= 1, "{header}: one number, one record");
   let lines: Vec<&str> = expected(&module).lines().filter(|line| !line.is_empty()).collect();
   let Some(&[_, value, diagnostics]) = lines.chunks(3).find(|record| record[0] == header) else {
     panic!("no record of `{header}` in expected/{module}.txt");

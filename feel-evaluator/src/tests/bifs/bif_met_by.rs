@@ -153,17 +153,32 @@ fn _0020() {
 
 #[test]
 fn _0021() {
-  te_null(false, &scope!(), r#"met by(range1: [1..5],r2: [3..8])"#, "parameter 'range2' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"met by(range1: [1..5],r2: [3..8])"#,
+    "expected the parameters of met by(range1, range2): boolean, found the parameter name 'r2'",
+  );
 }
 
 #[test]
 fn _0022() {
-  te_null(false, &scope!(), r#"met by(r1: [1..5],range2: [3..8])"#, "parameter 'range1' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"met by(r1: [1..5],range2: [3..8])"#,
+    "expected the parameters of met by(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
 fn _0023() {
-  te_null(false, &scope!(), r#"met by(r1: [1..5], r2: [3..8])"#, "parameter 'range1' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"met by(r1: [1..5], r2: [3..8])"#,
+    "expected the parameters of met by(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
@@ -172,7 +187,7 @@ fn _0024() {
     false,
     &scope!(),
     r#"met by(time("00:00:00"),[time("11:59:59")..time("23:59:59")])"#,
-    "[core::meets] invalid argument type, expected range of scalars, actual type is time",
+    "[core::met by] invalid argument type, expected range of scalars, actual type is time",
   );
 }
 
@@ -182,7 +197,7 @@ fn _0025() {
     false,
     &scope!(),
     r#"met by([time("11:59:59")..time("23:59:59")],time("00:00:00"))"#,
-    "[core::meets] invalid argument type, expected range of scalars, actual type is time",
+    "[core::met by] invalid argument type, expected range<time>, actual type is time",
   );
 }
 
@@ -192,7 +207,7 @@ fn _0026() {
     false,
     &scope!(),
     r#"met by(["a".."b"],[time("11:59:59")..time("23:59:59")])"#,
-    "[core::meets] invalid argument type, expected range of scalars, actual type is range<string>",
+    "[core::met by] invalid argument type, expected range<string>, actual type is range<time>",
   );
 }
 
@@ -202,7 +217,7 @@ fn _0027() {
     false,
     &scope!(),
     r#"met by([time("11:59:59")..time("23:59:59")],["a".."b"])"#,
-    "[core::meets] invalid argument type, expected range<time>, actual type is range<string>",
+    "[core::met by] invalid argument type, expected range<time>, actual type is range<string>",
   );
 }
 
@@ -212,7 +227,7 @@ fn _0028() {
     false,
     &scope!(),
     r#"met by([date("2022-12-31")..date("2023-01-15")],[1..12])"#,
-    "[core::meets] invalid argument type, expected range<date>, actual type is range<number>",
+    "[core::met by] invalid argument type, expected range<date>, actual type is range<number>",
   );
 }
 
@@ -222,7 +237,7 @@ fn _0029() {
     false,
     &scope!(),
     r#"met by([date and time("2022-12-31T23:59:59")..date and time("2022-12-10T00:00:00")],[1..2])"#,
-    "[core::meets] invalid argument type, expected range<date and time>, actual type is range<number>",
+    "[core::met by] invalid argument type, expected range<date and time>, actual type is range<number>",
   );
 }
 
@@ -232,7 +247,7 @@ fn _0030() {
     false,
     &scope!(),
     r#"met by([time("12:00:00")..time("22:00:00")],[1..2])"#,
-    "[core::meets] invalid argument type, expected range<time>, actual type is range<number>",
+    "[core::met by] invalid argument type, expected range<time>, actual type is range<number>",
   );
 }
 
@@ -242,7 +257,7 @@ fn _0031() {
     false,
     &scope!(),
     r#"met by([10..20],[duration("P1D")..duration("P2D")])"#,
-    "[core::meets] invalid argument type, expected range<number>, actual type is range<days and time duration>",
+    "[core::met by] invalid argument type, expected range<number>, actual type is range<days and time duration>",
   );
 }
 
@@ -252,7 +267,7 @@ fn _0032() {
     false,
     &scope!(),
     r#"met by([duration("P1D")..duration("P2D")],[1..2])"#,
-    "[core::meets] invalid argument type, expected range<days and time duration>, actual type is range<number>",
+    "[core::met by] invalid argument type, expected range<days and time duration>, actual type is range<number>",
   );
 }
 
@@ -262,6 +277,6 @@ fn _0033() {
     false,
     &scope!(),
     r#"met by([duration("P1Y")..duration("P2Y")],[1..2])"#,
-    "[core::meets] invalid argument type, expected range<years and months duration>, actual type is range<number>",
+    "[core::met by] invalid argument type, expected range<years and months duration>, actual type is range<number>",
   );
 }

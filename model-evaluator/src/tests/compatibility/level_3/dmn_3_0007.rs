@@ -19,7 +19,7 @@ fn _0002() {
     &MODEL_NAME,
     "Date",
     &ctx,
-    r#"{fromDateTime: 2016-12-24, fromString: 2015-12-24, fromYearMonthDay: 1999-11-22}"#,
+    r#"{fromString: 2015-12-24, fromDateTime: 2016-12-24, fromYearMonthDay: 1999-11-22}"#,
   );
 }
 

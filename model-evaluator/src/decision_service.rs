@@ -41,10 +41,18 @@ impl DecisionServiceEvaluator {
       let model_name = decision_service.model_name();
       let id = decision_service.id();
       let invocable_name = decision_service.name().to_string();
-      let evaluator = build_decision_service_evaluator(decision_service, model_builder)?;
       let def_key = DefKey::new(model_namespace, id);
-      evaluators.insert(def_key.clone(), evaluator);
-      model_builder.add_decision_service_invocable(model_namespace.to_string(), model_name.to_string(), invocable_name, def_key);
+      // one that is not built is known by its name: its evaluation says why it is not
+      model_builder.add_decision_service_invocable(model_namespace.to_string(), model_name.to_string(), invocable_name, def_key.clone());
+      if model_builder.is_unbuilt(&def_key) {
+        continue;
+      }
+      match build_decision_service_evaluator(decision_service, model_builder) {
+        Ok(evaluator) => {
+          evaluators.insert(def_key, evaluator);
+        }
+        Err(error) => model_builder.failed(&def_key, error),
+      }
     }
     Ok(Self {
       evaluators: RwLock::new(evaluators),

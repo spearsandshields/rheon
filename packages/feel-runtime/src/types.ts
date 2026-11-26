@@ -1,6 +1,11 @@
 /** Public types of the FEEL runtime (docs/CONTRACT.md §4). */
 
-export type Dialect = 'expression' | 'unaryTests';
+/**
+ * The start rule that a text is read as: an expression (default), unary tests, a simple
+ * expression of S-FEEL (DMN 9.2), or a list of simple or textual expressions (the list of
+ * their values). See docs/CONTRACT.md.
+ */
+export type Dialect = 'expression' | 'unaryTests' | 'simpleExpression' | 'simpleExpressions' | 'textualExpressions';
 
 /**
  * Raw JSON text, spliced verbatim into the request JSON (keeps exact number digits).
@@ -25,6 +30,8 @@ export interface EvaluateRequest {
   input?: unknown | RawJson;
   /** Host UTC offset in minutes. Defaults to `-new Date().getTimezoneOffset()`. */
   tzOffsetMinutes?: number;
+  /** The instant `now()` and `today()` read instead of the clock: an ISO 8601 instant with its offset or `Z`. */
+  now?: string;
   /** Expression language: `'feel'` (default) or `'b-feel'` (DMN 1.6 chapter 11). */
   language?: Language;
   /** `'strict'` turns any error during evaluation into an `evaluation` error (DMN 1.6 §7.3.8). */
@@ -56,6 +63,8 @@ export interface EvaluateAllRequest {
   contextFormat?: 'json' | 'feel';
   /** Host UTC offset in minutes. Defaults to `-new Date().getTimezoneOffset()`. */
   tzOffsetMinutes?: number;
+  /** The instant `now()` and `today()` read instead of the clock: an ISO 8601 instant with its offset or `Z`. */
+  now?: string;
   language?: Language;
   evaluations: Evaluation[];
 }
@@ -81,6 +90,8 @@ export interface EvaluateEachRequest {
   contextFormat?: 'json' | 'feel';
   /** Host UTC offset in minutes. Defaults to `-new Date().getTimezoneOffset()`. */
   tzOffsetMinutes?: number;
+  /** The instant `now()` and `today()` read instead of the clock: an ISO 8601 instant with its offset or `Z`. */
+  now?: string;
   language?: Language;
   errorMode?: ErrorMode;
   /** A budget of steps for each entry. */
@@ -124,15 +135,90 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
+/** A warning of a response: what it is about, for a program (a code of the list in docs/CONTRACT.md §2), and the message. */
+export interface Warning {
+  code: string;
+  message: string;
+}
+
 export interface FeelError {
   kind: ErrorKind;
+  /**
+   * What failed, for a program: a code of the list in docs/CONTRACT.md §3 (`missing-field`,
+   * `syntax-error`, `limit-steps`, …), or for an error that this runtime makes `invalid-context`,
+   * `invalid-field`, `conflicting-fields`, `timeout`, `crash` or `cancelled`. Stable; the message can change.
+   */
+  code: string;
   message: string;
   /** For a syntax error of the expression: where and what its errors are, as `syntax` answers them. */
   diagnostics?: SyntaxDiagnostic[];
 }
 
 export type EvaluateResponse =
-  | { ok: true; result: FeelResult; warnings: { message: string }[]; diagnostics?: Diagnostics; elapsedMicros: number }
+  | { ok: true; result: FeelResult; warnings: Warning[]; diagnostics?: Diagnostics; elapsedMicros: number }
+  | { ok: false; error: FeelError };
+
+/**
+ * A step of the way to where a node is evaluated (`explain`): into an iteration of the loop or
+ * the filter at a place, or into the body of the function that the invocation at a place runs.
+ * Places are `[from, to]` in UTF-16 units.
+ */
+export type TraceStep = { at: [number, number]; iteration: number } | { at: [number, number]; call: true };
+
+/**
+ * A node whose parts `explain` records: its place, or its place with where it is evaluated
+ * (`within`, as a record of the node has it) and, for a loop or a filter, the iterations wanted
+ * (`[from, to)`, by default the first 20).
+ */
+export type ExpandEntry = [number, number] | { at: [number, number]; within?: TraceStep[]; iterations?: [number, number] };
+
+/** The fields of `evaluate` for an expression, and which nodes to record. */
+export interface ExplainRequest extends Omit<EvaluateRequest, 'dialect' | 'input'> {
+  /** The nodes whose parts are recorded too; by default the root of the text and its parts. */
+  expand?: ExpandEntry[];
+  /** The most records of the answer, 1 to 10000 (default 200); beyond it `traceTruncated` is true. */
+  maxRecords?: number;
+  /** With true each record has `reads`, the names that the text of its node reads. */
+  reads?: boolean;
+}
+
+/** A value too long to write whole in a record: its type and, of a list or a context, how many items or entries it has. */
+export interface SummarizedValue {
+  summarized: true;
+  type: string;
+  isNull: boolean;
+  count?: number;
+}
+
+/** The value that an evaluation gave for a node of the text (`explain`). */
+export interface TraceRecord {
+  /** The place of the node, in UTF-16 units. */
+  from: number;
+  to: number;
+  /** What the node is: `Addition`, `Invocation`, `Entry`, `For`, … (the kinds of the nodes of `syntax`). */
+  kind: string;
+  /** Of an entry of a context literal: its name. */
+  name?: string;
+  value: FeelResult | SummarizedValue;
+  /** Of the body of a loop or the predicate of a filter: which iteration the record is of. */
+  iteration?: number;
+  /** Of a loop or a filter: how many iterations it had. */
+  iterations?: number;
+  /** Where it is evaluated, outermost first; absent for a node evaluated once at the root. Pass it back in `expand`. */
+  within?: TraceStep[];
+  /** Of a null: the part of the node that the null is from, as an entry of `expand`. */
+  nullFrom?: { at: [number, number]; within?: TraceStep[] };
+  /** Of a null: the null is the node's own (its parts are not null, or it has none). */
+  nullOrigin?: true;
+  /** With `nullOrigin`: why the null is the node's own. */
+  nullCode?: 'missing-entry' | 'null-input' | 'operator' | 'function' | 'other';
+  /** Asked for with `reads`: the names that the text of the node reads from around it, as paths (`loans[].amount`). */
+  reads?: string[];
+}
+
+/** The answer of `explain`: that of `evaluate`, and the records in the order of the text. */
+export type ExplainResponse =
+  | { ok: true; result: FeelResult; warnings: Warning[]; diagnostics?: Diagnostics; trace: TraceRecord[]; traceTruncated: boolean; elapsedMicros: number }
   | { ok: false; error: FeelError };
 
 /** The answer of one entry of `evaluateAll`: what `evaluate` answers for it, with its `id`. */
@@ -144,7 +230,7 @@ export type EvaluationAnswer = EvaluateResponse & { id?: string | number };
  * failure of the request itself (the context, a timeout, a crash) has no results.
  */
 export type EvaluateAllResponse =
-  | { ok: true; results: EvaluationAnswer[]; contextWarnings: { message: string }[]; elapsedMicros: number }
+  | { ok: true; results: EvaluationAnswer[]; contextWarnings: Warning[]; elapsedMicros: number }
   | { ok: false; error: FeelError };
 
 /**
@@ -174,7 +260,28 @@ export interface ParseOptions {
  * operations take an outline in place of the context, so an editor does not send the values
  * with every keystroke.
  */
-export type Outline = null | { type: string } | { names: Record<string, Outline> } | { items: Outline };
+export type Outline = null | (OutlineForm & OutlineSaid);
+
+/** What a name is: of a type, a context of names, a list of items, or (the outline of a request) only the types. */
+export type OutlineForm =
+  | { type: string; values?: OutlineValue[] }
+  | { names: Record<string, Outline> }
+  | { items: Outline }
+  | { function: { parameters?: { name: string; type?: string; description?: string }[]; result?: string } }
+  | { names?: Record<string, Outline>; types: Record<string, Outline> };
+
+/** A value that a name of a string, number or boolean type can have, alone or with what it stands for. */
+export type OutlineValue = string | number | boolean | { value: string | number | boolean; description?: string };
+
+/** What an outline says of a name beside its type. */
+export interface OutlineSaid {
+  /** What the name is for: the `documentation` of its completion item. */
+  description?: string;
+  /** That the name should no longer be used: `true`, or the reason. */
+  deprecated?: boolean | string;
+  /** The types that the type texts of the outline can name; only in the outline of a request. */
+  types?: Record<string, Outline>;
+}
 
 /** What the editor operations (`syntax`, `complete`) know about the names in scope: a context or its outline, not both. */
 export interface EditorOptions {
@@ -205,7 +312,10 @@ export type TokenClass =
 
 /** A syntax error of a text: `code` is for programs and stable, `message` is for people. Places are UTF-16 offsets. */
 export interface SyntaxDiagnostic {
+  /** What it is, for a program: of a syntax error a code of the parser, of a check `unknown-name`, `unknown-entry`, `deprecated`, `not-a-value` or `always-null`. */
   code: string;
+  /** Only in an answer asked with `check`: a syntax error is an `error`, what a check finds a `warning` or a `hint`. Without it, an error. */
+  severity?: 'error' | 'warning' | 'information' | 'hint';
   message: string;
   from: number;
   to: number;
@@ -217,22 +327,24 @@ export interface SyntaxDiagnostic {
  * `tree` the nodes as `[kind, from, to]`, each before the nodes inside it.
  */
 export type SyntaxResponse =
-  | { ok: true; tokens: [TokenClass, number, number][]; diagnostics: SyntaxDiagnostic[]; truncated: boolean; nodes?: [string, number, number][]; elapsedMicros: number }
+  | { ok: true; tokens: [TokenClass, number, number][]; diagnostics: SyntaxDiagnostic[]; truncated: boolean; nodes?: [string, number, number][]; /** Only with `check`: whether the text was checked (it parses, and the analysis ended). */ checked?: boolean; elapsedMicros: number }
   | { ok: false; error: FeelError };
 
 /** An item of `complete`: accepted, its `label` replaces the text from `from` to the answer's `to`. */
 export interface CompletionItem {
   label: string;
-  kind: 'parameter' | 'name' | 'entry' | 'keyword' | 'function' | 'type';
+  kind: 'value' | 'parameter' | 'name' | 'entry' | 'keyword' | 'function' | 'type';
   from: number;
   /** The FEEL type of the item when the engine knows it: of a parameter, and of the result of a built-in function. */
   type: string | null;
   /** More about the item: the first signature of a built-in function. */
   detail: string | null;
-  /** One line that says what a built-in function gives. */
-  info?: string;
+  /** One line that says what a built-in function gives, or the description an outline has for the name. */
+  documentation?: string;
   /** The text to insert when it is not the label: a parameter with its colon. */
-  insert?: string;
+  insertText?: string;
+  /** That an outline marks the name as deprecated: `true`, or the reason. */
+  deprecated?: true | string;
 }
 
 /** A parameter of a signature of a built-in function. */
@@ -243,28 +355,78 @@ export interface SignatureParameter {
   optional: boolean;
   /** Stands for any number of arguments, one or more. */
   rest: boolean;
+  /** What an outline says the parameter is for. */
+  documentation?: string;
 }
 
 /** One way to invoke a built-in function. */
 export interface FunctionSignature {
   /** `substring(string, start position, length?): string` */
-  text: string;
+  label: string;
   parameters: SignatureParameter[];
   result: string;
   /** Whether the parameters can be given by name. */
   named: boolean;
+  /** The index of the parameter that the argument of the cursor binds to; absent when it binds to none, or arguments are given by name. */
+  activeParameter?: number;
 }
 
 /** The invocation of a built-in function that the cursor stands in. */
 export interface CompletionCall {
   function: string;
-  summary: string;
+  /** One line that says what the function gives; null for a function of an outline without a description. */
+  documentation: string | null;
+  /** The index of the first signature that has a parameter for the argument of the cursor, else 0. */
+  activeSignature: number;
   /** The index of the argument that the cursor is in. */
   argument: number;
   /** The names of the named parameters given before that argument. */
   named: string[];
   signatures: FunctionSignature[];
 }
+
+/** What the name at a place of a text is (`hover`). */
+export interface Hover {
+  from: number;
+  to: number;
+  kind: 'name' | 'entry' | 'function' | 'variable' | 'parameter' | 'key';
+  /** The FEEL type of the name when the engine knows it. */
+  type: string | null;
+  /** What a built-in function gives, or the description an outline has for the name. */
+  documentation?: string;
+  /** That an outline marks the name as deprecated: `true`, or the reason. */
+  deprecated?: true | string;
+  /** Of a function: the ways to invoke it. */
+  signatures?: FunctionSignature[];
+}
+
+/** A part of a value in scope that an expression reads (`paths`). */
+export interface ReadPath {
+  /** From a name in scope down: the name of an entry, or `[]` for the items of a list. */
+  path: (string | [])[];
+  /** The path for people: `loans[].payment`. */
+  text: string;
+  /** Whether the value at the path is read as a value (all of it can be read), or only what the paths below it read. */
+  whole: boolean;
+  /** Where the text reads it: `[from, to]` in UTF-16 units. */
+  places: [number, number][];
+}
+
+/** The answer of `paths`: what the expression reads of the names in scope, exact or wider. */
+export type PathsResponse =
+  | {
+      ok: true;
+      paths: ReadPath[];
+      /** The names that nothing gives (only with a context or an outline). */
+      unknown: { name: string; places: [number, number][] }[];
+      /** False when the analysis reached its limit: the expression can read more than `paths` lists. */
+      complete: boolean;
+      elapsedMicros: number;
+    }
+  | { ok: false; error: FeelError };
+
+/** The answer of `hover`: null where no name stands at the place. */
+export type HoverResponse = { ok: true; hover: Hover | null; elapsedMicros: number } | { ok: false; error: FeelError };
 
 /** The answer of `complete`: what can stand at the cursor (`to`), and what the grammar takes there (`expects`). */
 export type CompleteResponse =

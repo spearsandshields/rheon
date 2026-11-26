@@ -73,12 +73,22 @@ fn _0013() {
 
 #[test]
 fn _0014() {
-  te_null(false, &scope!(), r#"insert before(l: [2,3,4,5], position: 1, newItem: 1)"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"insert before(l: [2,3,4,5], position: 1, newItem: 1)"#,
+    r#"expected the parameters of insert before(list, position, newItem): list, found the parameter name 'l'"#,
+  );
 }
 
 #[test]
 fn _0015() {
-  te_null(false, &scope!(), r#"insert before(list: [2,3,4,5], p: 1, newItem: 1)"#, r#"parameter 'position' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"insert before(list: [2,3,4,5], p: 1, newItem: 1)"#,
+    r#"expected the parameters of insert before(list, position, newItem): list, found the parameter name 'p'"#,
+  );
 }
 
 #[test]
@@ -87,7 +97,7 @@ fn _0016() {
     false,
     &scope!(),
     r#"insert before(list: [2,3,4,5], position: 1, ni: 1)"#,
-    r#"parameter 'newItem' not found"#,
+    r#"expected the parameters of insert before(list, position, newItem): list, found the parameter name 'ni'"#,
   );
 }
 

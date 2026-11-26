@@ -112,5 +112,12 @@ fn _0012() {
 #[test]
 fn _0013() {
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision013", &ctx, r#"null(parameter 'list' not found)"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "decision013",
+    &ctx,
+    r#"null(expected the parameters of mode(list): list<number>, found the parameter name 'l')"#,
+  );
 }

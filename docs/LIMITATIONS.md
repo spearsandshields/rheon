@@ -3,8 +3,16 @@
 What the engine does not do, where it differs from other engines, and the limits it enforces.
 Known bugs are in [BACKLOG.md](BACKLOG.md).
 
-- **Java external functions are not supported.** They need a JVM, and on wasm32 they evaluate to
-  null with a reason.
+- **Java external functions are not supported.** They need a JVM. On every target they evaluate to
+  null with a reason, and an evaluation makes no network call: native builds up to 0.9 posted the
+  call to a Java service on `127.0.0.1:22023`.
+- **PMML and ONNX external functions are not supported.** In FEEL, a function with a `pmml` or
+  `onnx` mapping (DMN 1.7 Beta 1, 10.3.2.13.3) is a function value, and invoking it gives null with
+  a reason; so does invoking a boxed PMML function definition of a DMN model. Up to 0.9 a PMML call
+  returned a made-up string naming the document and the model. The three kinds are optional for
+  conformance (2.1). The DMN model layer still differs in three places (BACKLOG.md, *Java and PMML
+  BKMs are not external*): a BKM of kind Java or PMML returns its mapping context, a boxed ONNX
+  function definition is null rather than a function, and a boxed PMML mapping needs its `model`.
 - **Rounding of `exp`, `ln`, `log` and `**`.** These are correctly rounded to 34
   digits (the exact result, rounded once, half-even). Upstream dsntk with the Intel library is
   1 ulp off for roughly 11–16 % of inputs and occasionally more, so the last digit of such results
@@ -61,10 +69,14 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   offset. There are no DST rules for other dates. Without it, local time is UTC on every target.
 - **Temporal comparisons.** Date-times and times with offsets or zones compare as instants
   (`@"…T10:00:00+01:00" < @"…T10:00:00Z"` is true, `@"10:00:00+02:00" = @"08:00:00Z"` is true;
-  `is()` stays zone-strict). A zone-less (local) value is only ordered against another local
-  value: `<`, `>`, `<=`, `>=` between a local and a zoned date-time are false, like dsntk's
-  subtraction of the two (null), although `=` applies the fixed offset. `max`/`min` accept only
-  numbers and strings in dsntk (`max(dt1, dt2)` is null); use `sort(…)[1]` or `if a < b then …`.
+  `is()` compares the value itself, zone included). A zone-less (local) value takes the offset of
+  the other operand (DMN 1.7 Beta 1, Table 55, which the owner applies to `=`, ranges, unary
+  comparisons, `between`, `min`, `max` and sort too): `time("10:00:00") = time("10:00:00Z")` is true
+  and `time("10:00:00") < time("11:00:00+01:00")` is true. So `=` is not transitive across kinds
+  (`10:00:00 = 10:00:00Z` and `10:00:00 = 10:00:00+01:00`, but not `10:00:00Z = 10:00:00+01:00`).
+  `=` compares whole seconds (TCK 0068 time_005); `<` keeps the fraction of the second. Two values
+  have no order only where a zone gives one of them no single offset (a clock change hour) and they
+  are not written in the same zone.
 - **Unary-test semantics.** The engine evaluates `? in (<tests>)`. A boolean
   expression test such as `? > 5` is satisfied when it is true. The usual forms `> 5`,
   `[1..10]` and `"a", "b"` work; a tested value of another kind than the tests gives null. The endpoint of a comparison
@@ -76,6 +88,103 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   tree with positions from the engine's own parser (`syntax` and `complete`, docs/CONTRACT.md
   §3), through `@rheon/feel-codemirror`. A syntax error of `evaluate` carries the same
   diagnostics with their places (`error.diagnostics`).
-- **Context entries are sorted.** dsntk keeps contexts in a `BTreeMap`, so results list keys in
-  name order.
+- **Context entries are shown in the order they were written.** A context keeps its entries by
+  name and the written order beside it; results, `string()` and the JSON list the entries in the
+  written order, and equality does not depend on it. The entries of a context literal are evaluated
+  in the order they depend on each other, not as written.
+- **Readings of rules the spec leaves unclear or contradicts.** Each follows the official TCK
+  where it decides, otherwise the reading given here:
+  - *Unknown string escapes* (DMN 1.7 Beta 1, grammar rules 33 and 64). An escape outside rule 64,
+    such as `"\q"` or `"\d"`, is kept as the backslash and the character, so `string length("\s")`
+    is 2, while `"\n"` is a newline. TCK 0067, 1109 and 1111 write regex patterns with one backslash
+    and need it.
+  - *`<=` and `>=` on values that have no order* (Table 51 against Table 55). They are null for
+    kinds without an order, as `<` and `>` are: `null <= null` and `[1] <= [1]` are null, although
+    "`<` or `=`" would give true.
+  - *Equality of the two duration kinds* (9.4 against Table 53). `@"P1D" = @"P1M"` and
+    `@"P0D" = @"P0Y"` are null: Table 53 requires one kind, and TCK 0068 (`P1Y = P365D` is null)
+    reads it so; 9.4 says the kinds compare.
+  - *Products and quotients too small for decimal128* (Table 60, 10.3.2.3.1). A result whose value
+    needs an exponent below decimal128's range (`1e-6000 * 1e-6000`) is rounded to a subnormal
+    number or to 0, as the decimal128 arithmetic of IEEE 754 does, with no error; a result too large
+    is null, as Table 60 says of results outside the range. Making underflow null too would turn
+    sums of tiny products into nulls; the rounding is the number core's (CONTRACT.md, numbers).
+  - *B-FEEL results that stay null* (11.1 against 11.2-11.11). 11.1 says a B-FEEL null only means
+    missing data, but the sections that follow give results only for boolean operators and
+    functions, functions by their result type, and the arithmetic operators. Where none applies,
+    B-FEEL keeps FEEL's null: unary negation (`-"a"`), paths and filters on null, a `for` over a
+    domain that is no iteration context (`for x in [1..3] return x`), and the functions whose
+    result has no default: `context`,
+    `context merge`, `context put`, `get value`, `max`, `min` (a context or any type). So does an
+    arithmetic conversion whose FEEL operation on the converted values still fails (11.9-11.10).
+    Their FEEL errors stay errors. DMN 1.7 Beta 1 adds to 11.7 that `for x in null return x` is `[]`
+    in B-FEEL; rheon answers `[null]`, as DMN 1.6 has it. The 1.7 answers that change 1.6 ones (this
+    one, the FEEL `for x in null`, the `?` parameter marker) are to apply to models of the DMN 1.7
+    namespace only, once rheon reads 1.7 models; plain FEEL keeps the 1.6 answers (owner,
+    2026-11-21).
+  - *`as` after a name not known when the text is read* (DMN 1.7 Beta 1, grammar rule 51; names are
+    resolved by the scope, 10.3.1.2). `as` is the operator after a complete operand. A name that
+    the scope does not know where it is read (`item` in a filter, an entry of a parameter) ends
+    before `as` only when a whole type follows (`list<number>` with its brackets) that ends the
+    name: at the end of the text, or before an operator, a bracket, a comma or a keyword that
+    ends names. Where a type is read (after `instance of`, in a parameter type), a type name holds
+    the word. So `item as number > 1` and
+    `p.age as list<number>` convert, while `p.Cost as percent`, `p.Count as number of items` and
+    `p.Report as of today` read the entries of those names, as in FEEL 1.6. A name being given
+    keeps the words: a parameter (`function(cost as string)`), a key (`{cost as string: 1}`), a
+    named argument (`f(cost as string: 1)`), an iteration variable. An entry known only at run
+    time whose name is a name, `as` and a type (`age as number`), or ends with `as`, is read as
+    a conversion; `get value(p, "age as number")` reads that entry. A name in scope is read as
+    it is.
+  - *Regular expressions* (10.3.4.3, F&O §7.6.1, XML Schema Part 2 Appendix F). Patterns are read
+    in the syntax of XML Schema 1.0 with the additions of F&O 2.0 (anchors, reluctant quantifiers,
+    back-references, `\$`), and anything else is an invalid pattern, also where the engine below
+    would take it (`\b`, `(?i)`, look-around, `\x41`, a lone `{`). Readings: a `-` that starts no
+    range is a character (`[0-9-.]`, as XML Schema 1.1 and TCK 1111 have it); `\i` and `\c` are
+    the name characters of XML 1.0 fifth edition; case-insensitive matching (`i`) uses Unicode simple
+    case folding, which applies to categories and blocks too (`\p{Lu}` with `i` matches `a`; F&O 3.1
+    says it should not, F&O 2.0 is not explicit); a back-reference to a group that matched nothing
+    matches the zero-length string; the surrogate blocks are empty sets; the flag `q` of F&O 3.1 is
+    kept as an extension; a pattern nested deeper than the engine reads (about 60 groups) is a
+    limit that stops the evaluation.
+  - *Range literals out of order or of two types* (10.3.2.7 against Tables 56 and 79). 10.3.2.7 says
+    the endpoints of `[a..b]` "must be of equivalent types" and ordered, but gives no answer for a
+    range that is not; the tests on ranges are defined by comparisons of the endpoints (Table 56),
+    and the range functions by formulas (Table 79), which answer for every range. So `[10..1]` is a
+    range value: `5 in [10..1]` is false, `2 in [1.."z"]` is null (2 <= "z" is null), and
+    `before([1..2], [4..3])` is true. Making such a literal null would make `2 in [1.."z"]` the test
+    `2 in null`, which is false.
+  - *The result type of a function literal* (10.3.2.9, 10.3.2.9.2). It is not inferred: the type of
+    `function(x: number) x` is `function<number>->Any`, so it is no instance of
+    `function<number>->number`. Bound to a parameter or a variable of a function type, a function
+    whose result type is Any (not declared) is not held against the target's result type, so
+    `f(function(x) x * 2)` works where f takes a `function<number>->number`; its parameters are
+    checked (contravariant). The editor ops infer it (best effort, for completion and hints): the
+    type of the body, the arguments of an invocation giving the types of parameters written
+    without one. The evaluation never reads that guess, so it cannot change an answer.
+  - *Equality of functions* (Table 54: "the same parameters, body, and scope"). The body is the
+    function literal where it is written: two literals are two functions even when their text is
+    alike (`{f: function(x) x}.f = {f: function(x) x}.f` is false), and one literal evaluated twice
+    in equal scopes gives equal functions. An external function is equal to one with the same
+    parameters and the same Java class and method signature, or PMML document and model; an ONNX
+    function, whose mapping rheon does not keep, only to itself. A function of a DMN model (a boxed
+    expression body) is the same when it is the same evaluator. A built-in function equals only
+    itself. The values a function closes over are compared by `=`: functions that close over
+    `@"2020-01-01T10:00:00Z"` and `@"2020-01-01T11:00:00+01:00"` are equal, although `string(x)` in
+    their bodies differs.
+  - *The endpoints of `(!= 10)`* (10.3.2.7). Its `start`, `end` and inclusion properties are those
+    of `(= 10)`; the spec's rule (the other endpoint undefined, not included) fits neither form.
+  - *`count(null)`* (10.3.4 against the conversion to a singleton list, 10.3.2.9.4). It is null,
+    as an argument outside a built-in's domain is; a value that is no list and not null counts as
+    a list of one item. Upstream dsntk read null as `[null]` and answered 1.
+  - *The components of a negative duration* (10.3.2.15, Table 63). `duration("-P2Y3M").years` is 2
+    and `duration("-P2D").days` is 2: the properties are magnitudes, and the sign is the duration's
+    (owner Q-T6); XPath's `years-from-duration` would give -2.
+  - *Adding months to a date at the end of a month* (Table 58). `date("2020-03-31") - duration("P1M")`
+    is 2020-02-29 and `date and time("2021-01-31T10:00:00") + duration("P1M")` is
+    2021-02-28T10:00:00: the day is clamped to the end of the shorter month, as 9.4 and the XPath
+    functions do (FORK item 61); the literal Table 58 formula gives date(2020, 2, 31), which is null.
+  - *`number(from, grouping separator, decimal separator)`* (10.3.4.1, footnote). The cleaned
+    string is checked against grammar rule 35 (a numeric literal); the footnote cites rule 37
+    (digits), which would reject the table's own example `number("1.1")`.
 - **Only Chromium was tested** in a real browser.

@@ -1887,7 +1887,12 @@ fn name_costs_loop() {
 
 /// Formats a text in a scope of the tests.
 fn formatted(frames: &[FeelContext], unary_tests: bool, input: &str, width: usize) -> crate::Formatted {
-  crate::format::format(&|| ParsingScope::new(frames), input, unary_tests, width)
+  crate::format::format(
+    &|| ParsingScope::new(frames),
+    input,
+    if unary_tests { crate::StartRule::UnaryTests } else { crate::StartRule::Expression },
+    width,
+  )
 }
 
 /// The formatter on random and chosen texts, at several widths: a text without syntax errors is
@@ -2009,4 +2014,84 @@ fn formatter_on_the_corpus() {
     &unchanged[..unchanged.len().min(8)]
   );
   assert!(unchanged.len() * 100 < texts, "{} of {texts} left unchanged", unchanged.len());
+}
+
+/// A positioned parse gives the tree and the error of a strict parse, and the places that the
+/// parser records line up with the nodes of the tree: over random texts, their random edits and
+/// chosen texts, with every start rule. A node's place holds the places of the nodes inside it.
+#[test]
+fn a_positioned_parse_has_the_tree_of_a_strict_parse_and_a_place_for_its_nodes() {
+  let count = if full_size() { 20_000 } else { 2_000 };
+  let mut rng = Rng(0x853C_49E6_748F_EA9B);
+  let keys = random_text_keys();
+  let (mut cases, mut trees, mut placed) = (0usize, 0usize, 0usize);
+  let mut wrong: BTreeMap<String, (usize, String)> = BTreeMap::new();
+  let mut run = |frames: &[FeelContext], input: &str| {
+    for (rule, start) in START_RULES {
+      cases += 1;
+      let scope = ParsingScope::new(frames);
+      let strict = super::parser(&scope, start.clone(), input).parse();
+      let scope = ParsingScope::new(frames);
+      let positioned = super::parser(&scope, start.clone(), input).parse_positioned();
+      match (strict, positioned) {
+        (Err(strict), Err(positioned)) => assert_eq!(strict.to_string(), positioned.to_string(), "{rule}, {input:?}"),
+        (Ok(strict), Ok((tree, records))) => {
+          assert_eq!(format!("{strict:?}"), format!("{tree:?}"), "{rule}, {input:?}");
+          trees += 1;
+          for record in &records {
+            assert!(
+              record.start <= record.end && record.end <= input.len() && input.is_char_boundary(record.start) && input.is_char_boundary(record.end),
+              "{rule}, {input:?}: {record:?}"
+            );
+          }
+          let positioned = crate::positioned::Positioned::new(tree, records.clone());
+          match crate::positioned::pair(positioned.tree(), &records) {
+            Ok(places) => {
+              placed += places.len();
+              // the place of a node holds the places of the nodes inside it
+              let mut stack = vec![positioned.tree()];
+              while let Some(node) = stack.pop() {
+                let outer = positioned.place(node);
+                node.for_each_child(|child| {
+                  if let (Some(outer), Some(inner)) = (outer, positioned.place(child)) {
+                    assert!(outer.0 <= inner.0 && inner.1 <= outer.1, "{rule}, {input:?}: {outer:?} does not hold {inner:?}");
+                  }
+                  stack.push(child);
+                });
+              }
+            }
+            Err(mismatch) => {
+              let entry = wrong
+                .entry(format!("node {} with record {:?}", mismatch.node, mismatch.record))
+                .or_insert((0, format!("{rule}: {input:?}")));
+              entry.0 += 1;
+              if input.len() < entry.1.len() {
+                entry.1 = format!("{rule}: {input:?}");
+              }
+            }
+          }
+        }
+        (strict, positioned) => panic!("{rule}, {input:?}: strict {:?}, positioned {:?}", strict.map(|_| ()), positioned.map(|_| ())),
+      }
+    }
+  };
+  for _ in 0..count {
+    let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
+    let text = Feel {
+      rng: &mut rng,
+      keys: &keys,
+      budget: 24,
+    }
+    .text();
+    run(&frames, &text);
+    for _ in 0..2 {
+      run(&frames, &mutate(&mut rng, &text));
+    }
+  }
+  println!("positioned parse: {cases} cases, {trees} trees, {placed} nodes with a place");
+  for (what, (times, example)) in &wrong {
+    println!("{times:6}  {what}\n        {example}");
+  }
+  assert!(wrong.is_empty(), "{} kinds of nodes and records do not line up", wrong.len());
+  assert!(trees > count, "{trees} of {cases}");
 }

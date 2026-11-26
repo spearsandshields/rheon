@@ -35,14 +35,22 @@ impl DecisionEvaluator {
   pub fn new(definitions: &DefDefinitions, model_builder: &ModelBuilder) -> Result<Self> {
     let mut evaluators = HashMap::new();
     for decision in definitions.decisions() {
-      let evaluator_entry = build_decision_evaluator(definitions, decision, model_builder)?;
       let model_namespace = decision.namespace();
       let model_name = decision.model_name();
       let id = decision.id();
       let invocable_name = decision.name().to_string();
       let def_key = DefKey::new(model_namespace, id);
-      evaluators.insert(def_key.clone(), evaluator_entry);
-      model_builder.add_decision_invocable(model_namespace.to_string(), model_name.to_string(), invocable_name, def_key);
+      // a decision that is not built is known by its name: its evaluation says why it is not
+      model_builder.add_decision_invocable(model_namespace.to_string(), model_name.to_string(), invocable_name, def_key.clone());
+      if model_builder.is_unbuilt(&def_key) {
+        continue;
+      }
+      match build_decision_evaluator(definitions, decision, model_builder) {
+        Ok(evaluator_entry) => {
+          evaluators.insert(def_key, evaluator_entry);
+        }
+        Err(error) => model_builder.failed(&def_key, error),
+      }
     }
     Ok(Self { evaluators: Arc::new(evaluators) })
   }

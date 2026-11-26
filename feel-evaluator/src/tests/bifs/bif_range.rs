@@ -166,7 +166,12 @@ fn _0029() {
 
 #[test]
 fn _0030() {
-  te_null(false, &scope!(), r#"range(to:"[1..2]")"#, "parameter 'from' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"range(to:"[1..2]")"#,
+    "expected the parameters of range(from): range, found the parameter name 'to'",
+  );
 }
 
 #[test]
@@ -175,7 +180,7 @@ fn _0031() {
     false,
     &scope!(),
     r#"range(from:"[1..2]",to:"[3..4]")"#,
-    "expected 1 parameters, actual number of parameters is 2",
+    "expected the parameters of range(from): range, found the parameter name 'to'",
   );
 }
 

@@ -1,0 +1,4549 @@
+[
+  {
+    "request": {
+      "op": "complete",
+      "expression": "a.b + c. = "
+    },
+    "why": "Review of the scoping fix and of outline v2: a function in the predicate of a filter that is written in a function reads the parameter around the filter (the walk stopped at the item); completion answers a path without its name before a comparison (the module trapped); the values of a type by name and of the type itself; a value is written as a string holds it; the values of the unary tests input only where a test starts; an outline function named as a built-in function; hover at the end of a name.",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": "abs(n): number or duration",
+          "from": 11,
+          "info": "The absolute value.",
+          "kind": "function",
+          "label": "abs",
+          "type": "number or duration"
+        },
+        {
+          "detail": "after(point1, point2): boolean",
+          "from": 11,
+          "info": "Whether the first comes after the second.",
+          "kind": "function",
+          "label": "after",
+          "type": "boolean"
+        },
+        {
+          "detail": "all(list): boolean",
+          "from": 11,
+          "info": "False when an item is false.",
+          "kind": "function",
+          "label": "all",
+          "type": "boolean"
+        },
+        {
+          "detail": "any(list): boolean",
+          "from": 11,
+          "info": "True when an item is true.",
+          "kind": "function",
+          "label": "any",
+          "type": "boolean"
+        },
+        {
+          "detail": "append(list, item...): list",
+          "from": 11,
+          "info": "The list with the items added at its end.",
+          "kind": "function",
+          "label": "append",
+          "type": "list"
+        },
+        {
+          "detail": "before(point1, point2): boolean",
+          "from": 11,
+          "info": "Whether the first comes before the second.",
+          "kind": "function",
+          "label": "before",
+          "type": "boolean"
+        },
+        {
+          "detail": "ceiling(n, scale?): number",
+          "from": 11,
+          "info": "The number rounded towards positive infinity.",
+          "kind": "function",
+          "label": "ceiling",
+          "type": "number"
+        },
+        {
+          "detail": "coincides(point1, point2): boolean",
+          "from": 11,
+          "info": "Whether the two are the same point or the same range.",
+          "kind": "function",
+          "label": "coincides",
+          "type": "boolean"
+        },
+        {
+          "detail": "concatenate(list...): list",
+          "from": 11,
+          "info": "One list of the items of the lists.",
+          "kind": "function",
+          "label": "concatenate",
+          "type": "list"
+        },
+        {
+          "detail": "contains(string, match): boolean",
+          "from": 11,
+          "info": "Whether the string contains the match.",
+          "kind": "function",
+          "label": "contains",
+          "type": "boolean"
+        },
+        {
+          "detail": "context(entries): context",
+          "from": 11,
+          "info": "A context from a list of entries with a key and a value each.",
+          "kind": "function",
+          "label": "context",
+          "type": "context"
+        },
+        {
+          "detail": "context merge(contexts): context",
+          "from": 11,
+          "info": "One context of the entries of the contexts; a later entry replaces an earlier one.",
+          "kind": "function",
+          "label": "context merge",
+          "type": "context"
+        },
+        {
+          "detail": "context put(context, key, value): context",
+          "from": 11,
+          "info": "The context with an entry added or replaced.",
+          "kind": "function",
+          "label": "context put",
+          "type": "context"
+        },
+        {
+          "detail": "count(list): number",
+          "from": 11,
+          "info": "The number of items.",
+          "kind": "function",
+          "label": "count",
+          "type": "number"
+        },
+        {
+          "detail": "date(from): date",
+          "from": 11,
+          "info": "A date from its text, from a date and time, or from a year, a month and a day.",
+          "kind": "function",
+          "label": "date",
+          "type": "date"
+        },
+        {
+          "detail": "date and time(from): date and time",
+          "from": 11,
+          "info": "A date and time from its text, or from a date and a time.",
+          "kind": "function",
+          "label": "date and time",
+          "type": "date and time"
+        },
+        {
+          "detail": "day of week(date): string",
+          "from": 11,
+          "info": "The name of the day of the week.",
+          "kind": "function",
+          "label": "day of week",
+          "type": "string"
+        },
+        {
+          "detail": "day of year(date): number",
+          "from": 11,
+          "info": "The number of the day in its year.",
+          "kind": "function",
+          "label": "day of year",
+          "type": "number"
+        },
+        {
+          "detail": "decimal(n, scale): number",
+          "from": 11,
+          "info": "The number rounded to a scale, half to even.",
+          "kind": "function",
+          "label": "decimal",
+          "type": "number"
+        },
+        {
+          "detail": "distinct values(list): list",
+          "from": 11,
+          "info": "The list without its repeated items.",
+          "kind": "function",
+          "label": "distinct values",
+          "type": "list"
+        },
+        {
+          "detail": "duration(from): days and time duration or years and months duration",
+          "from": 11,
+          "info": "A duration from its text.",
+          "kind": "function",
+          "label": "duration",
+          "type": "days and time duration or years and months duration"
+        },
+        {
+          "detail": "during(point, range): boolean",
+          "from": 11,
+          "info": "Whether the first lies within the range.",
+          "kind": "function",
+          "label": "during",
+          "type": "boolean"
+        },
+        {
+          "detail": "ends with(string, match): boolean",
+          "from": 11,
+          "info": "Whether the string ends with the match.",
+          "kind": "function",
+          "label": "ends with",
+          "type": "boolean"
+        },
+        {
+          "detail": "even(number): boolean",
+          "from": 11,
+          "info": "Whether the number is even.",
+          "kind": "function",
+          "label": "even",
+          "type": "boolean"
+        },
+        {
+          "detail": "exp(number): number",
+          "from": 11,
+          "info": "Euler's number raised to the number.",
+          "kind": "function",
+          "label": "exp",
+          "type": "number"
+        },
+        {
+          "detail": "finished by(range, point): boolean",
+          "from": 11,
+          "info": "Whether the range ends with the second.",
+          "kind": "function",
+          "label": "finished by",
+          "type": "boolean"
+        },
+        {
+          "detail": "finishes(point, range): boolean",
+          "from": 11,
+          "info": "Whether the first ends the range.",
+          "kind": "function",
+          "label": "finishes",
+          "type": "boolean"
+        },
+        {
+          "detail": "flatten(list): list",
+          "from": 11,
+          "info": "The list with the items of its nested lists in place of them.",
+          "kind": "function",
+          "label": "flatten",
+          "type": "list"
+        },
+        {
+          "detail": "floor(n, scale?): number",
+          "from": 11,
+          "info": "The number rounded towards negative infinity.",
+          "kind": "function",
+          "label": "floor",
+          "type": "number"
+        },
+        {
+          "detail": "get entries(m): list<context>",
+          "from": 11,
+          "info": "The entries of the context as a list of contexts with a key and a value.",
+          "kind": "function",
+          "label": "get entries",
+          "type": "list<context>"
+        },
+        {
+          "detail": "get value(m, key): Any",
+          "from": 11,
+          "info": "The value of an entry of the context.",
+          "kind": "function",
+          "label": "get value",
+          "type": "Any"
+        },
+        {
+          "detail": "includes(range, point): boolean",
+          "from": 11,
+          "info": "Whether the range includes the second.",
+          "kind": "function",
+          "label": "includes",
+          "type": "boolean"
+        },
+        {
+          "detail": "index of(list, match): list<number>",
+          "from": 11,
+          "info": "The positions of the items that equal the match.",
+          "kind": "function",
+          "label": "index of",
+          "type": "list<number>"
+        },
+        {
+          "detail": "insert after(list, position, newItem): list",
+          "from": 11,
+          "info": "The list with an item inserted after a position.",
+          "kind": "function",
+          "label": "insert after",
+          "type": "list"
+        },
+        {
+          "detail": "insert before(list, position, newItem): list",
+          "from": 11,
+          "info": "The list with an item inserted before a position.",
+          "kind": "function",
+          "label": "insert before",
+          "type": "list"
+        },
+        {
+          "detail": "intersection(list...): list",
+          "from": 11,
+          "info": "The items that every list has.",
+          "kind": "function",
+          "label": "intersection",
+          "type": "list"
+        },
+        {
+          "detail": "is(value1, value2): boolean",
+          "from": 11,
+          "info": "Whether the two values are the same value of the same type.",
+          "kind": "function",
+          "label": "is",
+          "type": "boolean"
+        },
+        {
+          "detail": "list contains(list, match): boolean",
+          "from": 11,
+          "info": "Whether the list has an item that equals the match.",
+          "kind": "function",
+          "label": "list contains",
+          "type": "boolean"
+        },
+        {
+          "detail": "list replace(list, position, newItem): list",
+          "from": 11,
+          "info": "The list with the item at a position, or every item a function matches, replaced.",
+          "kind": "function",
+          "label": "list replace",
+          "type": "list"
+        },
+        {
+          "detail": "log(number): number",
+          "from": 11,
+          "info": "The natural logarithm.",
+          "kind": "function",
+          "label": "log",
+          "type": "number"
+        },
+        {
+          "detail": "lower case(string): string",
+          "from": 11,
+          "info": "The string in lower case.",
+          "kind": "function",
+          "label": "lower case",
+          "type": "string"
+        },
+        {
+          "detail": "matches(input, pattern, flags?): boolean",
+          "from": 11,
+          "info": "Whether the input matches the regular expression.",
+          "kind": "function",
+          "label": "matches",
+          "type": "boolean"
+        },
+        {
+          "detail": "max(list): Any",
+          "from": 11,
+          "info": "The greatest item.",
+          "kind": "function",
+          "label": "max",
+          "type": "Any"
+        },
+        {
+          "detail": "mean(list): number",
+          "from": 11,
+          "info": "The arithmetic mean of the numbers.",
+          "kind": "function",
+          "label": "mean",
+          "type": "number"
+        },
+        {
+          "detail": "median(list): number",
+          "from": 11,
+          "info": "The median of the numbers.",
+          "kind": "function",
+          "label": "median",
+          "type": "number"
+        },
+        {
+          "detail": "meets(range1, range2): boolean",
+          "from": 11,
+          "info": "Whether the first range ends where the second starts.",
+          "kind": "function",
+          "label": "meets",
+          "type": "boolean"
+        },
+        {
+          "detail": "met by(range1, range2): boolean",
+          "from": 11,
+          "info": "Whether the first range starts where the second ends.",
+          "kind": "function",
+          "label": "met by",
+          "type": "boolean"
+        },
+        {
+          "detail": "min(list): Any",
+          "from": 11,
+          "info": "The least item.",
+          "kind": "function",
+          "label": "min",
+          "type": "Any"
+        },
+        {
+          "detail": "mode(list): list<number>",
+          "from": 11,
+          "info": "The most frequent numbers.",
+          "kind": "function",
+          "label": "mode",
+          "type": "list<number>"
+        },
+        {
+          "detail": "modulo(dividend, divisor): number",
+          "from": 11,
+          "info": "The remainder of the division, with the sign of the divisor.",
+          "kind": "function",
+          "label": "modulo",
+          "type": "number"
+        },
+        {
+          "detail": "month of year(date): string",
+          "from": 11,
+          "info": "The name of the month.",
+          "kind": "function",
+          "label": "month of year",
+          "type": "string"
+        },
+        {
+          "detail": "not(negand): boolean",
+          "from": 11,
+          "info": "The negation of a boolean.",
+          "kind": "function",
+          "label": "not",
+          "type": "boolean"
+        },
+        {
+          "detail": "now(): date and time",
+          "from": 11,
+          "info": "The current date and time.",
+          "kind": "function",
+          "label": "now",
+          "type": "date and time"
+        },
+        {
+          "detail": "number(from): number",
+          "from": 11,
+          "info": "A number from its text, with the separators it uses.",
+          "kind": "function",
+          "label": "number",
+          "type": "number"
+        },
+        {
+          "detail": "odd(number): boolean",
+          "from": 11,
+          "info": "Whether the number is odd.",
+          "kind": "function",
+          "label": "odd",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps(range1, range2): boolean",
+          "from": 11,
+          "info": "Whether the ranges have a point in common.",
+          "kind": "function",
+          "label": "overlaps",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps after(range1, range2): boolean",
+          "from": 11,
+          "info": "Whether the first range overlaps the second and ends after it.",
+          "kind": "function",
+          "label": "overlaps after",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps before(range1, range2): boolean",
+          "from": 11,
+          "info": "Whether the first range overlaps the second and starts before it.",
+          "kind": "function",
+          "label": "overlaps before",
+          "type": "boolean"
+        },
+        {
+          "detail": "product(list): number",
+          "from": 11,
+          "info": "The product of the numbers.",
+          "kind": "function",
+          "label": "product",
+          "type": "number"
+        },
+        {
+          "detail": "range(from): range",
+          "from": 11,
+          "info": "A range from its text.",
+          "kind": "function",
+          "label": "range",
+          "type": "range"
+        },
+        {
+          "detail": "remove(list, position): list",
+          "from": 11,
+          "info": "The list without the item at a position.",
+          "kind": "function",
+          "label": "remove",
+          "type": "list"
+        },
+        {
+          "detail": "replace(input, pattern, replacement, flags?): string",
+          "from": 11,
+          "info": "The input with the matches of the regular expression replaced.",
+          "kind": "function",
+          "label": "replace",
+          "type": "string"
+        },
+        {
+          "detail": "reverse(list): list",
+          "from": 11,
+          "info": "The list in reverse order.",
+          "kind": "function",
+          "label": "reverse",
+          "type": "list"
+        },
+        {
+          "detail": "round down(n, scale?): number",
+          "from": 11,
+          "info": "The number rounded towards zero.",
+          "kind": "function",
+          "label": "round down",
+          "type": "number"
+        },
+        {
+          "detail": "round half down(n, scale?): number",
+          "from": 11,
+          "info": "The number rounded to the nearest, a tie towards zero.",
+          "kind": "function",
+          "label": "round half down",
+          "type": "number"
+        },
+        {
+          "detail": "round half up(n, scale?): number",
+          "from": 11,
+          "info": "The number rounded to the nearest, a tie away from zero.",
+          "kind": "function",
+          "label": "round half up",
+          "type": "number"
+        },
+        {
+          "detail": "round up(n, scale?): number",
+          "from": 11,
+          "info": "The number rounded away from zero.",
+          "kind": "function",
+          "label": "round up",
+          "type": "number"
+        },
+        {
+          "detail": "sort(list, precedes): list",
+          "from": 11,
+          "info": "The list in the order of a function that says whether its first parameter precedes its second.",
+          "kind": "function",
+          "label": "sort",
+          "type": "list"
+        },
+        {
+          "detail": "split(string, delimiter): list<string>",
+          "from": 11,
+          "info": "The parts of the string between the matches of the delimiter, a regular expression.",
+          "kind": "function",
+          "label": "split",
+          "type": "list<string>"
+        },
+        {
+          "detail": "sqrt(number): number",
+          "from": 11,
+          "info": "The square root.",
+          "kind": "function",
+          "label": "sqrt",
+          "type": "number"
+        },
+        {
+          "detail": "started by(range, point): boolean",
+          "from": 11,
+          "info": "Whether the range starts with the second.",
+          "kind": "function",
+          "label": "started by",
+          "type": "boolean"
+        },
+        {
+          "detail": "starts(point, range): boolean",
+          "from": 11,
+          "info": "Whether the first starts the range.",
+          "kind": "function",
+          "label": "starts",
+          "type": "boolean"
+        },
+        {
+          "detail": "starts with(string, match): boolean",
+          "from": 11,
+          "info": "Whether the string starts with the match.",
+          "kind": "function",
+          "label": "starts with",
+          "type": "boolean"
+        },
+        {
+          "detail": "stddev(list): number",
+          "from": 11,
+          "info": "The sample standard deviation of the numbers.",
+          "kind": "function",
+          "label": "stddev",
+          "type": "number"
+        },
+        {
+          "detail": "string(from): string",
+          "from": 11,
+          "info": "The text of a value.",
+          "kind": "function",
+          "label": "string",
+          "type": "string"
+        },
+        {
+          "detail": "string join(list, delimiter?): string",
+          "from": 11,
+          "info": "The strings joined, with a delimiter between them if one is given.",
+          "kind": "function",
+          "label": "string join",
+          "type": "string"
+        },
+        {
+          "detail": "string length(string): number",
+          "from": 11,
+          "info": "The number of characters.",
+          "kind": "function",
+          "label": "string length",
+          "type": "number"
+        },
+        {
+          "detail": "sublist(list, start position, length?): list",
+          "from": 11,
+          "info": "The items from a position, as many as the length says or all that follow.",
+          "kind": "function",
+          "label": "sublist",
+          "type": "list"
+        },
+        {
+          "detail": "substring(string, start position, length?): string",
+          "from": 11,
+          "info": "The characters from a position, as many as the length says or all that follow.",
+          "kind": "function",
+          "label": "substring",
+          "type": "string"
+        },
+        {
+          "detail": "substring after(string, match): string",
+          "from": 11,
+          "info": "The part of the string after the first match.",
+          "kind": "function",
+          "label": "substring after",
+          "type": "string"
+        },
+        {
+          "detail": "substring before(string, match): string",
+          "from": 11,
+          "info": "The part of the string before the first match.",
+          "kind": "function",
+          "label": "substring before",
+          "type": "string"
+        },
+        {
+          "detail": "sum(list): number",
+          "from": 11,
+          "info": "The sum of the numbers.",
+          "kind": "function",
+          "label": "sum",
+          "type": "number"
+        },
+        {
+          "detail": "time(from): time",
+          "from": 11,
+          "info": "A time from its text, from a date and time, or from an hour, a minute and a second.",
+          "kind": "function",
+          "label": "time",
+          "type": "time"
+        },
+        {
+          "detail": "today(): date",
+          "from": 11,
+          "info": "The current date.",
+          "kind": "function",
+          "label": "today",
+          "type": "date"
+        },
+        {
+          "detail": "trim(string): string",
+          "from": 11,
+          "info": "The string without the white space at its ends.",
+          "kind": "function",
+          "label": "trim",
+          "type": "string"
+        },
+        {
+          "detail": "union(list...): list",
+          "from": 11,
+          "info": "The items of the lists, each once.",
+          "kind": "function",
+          "label": "union",
+          "type": "list"
+        },
+        {
+          "detail": "upper case(string): string",
+          "from": 11,
+          "info": "The string in upper case.",
+          "kind": "function",
+          "label": "upper case",
+          "type": "string"
+        },
+        {
+          "detail": "week of year(date): number",
+          "from": 11,
+          "info": "The number of the week in its year.",
+          "kind": "function",
+          "label": "week of year",
+          "type": "number"
+        },
+        {
+          "detail": "years and months duration(from, to): years and months duration",
+          "from": 11,
+          "info": "The years and months between two dates.",
+          "kind": "function",
+          "label": "years and months duration",
+          "type": "years and months duration"
+        }
+      ],
+      "ok": true,
+      "to": 11,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 11,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": "abs(n): number or duration",
+          "documentation": "The absolute value.",
+          "from": 11,
+          "kind": "function",
+          "label": "abs",
+          "type": "number or duration"
+        },
+        {
+          "detail": "after(point1, point2): boolean",
+          "documentation": "Whether the first comes after the second.",
+          "from": 11,
+          "kind": "function",
+          "label": "after",
+          "type": "boolean"
+        },
+        {
+          "detail": "all(list): boolean",
+          "documentation": "False when an item is false.",
+          "from": 11,
+          "kind": "function",
+          "label": "all",
+          "type": "boolean"
+        },
+        {
+          "detail": "any(list): boolean",
+          "documentation": "True when an item is true.",
+          "from": 11,
+          "kind": "function",
+          "label": "any",
+          "type": "boolean"
+        },
+        {
+          "detail": "append(list, item...): list",
+          "documentation": "The list with the items added at its end.",
+          "from": 11,
+          "kind": "function",
+          "label": "append",
+          "type": "list"
+        },
+        {
+          "detail": "before(point1, point2): boolean",
+          "documentation": "Whether the first comes before the second.",
+          "from": 11,
+          "kind": "function",
+          "label": "before",
+          "type": "boolean"
+        },
+        {
+          "detail": "ceiling(n, scale?): number",
+          "documentation": "The number rounded towards positive infinity.",
+          "from": 11,
+          "kind": "function",
+          "label": "ceiling",
+          "type": "number"
+        },
+        {
+          "detail": "coincides(point1, point2): boolean",
+          "documentation": "Whether the two are the same point or the same range.",
+          "from": 11,
+          "kind": "function",
+          "label": "coincides",
+          "type": "boolean"
+        },
+        {
+          "detail": "concatenate(list...): list",
+          "documentation": "One list of the items of the lists.",
+          "from": 11,
+          "kind": "function",
+          "label": "concatenate",
+          "type": "list"
+        },
+        {
+          "detail": "contains(string, match): boolean",
+          "documentation": "Whether the string contains the match.",
+          "from": 11,
+          "kind": "function",
+          "label": "contains",
+          "type": "boolean"
+        },
+        {
+          "detail": "context(entries): context",
+          "documentation": "A context from a list of entries with a key and a value each.",
+          "from": 11,
+          "kind": "function",
+          "label": "context",
+          "type": "context"
+        },
+        {
+          "detail": "context merge(contexts): context",
+          "documentation": "One context of the entries of the contexts; a later entry replaces an earlier one.",
+          "from": 11,
+          "kind": "function",
+          "label": "context merge",
+          "type": "context"
+        },
+        {
+          "detail": "context put(context, key, value): context",
+          "documentation": "The context with an entry added or replaced.",
+          "from": 11,
+          "kind": "function",
+          "label": "context put",
+          "type": "context"
+        },
+        {
+          "detail": "count(list): number",
+          "documentation": "The number of items.",
+          "from": 11,
+          "kind": "function",
+          "label": "count",
+          "type": "number"
+        },
+        {
+          "detail": "date(from): date",
+          "documentation": "A date from its text, from a date and time, or from a year, a month and a day.",
+          "from": 11,
+          "kind": "function",
+          "label": "date",
+          "type": "date"
+        },
+        {
+          "detail": "date and time(from): date and time",
+          "documentation": "A date and time from its text, or from a date and a time.",
+          "from": 11,
+          "kind": "function",
+          "label": "date and time",
+          "type": "date and time"
+        },
+        {
+          "detail": "day of week(date): string",
+          "documentation": "The name of the day of the week.",
+          "from": 11,
+          "kind": "function",
+          "label": "day of week",
+          "type": "string"
+        },
+        {
+          "detail": "day of year(date): number",
+          "documentation": "The number of the day in its year.",
+          "from": 11,
+          "kind": "function",
+          "label": "day of year",
+          "type": "number"
+        },
+        {
+          "detail": "days and time duration(from): days and time duration",
+          "documentation": "A days and time duration from its text.",
+          "from": 11,
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
+          "detail": "decimal(n, scale): number",
+          "documentation": "The number rounded to a scale, half to even.",
+          "from": 11,
+          "kind": "function",
+          "label": "decimal",
+          "type": "number"
+        },
+        {
+          "detail": "distinct values(list): list",
+          "documentation": "The list without its repeated items.",
+          "from": 11,
+          "kind": "function",
+          "label": "distinct values",
+          "type": "list"
+        },
+        {
+          "detail": "duration(from): days and time duration or years and months duration",
+          "documentation": "A duration from its text.",
+          "from": 11,
+          "kind": "function",
+          "label": "duration",
+          "type": "days and time duration or years and months duration"
+        },
+        {
+          "detail": "during(point, range): boolean",
+          "documentation": "Whether the first lies within the range.",
+          "from": 11,
+          "kind": "function",
+          "label": "during",
+          "type": "boolean"
+        },
+        {
+          "detail": "ends with(string, match): boolean",
+          "documentation": "Whether the string ends with the match.",
+          "from": 11,
+          "kind": "function",
+          "label": "ends with",
+          "type": "boolean"
+        },
+        {
+          "detail": "even(number): boolean",
+          "documentation": "Whether the number is even.",
+          "from": 11,
+          "kind": "function",
+          "label": "even",
+          "type": "boolean"
+        },
+        {
+          "detail": "exp(number): number",
+          "documentation": "Euler's number raised to the number.",
+          "from": 11,
+          "kind": "function",
+          "label": "exp",
+          "type": "number"
+        },
+        {
+          "detail": "finished by(range, point): boolean",
+          "documentation": "Whether the range ends with the second.",
+          "from": 11,
+          "kind": "function",
+          "label": "finished by",
+          "type": "boolean"
+        },
+        {
+          "detail": "finishes(point, range): boolean",
+          "documentation": "Whether the first ends the range.",
+          "from": 11,
+          "kind": "function",
+          "label": "finishes",
+          "type": "boolean"
+        },
+        {
+          "detail": "flatten(list): list",
+          "documentation": "The list with the items of its nested lists in place of them.",
+          "from": 11,
+          "kind": "function",
+          "label": "flatten",
+          "type": "list"
+        },
+        {
+          "detail": "floor(n, scale?): number",
+          "documentation": "The number rounded towards negative infinity.",
+          "from": 11,
+          "kind": "function",
+          "label": "floor",
+          "type": "number"
+        },
+        {
+          "detail": "get entries(m): list<context>",
+          "documentation": "The entries of the context as a list of contexts with a key and a value.",
+          "from": 11,
+          "kind": "function",
+          "label": "get entries",
+          "type": "list<context>"
+        },
+        {
+          "detail": "get value(m, key): Any",
+          "documentation": "The value of an entry of the context.",
+          "from": 11,
+          "kind": "function",
+          "label": "get value",
+          "type": "Any"
+        },
+        {
+          "detail": "includes(range, point): boolean",
+          "documentation": "Whether the range includes the second.",
+          "from": 11,
+          "kind": "function",
+          "label": "includes",
+          "type": "boolean"
+        },
+        {
+          "detail": "index of(list, match): list<number>",
+          "documentation": "The positions of the items that equal the match.",
+          "from": 11,
+          "kind": "function",
+          "label": "index of",
+          "type": "list<number>"
+        },
+        {
+          "detail": "insert after(list, position, newItem): list",
+          "documentation": "The list with an item inserted after a position.",
+          "from": 11,
+          "kind": "function",
+          "label": "insert after",
+          "type": "list"
+        },
+        {
+          "detail": "insert before(list, position, newItem): list",
+          "documentation": "The list with an item inserted before a position.",
+          "from": 11,
+          "kind": "function",
+          "label": "insert before",
+          "type": "list"
+        },
+        {
+          "detail": "intersection(list...): list",
+          "documentation": "The items that every list has.",
+          "from": 11,
+          "kind": "function",
+          "label": "intersection",
+          "type": "list"
+        },
+        {
+          "detail": "is(value1, value2): boolean",
+          "documentation": "Whether the two values are the same value of the same type.",
+          "from": 11,
+          "kind": "function",
+          "label": "is",
+          "type": "boolean"
+        },
+        {
+          "detail": "list contains(list, element): boolean",
+          "documentation": "Whether the list has an item that equals the element.",
+          "from": 11,
+          "kind": "function",
+          "label": "list contains",
+          "type": "boolean"
+        },
+        {
+          "detail": "list replace(list, position, newItem): list",
+          "documentation": "The list with the item at a position, or every item a function matches, replaced.",
+          "from": 11,
+          "kind": "function",
+          "label": "list replace",
+          "type": "list"
+        },
+        {
+          "detail": "log(number): number",
+          "documentation": "The natural logarithm.",
+          "from": 11,
+          "kind": "function",
+          "label": "log",
+          "type": "number"
+        },
+        {
+          "detail": "lower case(string): string",
+          "documentation": "The string in lower case.",
+          "from": 11,
+          "kind": "function",
+          "label": "lower case",
+          "type": "string"
+        },
+        {
+          "detail": "matches(input, pattern, flags?): boolean",
+          "documentation": "Whether the input matches the regular expression.",
+          "from": 11,
+          "kind": "function",
+          "label": "matches",
+          "type": "boolean"
+        },
+        {
+          "detail": "max(list): Any",
+          "documentation": "The greatest item.",
+          "from": 11,
+          "kind": "function",
+          "label": "max",
+          "type": "Any"
+        },
+        {
+          "detail": "mean(list): number",
+          "documentation": "The arithmetic mean of the numbers.",
+          "from": 11,
+          "kind": "function",
+          "label": "mean",
+          "type": "number"
+        },
+        {
+          "detail": "median(list): number",
+          "documentation": "The median of the numbers.",
+          "from": 11,
+          "kind": "function",
+          "label": "median",
+          "type": "number"
+        },
+        {
+          "detail": "meets(range1, range2): boolean",
+          "documentation": "Whether the first range ends where the second starts.",
+          "from": 11,
+          "kind": "function",
+          "label": "meets",
+          "type": "boolean"
+        },
+        {
+          "detail": "met by(range1, range2): boolean",
+          "documentation": "Whether the first range starts where the second ends.",
+          "from": 11,
+          "kind": "function",
+          "label": "met by",
+          "type": "boolean"
+        },
+        {
+          "detail": "min(list): Any",
+          "documentation": "The least item.",
+          "from": 11,
+          "kind": "function",
+          "label": "min",
+          "type": "Any"
+        },
+        {
+          "detail": "mode(list): list<number>",
+          "documentation": "The most frequent numbers.",
+          "from": 11,
+          "kind": "function",
+          "label": "mode",
+          "type": "list<number>"
+        },
+        {
+          "detail": "modulo(dividend, divisor): number",
+          "documentation": "The remainder of the division, with the sign of the divisor.",
+          "from": 11,
+          "kind": "function",
+          "label": "modulo",
+          "type": "number"
+        },
+        {
+          "detail": "month of year(date): string",
+          "documentation": "The name of the month.",
+          "from": 11,
+          "kind": "function",
+          "label": "month of year",
+          "type": "string"
+        },
+        {
+          "detail": "not(negand): boolean",
+          "documentation": "The negation of a boolean.",
+          "from": 11,
+          "kind": "function",
+          "label": "not",
+          "type": "boolean"
+        },
+        {
+          "detail": "now(): date and time",
+          "documentation": "The current date and time.",
+          "from": 11,
+          "kind": "function",
+          "label": "now",
+          "type": "date and time"
+        },
+        {
+          "detail": "number(from): number",
+          "documentation": "A number from its text, with the separators it uses.",
+          "from": 11,
+          "kind": "function",
+          "label": "number",
+          "type": "number"
+        },
+        {
+          "detail": "odd(number): boolean",
+          "documentation": "Whether the number is odd.",
+          "from": 11,
+          "kind": "function",
+          "label": "odd",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps(range1, range2): boolean",
+          "documentation": "Whether the ranges have a point in common.",
+          "from": 11,
+          "kind": "function",
+          "label": "overlaps",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps after(range1, range2): boolean",
+          "documentation": "Whether the first range overlaps the second and ends after it.",
+          "from": 11,
+          "kind": "function",
+          "label": "overlaps after",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps before(range1, range2): boolean",
+          "documentation": "Whether the first range overlaps the second and starts before it.",
+          "from": 11,
+          "kind": "function",
+          "label": "overlaps before",
+          "type": "boolean"
+        },
+        {
+          "detail": "product(list): number",
+          "documentation": "The product of the numbers.",
+          "from": 11,
+          "kind": "function",
+          "label": "product",
+          "type": "number"
+        },
+        {
+          "detail": "range(from): range",
+          "documentation": "A range from its text.",
+          "from": 11,
+          "kind": "function",
+          "label": "range",
+          "type": "range"
+        },
+        {
+          "detail": "remove(list, position): list",
+          "documentation": "The list without the item at a position.",
+          "from": 11,
+          "kind": "function",
+          "label": "remove",
+          "type": "list"
+        },
+        {
+          "detail": "replace(input, pattern, replacement, flags?): string",
+          "documentation": "The input with the matches of the regular expression replaced.",
+          "from": 11,
+          "kind": "function",
+          "label": "replace",
+          "type": "string"
+        },
+        {
+          "detail": "reverse(list): list",
+          "documentation": "The list in reverse order.",
+          "from": 11,
+          "kind": "function",
+          "label": "reverse",
+          "type": "list"
+        },
+        {
+          "detail": "round down(n, scale?): number",
+          "documentation": "The number rounded towards zero.",
+          "from": 11,
+          "kind": "function",
+          "label": "round down",
+          "type": "number"
+        },
+        {
+          "detail": "round half down(n, scale?): number",
+          "documentation": "The number rounded to the nearest, a tie towards zero.",
+          "from": 11,
+          "kind": "function",
+          "label": "round half down",
+          "type": "number"
+        },
+        {
+          "detail": "round half up(n, scale?): number",
+          "documentation": "The number rounded to the nearest, a tie away from zero.",
+          "from": 11,
+          "kind": "function",
+          "label": "round half up",
+          "type": "number"
+        },
+        {
+          "detail": "round up(n, scale?): number",
+          "documentation": "The number rounded away from zero.",
+          "from": 11,
+          "kind": "function",
+          "label": "round up",
+          "type": "number"
+        },
+        {
+          "detail": "sort(list, precedes): list",
+          "documentation": "The list in the order of a function that says whether its first parameter precedes its second.",
+          "from": 11,
+          "kind": "function",
+          "label": "sort",
+          "type": "list"
+        },
+        {
+          "detail": "split(string, delimiter): list<string>",
+          "documentation": "The parts of the string between the matches of the delimiter, a regular expression.",
+          "from": 11,
+          "kind": "function",
+          "label": "split",
+          "type": "list<string>"
+        },
+        {
+          "detail": "sqrt(number): number",
+          "documentation": "The square root.",
+          "from": 11,
+          "kind": "function",
+          "label": "sqrt",
+          "type": "number"
+        },
+        {
+          "detail": "started by(range, point): boolean",
+          "documentation": "Whether the range starts with the second.",
+          "from": 11,
+          "kind": "function",
+          "label": "started by",
+          "type": "boolean"
+        },
+        {
+          "detail": "starts(point, range): boolean",
+          "documentation": "Whether the first starts the range.",
+          "from": 11,
+          "kind": "function",
+          "label": "starts",
+          "type": "boolean"
+        },
+        {
+          "detail": "starts with(string, match): boolean",
+          "documentation": "Whether the string starts with the match.",
+          "from": 11,
+          "kind": "function",
+          "label": "starts with",
+          "type": "boolean"
+        },
+        {
+          "detail": "stddev(list): number",
+          "documentation": "The sample standard deviation of the numbers.",
+          "from": 11,
+          "kind": "function",
+          "label": "stddev",
+          "type": "number"
+        },
+        {
+          "detail": "string(from): string",
+          "documentation": "The text of a value.",
+          "from": 11,
+          "kind": "function",
+          "label": "string",
+          "type": "string"
+        },
+        {
+          "detail": "string join(list, delimiter?): string",
+          "documentation": "The strings joined, with a delimiter between them if one is given.",
+          "from": 11,
+          "kind": "function",
+          "label": "string join",
+          "type": "string"
+        },
+        {
+          "detail": "string length(string): number",
+          "documentation": "The number of characters.",
+          "from": 11,
+          "kind": "function",
+          "label": "string length",
+          "type": "number"
+        },
+        {
+          "detail": "sublist(list, start position, length?): list",
+          "documentation": "The items from a position, as many as the length says or all that follow.",
+          "from": 11,
+          "kind": "function",
+          "label": "sublist",
+          "type": "list"
+        },
+        {
+          "detail": "substring(string, start position, length?): string",
+          "documentation": "The characters from a position, as many as the length says or all that follow.",
+          "from": 11,
+          "kind": "function",
+          "label": "substring",
+          "type": "string"
+        },
+        {
+          "detail": "substring after(string, match): string",
+          "documentation": "The part of the string after the first match.",
+          "from": 11,
+          "kind": "function",
+          "label": "substring after",
+          "type": "string"
+        },
+        {
+          "detail": "substring before(string, match): string",
+          "documentation": "The part of the string before the first match.",
+          "from": 11,
+          "kind": "function",
+          "label": "substring before",
+          "type": "string"
+        },
+        {
+          "detail": "sum(list): number",
+          "documentation": "The sum of the numbers.",
+          "from": 11,
+          "kind": "function",
+          "label": "sum",
+          "type": "number"
+        },
+        {
+          "detail": "time(from): time",
+          "documentation": "A time from its text, from a date and time, or from an hour, a minute and a second.",
+          "from": 11,
+          "kind": "function",
+          "label": "time",
+          "type": "time"
+        },
+        {
+          "detail": "today(): date",
+          "documentation": "The current date.",
+          "from": 11,
+          "kind": "function",
+          "label": "today",
+          "type": "date"
+        },
+        {
+          "detail": "trim(string): string",
+          "documentation": "The string without the white space at its ends.",
+          "from": 11,
+          "kind": "function",
+          "label": "trim",
+          "type": "string"
+        },
+        {
+          "detail": "union(list...): list",
+          "documentation": "The items of the lists, each once.",
+          "from": 11,
+          "kind": "function",
+          "label": "union",
+          "type": "list"
+        },
+        {
+          "detail": "upper case(string): string",
+          "documentation": "The string in upper case.",
+          "from": 11,
+          "kind": "function",
+          "label": "upper case",
+          "type": "string"
+        },
+        {
+          "detail": "week of year(date): number",
+          "documentation": "The number of the week in its year.",
+          "from": 11,
+          "kind": "function",
+          "label": "week of year",
+          "type": "number"
+        },
+        {
+          "detail": "years and months duration(from): years and months duration",
+          "documentation": "A years and months duration from its text, or the years and months between two dates.",
+          "from": 11,
+          "kind": "function",
+          "label": "years and months duration",
+          "type": "years and months duration"
+        }
+      ],
+      "ok": true,
+      "to": 11,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "p = \"",
+      "outline": {
+        "types": {
+          "Purpose": {
+            "type": "string",
+            "values": [
+              "REFI",
+              "PURCHASE"
+            ]
+          },
+          "Loan": {
+            "names": {
+              "purpose": {
+                "type": "Purpose"
+              }
+            }
+          }
+        },
+        "names": {
+          "p": {
+            "type": "Purpose"
+          },
+          "loan": {
+            "type": "Loan"
+          }
+        }
+      }
+    },
+    "why": "Review of the scoping fix and of outline v2: a function in the predicate of a filter that is written in a function reads the parameter around the filter (the walk stopped at the item); completion answers a path without its name before a comparison (the module trapped); the values of a type by name and of the type itself; a value is written as a string holds it; the values of the unary tests input only where a test starts; an outline function named as a built-in function; hover at the end of a name.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "string",
+      "items": [
+        {
+          "detail": null,
+          "from": 5,
+          "kind": "value",
+          "label": "PURCHASE",
+          "type": "string"
+        },
+        {
+          "detail": null,
+          "from": 5,
+          "kind": "value",
+          "label": "REFI",
+          "type": "string"
+        }
+      ],
+      "ok": true,
+      "to": 5,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "loan.purpose = \"",
+      "outline": {
+        "types": {
+          "Purpose": {
+            "type": "string",
+            "values": [
+              "REFI",
+              "PURCHASE"
+            ]
+          },
+          "Loan": {
+            "names": {
+              "purpose": {
+                "type": "Purpose"
+              }
+            }
+          }
+        },
+        "names": {
+          "p": {
+            "type": "Purpose"
+          },
+          "loan": {
+            "type": "Loan"
+          }
+        }
+      }
+    },
+    "why": "Review of the scoping fix and of outline v2: a function in the predicate of a filter that is written in a function reads the parameter around the filter (the walk stopped at the item); completion answers a path without its name before a comparison (the module trapped); the values of a type by name and of the type itself; a value is written as a string holds it; the values of the unary tests input only where a test starts; an outline function named as a built-in function; hover at the end of a name.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "string",
+      "items": [
+        {
+          "detail": null,
+          "from": 16,
+          "kind": "value",
+          "label": "PURCHASE",
+          "type": "string"
+        },
+        {
+          "detail": null,
+          "from": 16,
+          "kind": "value",
+          "label": "REFI",
+          "type": "string"
+        }
+      ],
+      "ok": true,
+      "to": 16,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "for p in [1] return p = ",
+      "outline": {
+        "types": {
+          "Purpose": {
+            "type": "string",
+            "values": [
+              "REFI",
+              "PURCHASE"
+            ]
+          },
+          "Loan": {
+            "names": {
+              "purpose": {
+                "type": "Purpose"
+              }
+            }
+          }
+        },
+        "names": {
+          "p": {
+            "type": "Purpose"
+          },
+          "loan": {
+            "type": "Loan"
+          }
+        }
+      }
+    },
+    "why": "Review of the scoping fix and of outline v2: a function in the predicate of a filter that is written in a function reads the parameter around the filter (the walk stopped at the item); completion answers a path without its name before a comparison (the module trapped); the values of a type by name and of the type itself; a value is written as a string holds it; the values of the unary tests input only where a test starts; an outline function named as a built-in function; hover at the end of a name.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "name",
+          "label": "loan",
+          "type": "Loan"
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "name",
+          "label": "p",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "name",
+          "label": "partial",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": "abs(n): number or duration",
+          "documentation": "The absolute value.",
+          "from": 24,
+          "kind": "function",
+          "label": "abs",
+          "type": "number or duration"
+        },
+        {
+          "detail": "after(point1, point2): boolean",
+          "documentation": "Whether the first comes after the second.",
+          "from": 24,
+          "kind": "function",
+          "label": "after",
+          "type": "boolean"
+        },
+        {
+          "detail": "all(list): boolean",
+          "documentation": "False when an item is false.",
+          "from": 24,
+          "kind": "function",
+          "label": "all",
+          "type": "boolean"
+        },
+        {
+          "detail": "any(list): boolean",
+          "documentation": "True when an item is true.",
+          "from": 24,
+          "kind": "function",
+          "label": "any",
+          "type": "boolean"
+        },
+        {
+          "detail": "append(list, item...): list",
+          "documentation": "The list with the items added at its end.",
+          "from": 24,
+          "kind": "function",
+          "label": "append",
+          "type": "list"
+        },
+        {
+          "detail": "before(point1, point2): boolean",
+          "documentation": "Whether the first comes before the second.",
+          "from": 24,
+          "kind": "function",
+          "label": "before",
+          "type": "boolean"
+        },
+        {
+          "detail": "ceiling(n, scale?): number",
+          "documentation": "The number rounded towards positive infinity.",
+          "from": 24,
+          "kind": "function",
+          "label": "ceiling",
+          "type": "number"
+        },
+        {
+          "detail": "coincides(point1, point2): boolean",
+          "documentation": "Whether the two are the same point or the same range.",
+          "from": 24,
+          "kind": "function",
+          "label": "coincides",
+          "type": "boolean"
+        },
+        {
+          "detail": "concatenate(list...): list",
+          "documentation": "One list of the items of the lists.",
+          "from": 24,
+          "kind": "function",
+          "label": "concatenate",
+          "type": "list"
+        },
+        {
+          "detail": "contains(string, match): boolean",
+          "documentation": "Whether the string contains the match.",
+          "from": 24,
+          "kind": "function",
+          "label": "contains",
+          "type": "boolean"
+        },
+        {
+          "detail": "context(entries): context",
+          "documentation": "A context from a list of entries with a key and a value each.",
+          "from": 24,
+          "kind": "function",
+          "label": "context",
+          "type": "context"
+        },
+        {
+          "detail": "context merge(contexts): context",
+          "documentation": "One context of the entries of the contexts; a later entry replaces an earlier one.",
+          "from": 24,
+          "kind": "function",
+          "label": "context merge",
+          "type": "context"
+        },
+        {
+          "detail": "context put(context, key, value): context",
+          "documentation": "The context with an entry added or replaced.",
+          "from": 24,
+          "kind": "function",
+          "label": "context put",
+          "type": "context"
+        },
+        {
+          "detail": "count(list): number",
+          "documentation": "The number of items.",
+          "from": 24,
+          "kind": "function",
+          "label": "count",
+          "type": "number"
+        },
+        {
+          "detail": "date(from): date",
+          "documentation": "A date from its text, from a date and time, or from a year, a month and a day.",
+          "from": 24,
+          "kind": "function",
+          "label": "date",
+          "type": "date"
+        },
+        {
+          "detail": "date and time(from): date and time",
+          "documentation": "A date and time from its text, or from a date and a time.",
+          "from": 24,
+          "kind": "function",
+          "label": "date and time",
+          "type": "date and time"
+        },
+        {
+          "detail": "day of week(date): string",
+          "documentation": "The name of the day of the week.",
+          "from": 24,
+          "kind": "function",
+          "label": "day of week",
+          "type": "string"
+        },
+        {
+          "detail": "day of year(date): number",
+          "documentation": "The number of the day in its year.",
+          "from": 24,
+          "kind": "function",
+          "label": "day of year",
+          "type": "number"
+        },
+        {
+          "detail": "days and time duration(from): days and time duration",
+          "documentation": "A days and time duration from its text.",
+          "from": 24,
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
+          "detail": "decimal(n, scale): number",
+          "documentation": "The number rounded to a scale, half to even.",
+          "from": 24,
+          "kind": "function",
+          "label": "decimal",
+          "type": "number"
+        },
+        {
+          "detail": "distinct values(list): list",
+          "documentation": "The list without its repeated items.",
+          "from": 24,
+          "kind": "function",
+          "label": "distinct values",
+          "type": "list"
+        },
+        {
+          "detail": "duration(from): days and time duration or years and months duration",
+          "documentation": "A duration from its text.",
+          "from": 24,
+          "kind": "function",
+          "label": "duration",
+          "type": "days and time duration or years and months duration"
+        },
+        {
+          "detail": "during(point, range): boolean",
+          "documentation": "Whether the first lies within the range.",
+          "from": 24,
+          "kind": "function",
+          "label": "during",
+          "type": "boolean"
+        },
+        {
+          "detail": "ends with(string, match): boolean",
+          "documentation": "Whether the string ends with the match.",
+          "from": 24,
+          "kind": "function",
+          "label": "ends with",
+          "type": "boolean"
+        },
+        {
+          "detail": "even(number): boolean",
+          "documentation": "Whether the number is even.",
+          "from": 24,
+          "kind": "function",
+          "label": "even",
+          "type": "boolean"
+        },
+        {
+          "detail": "exp(number): number",
+          "documentation": "Euler's number raised to the number.",
+          "from": 24,
+          "kind": "function",
+          "label": "exp",
+          "type": "number"
+        },
+        {
+          "detail": "finished by(range, point): boolean",
+          "documentation": "Whether the range ends with the second.",
+          "from": 24,
+          "kind": "function",
+          "label": "finished by",
+          "type": "boolean"
+        },
+        {
+          "detail": "finishes(point, range): boolean",
+          "documentation": "Whether the first ends the range.",
+          "from": 24,
+          "kind": "function",
+          "label": "finishes",
+          "type": "boolean"
+        },
+        {
+          "detail": "flatten(list): list",
+          "documentation": "The list with the items of its nested lists in place of them.",
+          "from": 24,
+          "kind": "function",
+          "label": "flatten",
+          "type": "list"
+        },
+        {
+          "detail": "floor(n, scale?): number",
+          "documentation": "The number rounded towards negative infinity.",
+          "from": 24,
+          "kind": "function",
+          "label": "floor",
+          "type": "number"
+        },
+        {
+          "detail": "get entries(m): list<context>",
+          "documentation": "The entries of the context as a list of contexts with a key and a value.",
+          "from": 24,
+          "kind": "function",
+          "label": "get entries",
+          "type": "list<context>"
+        },
+        {
+          "detail": "get value(m, key): Any",
+          "documentation": "The value of an entry of the context.",
+          "from": 24,
+          "kind": "function",
+          "label": "get value",
+          "type": "Any"
+        },
+        {
+          "detail": "includes(range, point): boolean",
+          "documentation": "Whether the range includes the second.",
+          "from": 24,
+          "kind": "function",
+          "label": "includes",
+          "type": "boolean"
+        },
+        {
+          "detail": "index of(list, match): list<number>",
+          "documentation": "The positions of the items that equal the match.",
+          "from": 24,
+          "kind": "function",
+          "label": "index of",
+          "type": "list<number>"
+        },
+        {
+          "detail": "insert after(list, position, newItem): list",
+          "documentation": "The list with an item inserted after a position.",
+          "from": 24,
+          "kind": "function",
+          "label": "insert after",
+          "type": "list"
+        },
+        {
+          "detail": "insert before(list, position, newItem): list",
+          "documentation": "The list with an item inserted before a position.",
+          "from": 24,
+          "kind": "function",
+          "label": "insert before",
+          "type": "list"
+        },
+        {
+          "detail": "intersection(list...): list",
+          "documentation": "The items that every list has.",
+          "from": 24,
+          "kind": "function",
+          "label": "intersection",
+          "type": "list"
+        },
+        {
+          "detail": "is(value1, value2): boolean",
+          "documentation": "Whether the two values are the same value of the same type.",
+          "from": 24,
+          "kind": "function",
+          "label": "is",
+          "type": "boolean"
+        },
+        {
+          "detail": "list contains(list, element): boolean",
+          "documentation": "Whether the list has an item that equals the element.",
+          "from": 24,
+          "kind": "function",
+          "label": "list contains",
+          "type": "boolean"
+        },
+        {
+          "detail": "list replace(list, position, newItem): list",
+          "documentation": "The list with the item at a position, or every item a function matches, replaced.",
+          "from": 24,
+          "kind": "function",
+          "label": "list replace",
+          "type": "list"
+        },
+        {
+          "detail": "log(number): number",
+          "documentation": "The natural logarithm.",
+          "from": 24,
+          "kind": "function",
+          "label": "log",
+          "type": "number"
+        },
+        {
+          "detail": "lower case(string): string",
+          "documentation": "The string in lower case.",
+          "from": 24,
+          "kind": "function",
+          "label": "lower case",
+          "type": "string"
+        },
+        {
+          "detail": "matches(input, pattern, flags?): boolean",
+          "documentation": "Whether the input matches the regular expression.",
+          "from": 24,
+          "kind": "function",
+          "label": "matches",
+          "type": "boolean"
+        },
+        {
+          "detail": "max(list): Any",
+          "documentation": "The greatest item.",
+          "from": 24,
+          "kind": "function",
+          "label": "max",
+          "type": "Any"
+        },
+        {
+          "detail": "mean(list): number",
+          "documentation": "The arithmetic mean of the numbers.",
+          "from": 24,
+          "kind": "function",
+          "label": "mean",
+          "type": "number"
+        },
+        {
+          "detail": "median(list): number",
+          "documentation": "The median of the numbers.",
+          "from": 24,
+          "kind": "function",
+          "label": "median",
+          "type": "number"
+        },
+        {
+          "detail": "meets(range1, range2): boolean",
+          "documentation": "Whether the first range ends where the second starts.",
+          "from": 24,
+          "kind": "function",
+          "label": "meets",
+          "type": "boolean"
+        },
+        {
+          "detail": "met by(range1, range2): boolean",
+          "documentation": "Whether the first range starts where the second ends.",
+          "from": 24,
+          "kind": "function",
+          "label": "met by",
+          "type": "boolean"
+        },
+        {
+          "detail": "min(list): Any",
+          "documentation": "The least item.",
+          "from": 24,
+          "kind": "function",
+          "label": "min",
+          "type": "Any"
+        },
+        {
+          "detail": "mode(list): list<number>",
+          "documentation": "The most frequent numbers.",
+          "from": 24,
+          "kind": "function",
+          "label": "mode",
+          "type": "list<number>"
+        },
+        {
+          "detail": "modulo(dividend, divisor): number",
+          "documentation": "The remainder of the division, with the sign of the divisor.",
+          "from": 24,
+          "kind": "function",
+          "label": "modulo",
+          "type": "number"
+        },
+        {
+          "detail": "month of year(date): string",
+          "documentation": "The name of the month.",
+          "from": 24,
+          "kind": "function",
+          "label": "month of year",
+          "type": "string"
+        },
+        {
+          "detail": "not(negand): boolean",
+          "documentation": "The negation of a boolean.",
+          "from": 24,
+          "kind": "function",
+          "label": "not",
+          "type": "boolean"
+        },
+        {
+          "detail": "now(): date and time",
+          "documentation": "The current date and time.",
+          "from": 24,
+          "kind": "function",
+          "label": "now",
+          "type": "date and time"
+        },
+        {
+          "detail": "number(from): number",
+          "documentation": "A number from its text, with the separators it uses.",
+          "from": 24,
+          "kind": "function",
+          "label": "number",
+          "type": "number"
+        },
+        {
+          "detail": "odd(number): boolean",
+          "documentation": "Whether the number is odd.",
+          "from": 24,
+          "kind": "function",
+          "label": "odd",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps(range1, range2): boolean",
+          "documentation": "Whether the ranges have a point in common.",
+          "from": 24,
+          "kind": "function",
+          "label": "overlaps",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps after(range1, range2): boolean",
+          "documentation": "Whether the first range overlaps the second and ends after it.",
+          "from": 24,
+          "kind": "function",
+          "label": "overlaps after",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps before(range1, range2): boolean",
+          "documentation": "Whether the first range overlaps the second and starts before it.",
+          "from": 24,
+          "kind": "function",
+          "label": "overlaps before",
+          "type": "boolean"
+        },
+        {
+          "detail": "product(list): number",
+          "documentation": "The product of the numbers.",
+          "from": 24,
+          "kind": "function",
+          "label": "product",
+          "type": "number"
+        },
+        {
+          "detail": "range(from): range",
+          "documentation": "A range from its text.",
+          "from": 24,
+          "kind": "function",
+          "label": "range",
+          "type": "range"
+        },
+        {
+          "detail": "remove(list, position): list",
+          "documentation": "The list without the item at a position.",
+          "from": 24,
+          "kind": "function",
+          "label": "remove",
+          "type": "list"
+        },
+        {
+          "detail": "replace(input, pattern, replacement, flags?): string",
+          "documentation": "The input with the matches of the regular expression replaced.",
+          "from": 24,
+          "kind": "function",
+          "label": "replace",
+          "type": "string"
+        },
+        {
+          "detail": "reverse(list): list",
+          "documentation": "The list in reverse order.",
+          "from": 24,
+          "kind": "function",
+          "label": "reverse",
+          "type": "list"
+        },
+        {
+          "detail": "round down(n, scale?): number",
+          "documentation": "The number rounded towards zero.",
+          "from": 24,
+          "kind": "function",
+          "label": "round down",
+          "type": "number"
+        },
+        {
+          "detail": "round half down(n, scale?): number",
+          "documentation": "The number rounded to the nearest, a tie towards zero.",
+          "from": 24,
+          "kind": "function",
+          "label": "round half down",
+          "type": "number"
+        },
+        {
+          "detail": "round half up(n, scale?): number",
+          "documentation": "The number rounded to the nearest, a tie away from zero.",
+          "from": 24,
+          "kind": "function",
+          "label": "round half up",
+          "type": "number"
+        },
+        {
+          "detail": "round up(n, scale?): number",
+          "documentation": "The number rounded away from zero.",
+          "from": 24,
+          "kind": "function",
+          "label": "round up",
+          "type": "number"
+        },
+        {
+          "detail": "sort(list, precedes): list",
+          "documentation": "The list in the order of a function that says whether its first parameter precedes its second.",
+          "from": 24,
+          "kind": "function",
+          "label": "sort",
+          "type": "list"
+        },
+        {
+          "detail": "split(string, delimiter): list<string>",
+          "documentation": "The parts of the string between the matches of the delimiter, a regular expression.",
+          "from": 24,
+          "kind": "function",
+          "label": "split",
+          "type": "list<string>"
+        },
+        {
+          "detail": "sqrt(number): number",
+          "documentation": "The square root.",
+          "from": 24,
+          "kind": "function",
+          "label": "sqrt",
+          "type": "number"
+        },
+        {
+          "detail": "started by(range, point): boolean",
+          "documentation": "Whether the range starts with the second.",
+          "from": 24,
+          "kind": "function",
+          "label": "started by",
+          "type": "boolean"
+        },
+        {
+          "detail": "starts(point, range): boolean",
+          "documentation": "Whether the first starts the range.",
+          "from": 24,
+          "kind": "function",
+          "label": "starts",
+          "type": "boolean"
+        },
+        {
+          "detail": "starts with(string, match): boolean",
+          "documentation": "Whether the string starts with the match.",
+          "from": 24,
+          "kind": "function",
+          "label": "starts with",
+          "type": "boolean"
+        },
+        {
+          "detail": "stddev(list): number",
+          "documentation": "The sample standard deviation of the numbers.",
+          "from": 24,
+          "kind": "function",
+          "label": "stddev",
+          "type": "number"
+        },
+        {
+          "detail": "string(from): string",
+          "documentation": "The text of a value.",
+          "from": 24,
+          "kind": "function",
+          "label": "string",
+          "type": "string"
+        },
+        {
+          "detail": "string join(list, delimiter?): string",
+          "documentation": "The strings joined, with a delimiter between them if one is given.",
+          "from": 24,
+          "kind": "function",
+          "label": "string join",
+          "type": "string"
+        },
+        {
+          "detail": "string length(string): number",
+          "documentation": "The number of characters.",
+          "from": 24,
+          "kind": "function",
+          "label": "string length",
+          "type": "number"
+        },
+        {
+          "detail": "sublist(list, start position, length?): list",
+          "documentation": "The items from a position, as many as the length says or all that follow.",
+          "from": 24,
+          "kind": "function",
+          "label": "sublist",
+          "type": "list"
+        },
+        {
+          "detail": "substring(string, start position, length?): string",
+          "documentation": "The characters from a position, as many as the length says or all that follow.",
+          "from": 24,
+          "kind": "function",
+          "label": "substring",
+          "type": "string"
+        },
+        {
+          "detail": "substring after(string, match): string",
+          "documentation": "The part of the string after the first match.",
+          "from": 24,
+          "kind": "function",
+          "label": "substring after",
+          "type": "string"
+        },
+        {
+          "detail": "substring before(string, match): string",
+          "documentation": "The part of the string before the first match.",
+          "from": 24,
+          "kind": "function",
+          "label": "substring before",
+          "type": "string"
+        },
+        {
+          "detail": "sum(list): number",
+          "documentation": "The sum of the numbers.",
+          "from": 24,
+          "kind": "function",
+          "label": "sum",
+          "type": "number"
+        },
+        {
+          "detail": "time(from): time",
+          "documentation": "A time from its text, from a date and time, or from an hour, a minute and a second.",
+          "from": 24,
+          "kind": "function",
+          "label": "time",
+          "type": "time"
+        },
+        {
+          "detail": "today(): date",
+          "documentation": "The current date.",
+          "from": 24,
+          "kind": "function",
+          "label": "today",
+          "type": "date"
+        },
+        {
+          "detail": "trim(string): string",
+          "documentation": "The string without the white space at its ends.",
+          "from": 24,
+          "kind": "function",
+          "label": "trim",
+          "type": "string"
+        },
+        {
+          "detail": "union(list...): list",
+          "documentation": "The items of the lists, each once.",
+          "from": 24,
+          "kind": "function",
+          "label": "union",
+          "type": "list"
+        },
+        {
+          "detail": "upper case(string): string",
+          "documentation": "The string in upper case.",
+          "from": 24,
+          "kind": "function",
+          "label": "upper case",
+          "type": "string"
+        },
+        {
+          "detail": "week of year(date): number",
+          "documentation": "The number of the week in its year.",
+          "from": 24,
+          "kind": "function",
+          "label": "week of year",
+          "type": "number"
+        },
+        {
+          "detail": "years and months duration(from): years and months duration",
+          "documentation": "A years and months duration from its text, or the years and months between two dates.",
+          "from": 24,
+          "kind": "function",
+          "label": "years and months duration",
+          "type": "years and months duration"
+        }
+      ],
+      "ok": true,
+      "to": 24,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "s = \"",
+      "outline": {
+        "names": {
+          "s": {
+            "type": "string",
+            "values": [
+              "say \"hi\"",
+              "a\nb"
+            ]
+          }
+        }
+      }
+    },
+    "why": "Review of the scoping fix and of outline v2: a function in the predicate of a filter that is written in a function reads the parameter around the filter (the walk stopped at the item); completion answers a path without its name before a comparison (the module trapped); the values of a type by name and of the type itself; a value is written as a string holds it; the values of the unary tests input only where a test starts; an outline function named as a built-in function; hover at the end of a name.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "string",
+      "items": [
+        {
+          "detail": null,
+          "from": 5,
+          "kind": "value",
+          "label": "a\\nb",
+          "type": "string"
+        },
+        {
+          "detail": null,
+          "from": 5,
+          "kind": "value",
+          "label": "say \\\"hi\\\"",
+          "type": "string"
+        }
+      ],
+      "ok": true,
+      "to": 5,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "dialect": "unaryTests",
+      "expression": "> max(1, ",
+      "outline": {
+        "names": {
+          "?": {
+            "type": "string",
+            "values": [
+              "A",
+              "B"
+            ]
+          }
+        }
+      }
+    },
+    "why": "Review of the scoping fix and of outline v2: a function in the predicate of a filter that is written in a function reads the parameter around the filter (the walk stopped at the item); completion answers a path without its name before a comparison (the module trapped); the values of a type by name and of the type itself; a value is written as a string holds it; the values of the unary tests input only where a test starts; an outline function named as a built-in function; hover at the end of a name.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "call": {
+        "activeSignature": 1,
+        "argument": 1,
+        "documentation": "The greatest item.",
+        "function": "max",
+        "named": [],
+        "signatures": [
+          {
+            "label": "max(list): Any",
+            "named": true,
+            "parameters": [
+              {
+                "name": "list",
+                "optional": false,
+                "rest": false,
+                "type": "list"
+              }
+            ],
+            "result": "Any"
+          },
+          {
+            "activeParameter": 0,
+            "label": "max(c...): Any",
+            "named": false,
+            "parameters": [
+              {
+                "name": "c",
+                "optional": false,
+                "rest": true,
+                "type": "Any"
+              }
+            ],
+            "result": "Any"
+          }
+        ]
+      },
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "name",
+          "label": "?",
+          "type": "string"
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": "abs(n): number or duration",
+          "documentation": "The absolute value.",
+          "from": 9,
+          "kind": "function",
+          "label": "abs",
+          "type": "number or duration"
+        },
+        {
+          "detail": "after(point1, point2): boolean",
+          "documentation": "Whether the first comes after the second.",
+          "from": 9,
+          "kind": "function",
+          "label": "after",
+          "type": "boolean"
+        },
+        {
+          "detail": "all(list): boolean",
+          "documentation": "False when an item is false.",
+          "from": 9,
+          "kind": "function",
+          "label": "all",
+          "type": "boolean"
+        },
+        {
+          "detail": "any(list): boolean",
+          "documentation": "True when an item is true.",
+          "from": 9,
+          "kind": "function",
+          "label": "any",
+          "type": "boolean"
+        },
+        {
+          "detail": "append(list, item...): list",
+          "documentation": "The list with the items added at its end.",
+          "from": 9,
+          "kind": "function",
+          "label": "append",
+          "type": "list"
+        },
+        {
+          "detail": "before(point1, point2): boolean",
+          "documentation": "Whether the first comes before the second.",
+          "from": 9,
+          "kind": "function",
+          "label": "before",
+          "type": "boolean"
+        },
+        {
+          "detail": "ceiling(n, scale?): number",
+          "documentation": "The number rounded towards positive infinity.",
+          "from": 9,
+          "kind": "function",
+          "label": "ceiling",
+          "type": "number"
+        },
+        {
+          "detail": "coincides(point1, point2): boolean",
+          "documentation": "Whether the two are the same point or the same range.",
+          "from": 9,
+          "kind": "function",
+          "label": "coincides",
+          "type": "boolean"
+        },
+        {
+          "detail": "concatenate(list...): list",
+          "documentation": "One list of the items of the lists.",
+          "from": 9,
+          "kind": "function",
+          "label": "concatenate",
+          "type": "list"
+        },
+        {
+          "detail": "contains(string, match): boolean",
+          "documentation": "Whether the string contains the match.",
+          "from": 9,
+          "kind": "function",
+          "label": "contains",
+          "type": "boolean"
+        },
+        {
+          "detail": "context(entries): context",
+          "documentation": "A context from a list of entries with a key and a value each.",
+          "from": 9,
+          "kind": "function",
+          "label": "context",
+          "type": "context"
+        },
+        {
+          "detail": "context merge(contexts): context",
+          "documentation": "One context of the entries of the contexts; a later entry replaces an earlier one.",
+          "from": 9,
+          "kind": "function",
+          "label": "context merge",
+          "type": "context"
+        },
+        {
+          "detail": "context put(context, key, value): context",
+          "documentation": "The context with an entry added or replaced.",
+          "from": 9,
+          "kind": "function",
+          "label": "context put",
+          "type": "context"
+        },
+        {
+          "detail": "count(list): number",
+          "documentation": "The number of items.",
+          "from": 9,
+          "kind": "function",
+          "label": "count",
+          "type": "number"
+        },
+        {
+          "detail": "date(from): date",
+          "documentation": "A date from its text, from a date and time, or from a year, a month and a day.",
+          "from": 9,
+          "kind": "function",
+          "label": "date",
+          "type": "date"
+        },
+        {
+          "detail": "date and time(from): date and time",
+          "documentation": "A date and time from its text, or from a date and a time.",
+          "from": 9,
+          "kind": "function",
+          "label": "date and time",
+          "type": "date and time"
+        },
+        {
+          "detail": "day of week(date): string",
+          "documentation": "The name of the day of the week.",
+          "from": 9,
+          "kind": "function",
+          "label": "day of week",
+          "type": "string"
+        },
+        {
+          "detail": "day of year(date): number",
+          "documentation": "The number of the day in its year.",
+          "from": 9,
+          "kind": "function",
+          "label": "day of year",
+          "type": "number"
+        },
+        {
+          "detail": "days and time duration(from): days and time duration",
+          "documentation": "A days and time duration from its text.",
+          "from": 9,
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
+          "detail": "decimal(n, scale): number",
+          "documentation": "The number rounded to a scale, half to even.",
+          "from": 9,
+          "kind": "function",
+          "label": "decimal",
+          "type": "number"
+        },
+        {
+          "detail": "distinct values(list): list",
+          "documentation": "The list without its repeated items.",
+          "from": 9,
+          "kind": "function",
+          "label": "distinct values",
+          "type": "list"
+        },
+        {
+          "detail": "duration(from): days and time duration or years and months duration",
+          "documentation": "A duration from its text.",
+          "from": 9,
+          "kind": "function",
+          "label": "duration",
+          "type": "days and time duration or years and months duration"
+        },
+        {
+          "detail": "during(point, range): boolean",
+          "documentation": "Whether the first lies within the range.",
+          "from": 9,
+          "kind": "function",
+          "label": "during",
+          "type": "boolean"
+        },
+        {
+          "detail": "ends with(string, match): boolean",
+          "documentation": "Whether the string ends with the match.",
+          "from": 9,
+          "kind": "function",
+          "label": "ends with",
+          "type": "boolean"
+        },
+        {
+          "detail": "even(number): boolean",
+          "documentation": "Whether the number is even.",
+          "from": 9,
+          "kind": "function",
+          "label": "even",
+          "type": "boolean"
+        },
+        {
+          "detail": "exp(number): number",
+          "documentation": "Euler's number raised to the number.",
+          "from": 9,
+          "kind": "function",
+          "label": "exp",
+          "type": "number"
+        },
+        {
+          "detail": "finished by(range, point): boolean",
+          "documentation": "Whether the range ends with the second.",
+          "from": 9,
+          "kind": "function",
+          "label": "finished by",
+          "type": "boolean"
+        },
+        {
+          "detail": "finishes(point, range): boolean",
+          "documentation": "Whether the first ends the range.",
+          "from": 9,
+          "kind": "function",
+          "label": "finishes",
+          "type": "boolean"
+        },
+        {
+          "detail": "flatten(list): list",
+          "documentation": "The list with the items of its nested lists in place of them.",
+          "from": 9,
+          "kind": "function",
+          "label": "flatten",
+          "type": "list"
+        },
+        {
+          "detail": "floor(n, scale?): number",
+          "documentation": "The number rounded towards negative infinity.",
+          "from": 9,
+          "kind": "function",
+          "label": "floor",
+          "type": "number"
+        },
+        {
+          "detail": "get entries(m): list<context>",
+          "documentation": "The entries of the context as a list of contexts with a key and a value.",
+          "from": 9,
+          "kind": "function",
+          "label": "get entries",
+          "type": "list<context>"
+        },
+        {
+          "detail": "get value(m, key): Any",
+          "documentation": "The value of an entry of the context.",
+          "from": 9,
+          "kind": "function",
+          "label": "get value",
+          "type": "Any"
+        },
+        {
+          "detail": "includes(range, point): boolean",
+          "documentation": "Whether the range includes the second.",
+          "from": 9,
+          "kind": "function",
+          "label": "includes",
+          "type": "boolean"
+        },
+        {
+          "detail": "index of(list, match): list<number>",
+          "documentation": "The positions of the items that equal the match.",
+          "from": 9,
+          "kind": "function",
+          "label": "index of",
+          "type": "list<number>"
+        },
+        {
+          "detail": "insert after(list, position, newItem): list",
+          "documentation": "The list with an item inserted after a position.",
+          "from": 9,
+          "kind": "function",
+          "label": "insert after",
+          "type": "list"
+        },
+        {
+          "detail": "insert before(list, position, newItem): list",
+          "documentation": "The list with an item inserted before a position.",
+          "from": 9,
+          "kind": "function",
+          "label": "insert before",
+          "type": "list"
+        },
+        {
+          "detail": "intersection(list...): list",
+          "documentation": "The items that every list has.",
+          "from": 9,
+          "kind": "function",
+          "label": "intersection",
+          "type": "list"
+        },
+        {
+          "detail": "is(value1, value2): boolean",
+          "documentation": "Whether the two values are the same value of the same type.",
+          "from": 9,
+          "kind": "function",
+          "label": "is",
+          "type": "boolean"
+        },
+        {
+          "detail": "list contains(list, element): boolean",
+          "documentation": "Whether the list has an item that equals the element.",
+          "from": 9,
+          "kind": "function",
+          "label": "list contains",
+          "type": "boolean"
+        },
+        {
+          "detail": "list replace(list, position, newItem): list",
+          "documentation": "The list with the item at a position, or every item a function matches, replaced.",
+          "from": 9,
+          "kind": "function",
+          "label": "list replace",
+          "type": "list"
+        },
+        {
+          "detail": "log(number): number",
+          "documentation": "The natural logarithm.",
+          "from": 9,
+          "kind": "function",
+          "label": "log",
+          "type": "number"
+        },
+        {
+          "detail": "lower case(string): string",
+          "documentation": "The string in lower case.",
+          "from": 9,
+          "kind": "function",
+          "label": "lower case",
+          "type": "string"
+        },
+        {
+          "detail": "matches(input, pattern, flags?): boolean",
+          "documentation": "Whether the input matches the regular expression.",
+          "from": 9,
+          "kind": "function",
+          "label": "matches",
+          "type": "boolean"
+        },
+        {
+          "detail": "max(list): Any",
+          "documentation": "The greatest item.",
+          "from": 9,
+          "kind": "function",
+          "label": "max",
+          "type": "Any"
+        },
+        {
+          "detail": "mean(list): number",
+          "documentation": "The arithmetic mean of the numbers.",
+          "from": 9,
+          "kind": "function",
+          "label": "mean",
+          "type": "number"
+        },
+        {
+          "detail": "median(list): number",
+          "documentation": "The median of the numbers.",
+          "from": 9,
+          "kind": "function",
+          "label": "median",
+          "type": "number"
+        },
+        {
+          "detail": "meets(range1, range2): boolean",
+          "documentation": "Whether the first range ends where the second starts.",
+          "from": 9,
+          "kind": "function",
+          "label": "meets",
+          "type": "boolean"
+        },
+        {
+          "detail": "met by(range1, range2): boolean",
+          "documentation": "Whether the first range starts where the second ends.",
+          "from": 9,
+          "kind": "function",
+          "label": "met by",
+          "type": "boolean"
+        },
+        {
+          "detail": "min(list): Any",
+          "documentation": "The least item.",
+          "from": 9,
+          "kind": "function",
+          "label": "min",
+          "type": "Any"
+        },
+        {
+          "detail": "mode(list): list<number>",
+          "documentation": "The most frequent numbers.",
+          "from": 9,
+          "kind": "function",
+          "label": "mode",
+          "type": "list<number>"
+        },
+        {
+          "detail": "modulo(dividend, divisor): number",
+          "documentation": "The remainder of the division, with the sign of the divisor.",
+          "from": 9,
+          "kind": "function",
+          "label": "modulo",
+          "type": "number"
+        },
+        {
+          "detail": "month of year(date): string",
+          "documentation": "The name of the month.",
+          "from": 9,
+          "kind": "function",
+          "label": "month of year",
+          "type": "string"
+        },
+        {
+          "detail": "not(negand): boolean",
+          "documentation": "The negation of a boolean.",
+          "from": 9,
+          "kind": "function",
+          "label": "not",
+          "type": "boolean"
+        },
+        {
+          "detail": "now(): date and time",
+          "documentation": "The current date and time.",
+          "from": 9,
+          "kind": "function",
+          "label": "now",
+          "type": "date and time"
+        },
+        {
+          "detail": "number(from): number",
+          "documentation": "A number from its text, with the separators it uses.",
+          "from": 9,
+          "kind": "function",
+          "label": "number",
+          "type": "number"
+        },
+        {
+          "detail": "odd(number): boolean",
+          "documentation": "Whether the number is odd.",
+          "from": 9,
+          "kind": "function",
+          "label": "odd",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps(range1, range2): boolean",
+          "documentation": "Whether the ranges have a point in common.",
+          "from": 9,
+          "kind": "function",
+          "label": "overlaps",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps after(range1, range2): boolean",
+          "documentation": "Whether the first range overlaps the second and ends after it.",
+          "from": 9,
+          "kind": "function",
+          "label": "overlaps after",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps before(range1, range2): boolean",
+          "documentation": "Whether the first range overlaps the second and starts before it.",
+          "from": 9,
+          "kind": "function",
+          "label": "overlaps before",
+          "type": "boolean"
+        },
+        {
+          "detail": "product(list): number",
+          "documentation": "The product of the numbers.",
+          "from": 9,
+          "kind": "function",
+          "label": "product",
+          "type": "number"
+        },
+        {
+          "detail": "range(from): range",
+          "documentation": "A range from its text.",
+          "from": 9,
+          "kind": "function",
+          "label": "range",
+          "type": "range"
+        },
+        {
+          "detail": "remove(list, position): list",
+          "documentation": "The list without the item at a position.",
+          "from": 9,
+          "kind": "function",
+          "label": "remove",
+          "type": "list"
+        },
+        {
+          "detail": "replace(input, pattern, replacement, flags?): string",
+          "documentation": "The input with the matches of the regular expression replaced.",
+          "from": 9,
+          "kind": "function",
+          "label": "replace",
+          "type": "string"
+        },
+        {
+          "detail": "reverse(list): list",
+          "documentation": "The list in reverse order.",
+          "from": 9,
+          "kind": "function",
+          "label": "reverse",
+          "type": "list"
+        },
+        {
+          "detail": "round down(n, scale?): number",
+          "documentation": "The number rounded towards zero.",
+          "from": 9,
+          "kind": "function",
+          "label": "round down",
+          "type": "number"
+        },
+        {
+          "detail": "round half down(n, scale?): number",
+          "documentation": "The number rounded to the nearest, a tie towards zero.",
+          "from": 9,
+          "kind": "function",
+          "label": "round half down",
+          "type": "number"
+        },
+        {
+          "detail": "round half up(n, scale?): number",
+          "documentation": "The number rounded to the nearest, a tie away from zero.",
+          "from": 9,
+          "kind": "function",
+          "label": "round half up",
+          "type": "number"
+        },
+        {
+          "detail": "round up(n, scale?): number",
+          "documentation": "The number rounded away from zero.",
+          "from": 9,
+          "kind": "function",
+          "label": "round up",
+          "type": "number"
+        },
+        {
+          "detail": "sort(list, precedes): list",
+          "documentation": "The list in the order of a function that says whether its first parameter precedes its second.",
+          "from": 9,
+          "kind": "function",
+          "label": "sort",
+          "type": "list"
+        },
+        {
+          "detail": "split(string, delimiter): list<string>",
+          "documentation": "The parts of the string between the matches of the delimiter, a regular expression.",
+          "from": 9,
+          "kind": "function",
+          "label": "split",
+          "type": "list<string>"
+        },
+        {
+          "detail": "sqrt(number): number",
+          "documentation": "The square root.",
+          "from": 9,
+          "kind": "function",
+          "label": "sqrt",
+          "type": "number"
+        },
+        {
+          "detail": "started by(range, point): boolean",
+          "documentation": "Whether the range starts with the second.",
+          "from": 9,
+          "kind": "function",
+          "label": "started by",
+          "type": "boolean"
+        },
+        {
+          "detail": "starts(point, range): boolean",
+          "documentation": "Whether the first starts the range.",
+          "from": 9,
+          "kind": "function",
+          "label": "starts",
+          "type": "boolean"
+        },
+        {
+          "detail": "starts with(string, match): boolean",
+          "documentation": "Whether the string starts with the match.",
+          "from": 9,
+          "kind": "function",
+          "label": "starts with",
+          "type": "boolean"
+        },
+        {
+          "detail": "stddev(list): number",
+          "documentation": "The sample standard deviation of the numbers.",
+          "from": 9,
+          "kind": "function",
+          "label": "stddev",
+          "type": "number"
+        },
+        {
+          "detail": "string(from): string",
+          "documentation": "The text of a value.",
+          "from": 9,
+          "kind": "function",
+          "label": "string",
+          "type": "string"
+        },
+        {
+          "detail": "string join(list, delimiter?): string",
+          "documentation": "The strings joined, with a delimiter between them if one is given.",
+          "from": 9,
+          "kind": "function",
+          "label": "string join",
+          "type": "string"
+        },
+        {
+          "detail": "string length(string): number",
+          "documentation": "The number of characters.",
+          "from": 9,
+          "kind": "function",
+          "label": "string length",
+          "type": "number"
+        },
+        {
+          "detail": "sublist(list, start position, length?): list",
+          "documentation": "The items from a position, as many as the length says or all that follow.",
+          "from": 9,
+          "kind": "function",
+          "label": "sublist",
+          "type": "list"
+        },
+        {
+          "detail": "substring(string, start position, length?): string",
+          "documentation": "The characters from a position, as many as the length says or all that follow.",
+          "from": 9,
+          "kind": "function",
+          "label": "substring",
+          "type": "string"
+        },
+        {
+          "detail": "substring after(string, match): string",
+          "documentation": "The part of the string after the first match.",
+          "from": 9,
+          "kind": "function",
+          "label": "substring after",
+          "type": "string"
+        },
+        {
+          "detail": "substring before(string, match): string",
+          "documentation": "The part of the string before the first match.",
+          "from": 9,
+          "kind": "function",
+          "label": "substring before",
+          "type": "string"
+        },
+        {
+          "detail": "sum(list): number",
+          "documentation": "The sum of the numbers.",
+          "from": 9,
+          "kind": "function",
+          "label": "sum",
+          "type": "number"
+        },
+        {
+          "detail": "time(from): time",
+          "documentation": "A time from its text, from a date and time, or from an hour, a minute and a second.",
+          "from": 9,
+          "kind": "function",
+          "label": "time",
+          "type": "time"
+        },
+        {
+          "detail": "today(): date",
+          "documentation": "The current date.",
+          "from": 9,
+          "kind": "function",
+          "label": "today",
+          "type": "date"
+        },
+        {
+          "detail": "trim(string): string",
+          "documentation": "The string without the white space at its ends.",
+          "from": 9,
+          "kind": "function",
+          "label": "trim",
+          "type": "string"
+        },
+        {
+          "detail": "union(list...): list",
+          "documentation": "The items of the lists, each once.",
+          "from": 9,
+          "kind": "function",
+          "label": "union",
+          "type": "list"
+        },
+        {
+          "detail": "upper case(string): string",
+          "documentation": "The string in upper case.",
+          "from": 9,
+          "kind": "function",
+          "label": "upper case",
+          "type": "string"
+        },
+        {
+          "detail": "week of year(date): number",
+          "documentation": "The number of the week in its year.",
+          "from": 9,
+          "kind": "function",
+          "label": "week of year",
+          "type": "number"
+        },
+        {
+          "detail": "years and months duration(from): years and months duration",
+          "documentation": "A years and months duration from its text, or the years and months between two dates.",
+          "from": 9,
+          "kind": "function",
+          "label": "years and months duration",
+          "type": "years and months duration"
+        }
+      ],
+      "ok": true,
+      "to": 9,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "dialect": "unaryTests",
+      "expression": "count(",
+      "outline": {
+        "names": {
+          "?": {
+            "type": "string",
+            "values": [
+              "A",
+              "B"
+            ]
+          }
+        }
+      }
+    },
+    "why": "Review of the scoping fix and of outline v2: a function in the predicate of a filter that is written in a function reads the parameter around the filter (the walk stopped at the item); completion answers a path without its name before a comparison (the module trapped); the values of a type by name and of the type itself; a value is written as a string holds it; the values of the unary tests input only where a test starts; an outline function named as a built-in function; hover at the end of a name.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "call": {
+        "activeSignature": 0,
+        "argument": 0,
+        "documentation": "The number of items.",
+        "function": "count",
+        "named": [],
+        "signatures": [
+          {
+            "activeParameter": 0,
+            "label": "count(list): number",
+            "named": true,
+            "parameters": [
+              {
+                "name": "list",
+                "optional": false,
+                "rest": false,
+                "type": "list"
+              }
+            ],
+            "result": "number"
+          }
+        ]
+      },
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 6,
+          "insertText": "list: ",
+          "kind": "parameter",
+          "label": "list",
+          "type": "list"
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "name",
+          "label": "?",
+          "type": "string"
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": "abs(n): number or duration",
+          "documentation": "The absolute value.",
+          "from": 6,
+          "kind": "function",
+          "label": "abs",
+          "type": "number or duration"
+        },
+        {
+          "detail": "after(point1, point2): boolean",
+          "documentation": "Whether the first comes after the second.",
+          "from": 6,
+          "kind": "function",
+          "label": "after",
+          "type": "boolean"
+        },
+        {
+          "detail": "all(list): boolean",
+          "documentation": "False when an item is false.",
+          "from": 6,
+          "kind": "function",
+          "label": "all",
+          "type": "boolean"
+        },
+        {
+          "detail": "any(list): boolean",
+          "documentation": "True when an item is true.",
+          "from": 6,
+          "kind": "function",
+          "label": "any",
+          "type": "boolean"
+        },
+        {
+          "detail": "append(list, item...): list",
+          "documentation": "The list with the items added at its end.",
+          "from": 6,
+          "kind": "function",
+          "label": "append",
+          "type": "list"
+        },
+        {
+          "detail": "before(point1, point2): boolean",
+          "documentation": "Whether the first comes before the second.",
+          "from": 6,
+          "kind": "function",
+          "label": "before",
+          "type": "boolean"
+        },
+        {
+          "detail": "ceiling(n, scale?): number",
+          "documentation": "The number rounded towards positive infinity.",
+          "from": 6,
+          "kind": "function",
+          "label": "ceiling",
+          "type": "number"
+        },
+        {
+          "detail": "coincides(point1, point2): boolean",
+          "documentation": "Whether the two are the same point or the same range.",
+          "from": 6,
+          "kind": "function",
+          "label": "coincides",
+          "type": "boolean"
+        },
+        {
+          "detail": "concatenate(list...): list",
+          "documentation": "One list of the items of the lists.",
+          "from": 6,
+          "kind": "function",
+          "label": "concatenate",
+          "type": "list"
+        },
+        {
+          "detail": "contains(string, match): boolean",
+          "documentation": "Whether the string contains the match.",
+          "from": 6,
+          "kind": "function",
+          "label": "contains",
+          "type": "boolean"
+        },
+        {
+          "detail": "context(entries): context",
+          "documentation": "A context from a list of entries with a key and a value each.",
+          "from": 6,
+          "kind": "function",
+          "label": "context",
+          "type": "context"
+        },
+        {
+          "detail": "context merge(contexts): context",
+          "documentation": "One context of the entries of the contexts; a later entry replaces an earlier one.",
+          "from": 6,
+          "kind": "function",
+          "label": "context merge",
+          "type": "context"
+        },
+        {
+          "detail": "context put(context, key, value): context",
+          "documentation": "The context with an entry added or replaced.",
+          "from": 6,
+          "kind": "function",
+          "label": "context put",
+          "type": "context"
+        },
+        {
+          "detail": "count(list): number",
+          "documentation": "The number of items.",
+          "from": 6,
+          "kind": "function",
+          "label": "count",
+          "type": "number"
+        },
+        {
+          "detail": "date(from): date",
+          "documentation": "A date from its text, from a date and time, or from a year, a month and a day.",
+          "from": 6,
+          "kind": "function",
+          "label": "date",
+          "type": "date"
+        },
+        {
+          "detail": "date and time(from): date and time",
+          "documentation": "A date and time from its text, or from a date and a time.",
+          "from": 6,
+          "kind": "function",
+          "label": "date and time",
+          "type": "date and time"
+        },
+        {
+          "detail": "day of week(date): string",
+          "documentation": "The name of the day of the week.",
+          "from": 6,
+          "kind": "function",
+          "label": "day of week",
+          "type": "string"
+        },
+        {
+          "detail": "day of year(date): number",
+          "documentation": "The number of the day in its year.",
+          "from": 6,
+          "kind": "function",
+          "label": "day of year",
+          "type": "number"
+        },
+        {
+          "detail": "days and time duration(from): days and time duration",
+          "documentation": "A days and time duration from its text.",
+          "from": 6,
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
+          "detail": "decimal(n, scale): number",
+          "documentation": "The number rounded to a scale, half to even.",
+          "from": 6,
+          "kind": "function",
+          "label": "decimal",
+          "type": "number"
+        },
+        {
+          "detail": "distinct values(list): list",
+          "documentation": "The list without its repeated items.",
+          "from": 6,
+          "kind": "function",
+          "label": "distinct values",
+          "type": "list"
+        },
+        {
+          "detail": "duration(from): days and time duration or years and months duration",
+          "documentation": "A duration from its text.",
+          "from": 6,
+          "kind": "function",
+          "label": "duration",
+          "type": "days and time duration or years and months duration"
+        },
+        {
+          "detail": "during(point, range): boolean",
+          "documentation": "Whether the first lies within the range.",
+          "from": 6,
+          "kind": "function",
+          "label": "during",
+          "type": "boolean"
+        },
+        {
+          "detail": "ends with(string, match): boolean",
+          "documentation": "Whether the string ends with the match.",
+          "from": 6,
+          "kind": "function",
+          "label": "ends with",
+          "type": "boolean"
+        },
+        {
+          "detail": "even(number): boolean",
+          "documentation": "Whether the number is even.",
+          "from": 6,
+          "kind": "function",
+          "label": "even",
+          "type": "boolean"
+        },
+        {
+          "detail": "exp(number): number",
+          "documentation": "Euler's number raised to the number.",
+          "from": 6,
+          "kind": "function",
+          "label": "exp",
+          "type": "number"
+        },
+        {
+          "detail": "finished by(range, point): boolean",
+          "documentation": "Whether the range ends with the second.",
+          "from": 6,
+          "kind": "function",
+          "label": "finished by",
+          "type": "boolean"
+        },
+        {
+          "detail": "finishes(point, range): boolean",
+          "documentation": "Whether the first ends the range.",
+          "from": 6,
+          "kind": "function",
+          "label": "finishes",
+          "type": "boolean"
+        },
+        {
+          "detail": "flatten(list): list",
+          "documentation": "The list with the items of its nested lists in place of them.",
+          "from": 6,
+          "kind": "function",
+          "label": "flatten",
+          "type": "list"
+        },
+        {
+          "detail": "floor(n, scale?): number",
+          "documentation": "The number rounded towards negative infinity.",
+          "from": 6,
+          "kind": "function",
+          "label": "floor",
+          "type": "number"
+        },
+        {
+          "detail": "get entries(m): list<context>",
+          "documentation": "The entries of the context as a list of contexts with a key and a value.",
+          "from": 6,
+          "kind": "function",
+          "label": "get entries",
+          "type": "list<context>"
+        },
+        {
+          "detail": "get value(m, key): Any",
+          "documentation": "The value of an entry of the context.",
+          "from": 6,
+          "kind": "function",
+          "label": "get value",
+          "type": "Any"
+        },
+        {
+          "detail": "includes(range, point): boolean",
+          "documentation": "Whether the range includes the second.",
+          "from": 6,
+          "kind": "function",
+          "label": "includes",
+          "type": "boolean"
+        },
+        {
+          "detail": "index of(list, match): list<number>",
+          "documentation": "The positions of the items that equal the match.",
+          "from": 6,
+          "kind": "function",
+          "label": "index of",
+          "type": "list<number>"
+        },
+        {
+          "detail": "insert after(list, position, newItem): list",
+          "documentation": "The list with an item inserted after a position.",
+          "from": 6,
+          "kind": "function",
+          "label": "insert after",
+          "type": "list"
+        },
+        {
+          "detail": "insert before(list, position, newItem): list",
+          "documentation": "The list with an item inserted before a position.",
+          "from": 6,
+          "kind": "function",
+          "label": "insert before",
+          "type": "list"
+        },
+        {
+          "detail": "intersection(list...): list",
+          "documentation": "The items that every list has.",
+          "from": 6,
+          "kind": "function",
+          "label": "intersection",
+          "type": "list"
+        },
+        {
+          "detail": "is(value1, value2): boolean",
+          "documentation": "Whether the two values are the same value of the same type.",
+          "from": 6,
+          "kind": "function",
+          "label": "is",
+          "type": "boolean"
+        },
+        {
+          "detail": "list contains(list, element): boolean",
+          "documentation": "Whether the list has an item that equals the element.",
+          "from": 6,
+          "kind": "function",
+          "label": "list contains",
+          "type": "boolean"
+        },
+        {
+          "detail": "list replace(list, position, newItem): list",
+          "documentation": "The list with the item at a position, or every item a function matches, replaced.",
+          "from": 6,
+          "kind": "function",
+          "label": "list replace",
+          "type": "list"
+        },
+        {
+          "detail": "log(number): number",
+          "documentation": "The natural logarithm.",
+          "from": 6,
+          "kind": "function",
+          "label": "log",
+          "type": "number"
+        },
+        {
+          "detail": "lower case(string): string",
+          "documentation": "The string in lower case.",
+          "from": 6,
+          "kind": "function",
+          "label": "lower case",
+          "type": "string"
+        },
+        {
+          "detail": "matches(input, pattern, flags?): boolean",
+          "documentation": "Whether the input matches the regular expression.",
+          "from": 6,
+          "kind": "function",
+          "label": "matches",
+          "type": "boolean"
+        },
+        {
+          "detail": "max(list): Any",
+          "documentation": "The greatest item.",
+          "from": 6,
+          "kind": "function",
+          "label": "max",
+          "type": "Any"
+        },
+        {
+          "detail": "mean(list): number",
+          "documentation": "The arithmetic mean of the numbers.",
+          "from": 6,
+          "kind": "function",
+          "label": "mean",
+          "type": "number"
+        },
+        {
+          "detail": "median(list): number",
+          "documentation": "The median of the numbers.",
+          "from": 6,
+          "kind": "function",
+          "label": "median",
+          "type": "number"
+        },
+        {
+          "detail": "meets(range1, range2): boolean",
+          "documentation": "Whether the first range ends where the second starts.",
+          "from": 6,
+          "kind": "function",
+          "label": "meets",
+          "type": "boolean"
+        },
+        {
+          "detail": "met by(range1, range2): boolean",
+          "documentation": "Whether the first range starts where the second ends.",
+          "from": 6,
+          "kind": "function",
+          "label": "met by",
+          "type": "boolean"
+        },
+        {
+          "detail": "min(list): Any",
+          "documentation": "The least item.",
+          "from": 6,
+          "kind": "function",
+          "label": "min",
+          "type": "Any"
+        },
+        {
+          "detail": "mode(list): list<number>",
+          "documentation": "The most frequent numbers.",
+          "from": 6,
+          "kind": "function",
+          "label": "mode",
+          "type": "list<number>"
+        },
+        {
+          "detail": "modulo(dividend, divisor): number",
+          "documentation": "The remainder of the division, with the sign of the divisor.",
+          "from": 6,
+          "kind": "function",
+          "label": "modulo",
+          "type": "number"
+        },
+        {
+          "detail": "month of year(date): string",
+          "documentation": "The name of the month.",
+          "from": 6,
+          "kind": "function",
+          "label": "month of year",
+          "type": "string"
+        },
+        {
+          "detail": "not(negand): boolean",
+          "documentation": "The negation of a boolean.",
+          "from": 6,
+          "kind": "function",
+          "label": "not",
+          "type": "boolean"
+        },
+        {
+          "detail": "now(): date and time",
+          "documentation": "The current date and time.",
+          "from": 6,
+          "kind": "function",
+          "label": "now",
+          "type": "date and time"
+        },
+        {
+          "detail": "number(from): number",
+          "documentation": "A number from its text, with the separators it uses.",
+          "from": 6,
+          "kind": "function",
+          "label": "number",
+          "type": "number"
+        },
+        {
+          "detail": "odd(number): boolean",
+          "documentation": "Whether the number is odd.",
+          "from": 6,
+          "kind": "function",
+          "label": "odd",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps(range1, range2): boolean",
+          "documentation": "Whether the ranges have a point in common.",
+          "from": 6,
+          "kind": "function",
+          "label": "overlaps",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps after(range1, range2): boolean",
+          "documentation": "Whether the first range overlaps the second and ends after it.",
+          "from": 6,
+          "kind": "function",
+          "label": "overlaps after",
+          "type": "boolean"
+        },
+        {
+          "detail": "overlaps before(range1, range2): boolean",
+          "documentation": "Whether the first range overlaps the second and starts before it.",
+          "from": 6,
+          "kind": "function",
+          "label": "overlaps before",
+          "type": "boolean"
+        },
+        {
+          "detail": "product(list): number",
+          "documentation": "The product of the numbers.",
+          "from": 6,
+          "kind": "function",
+          "label": "product",
+          "type": "number"
+        },
+        {
+          "detail": "range(from): range",
+          "documentation": "A range from its text.",
+          "from": 6,
+          "kind": "function",
+          "label": "range",
+          "type": "range"
+        },
+        {
+          "detail": "remove(list, position): list",
+          "documentation": "The list without the item at a position.",
+          "from": 6,
+          "kind": "function",
+          "label": "remove",
+          "type": "list"
+        },
+        {
+          "detail": "replace(input, pattern, replacement, flags?): string",
+          "documentation": "The input with the matches of the regular expression replaced.",
+          "from": 6,
+          "kind": "function",
+          "label": "replace",
+          "type": "string"
+        },
+        {
+          "detail": "reverse(list): list",
+          "documentation": "The list in reverse order.",
+          "from": 6,
+          "kind": "function",
+          "label": "reverse",
+          "type": "list"
+        },
+        {
+          "detail": "round down(n, scale?): number",
+          "documentation": "The number rounded towards zero.",
+          "from": 6,
+          "kind": "function",
+          "label": "round down",
+          "type": "number"
+        },
+        {
+          "detail": "round half down(n, scale?): number",
+          "documentation": "The number rounded to the nearest, a tie towards zero.",
+          "from": 6,
+          "kind": "function",
+          "label": "round half down",
+          "type": "number"
+        },
+        {
+          "detail": "round half up(n, scale?): number",
+          "documentation": "The number rounded to the nearest, a tie away from zero.",
+          "from": 6,
+          "kind": "function",
+          "label": "round half up",
+          "type": "number"
+        },
+        {
+          "detail": "round up(n, scale?): number",
+          "documentation": "The number rounded away from zero.",
+          "from": 6,
+          "kind": "function",
+          "label": "round up",
+          "type": "number"
+        },
+        {
+          "detail": "sort(list, precedes): list",
+          "documentation": "The list in the order of a function that says whether its first parameter precedes its second.",
+          "from": 6,
+          "kind": "function",
+          "label": "sort",
+          "type": "list"
+        },
+        {
+          "detail": "split(string, delimiter): list<string>",
+          "documentation": "The parts of the string between the matches of the delimiter, a regular expression.",
+          "from": 6,
+          "kind": "function",
+          "label": "split",
+          "type": "list<string>"
+        },
+        {
+          "detail": "sqrt(number): number",
+          "documentation": "The square root.",
+          "from": 6,
+          "kind": "function",
+          "label": "sqrt",
+          "type": "number"
+        },
+        {
+          "detail": "started by(range, point): boolean",
+          "documentation": "Whether the range starts with the second.",
+          "from": 6,
+          "kind": "function",
+          "label": "started by",
+          "type": "boolean"
+        },
+        {
+          "detail": "starts(point, range): boolean",
+          "documentation": "Whether the first starts the range.",
+          "from": 6,
+          "kind": "function",
+          "label": "starts",
+          "type": "boolean"
+        },
+        {
+          "detail": "starts with(string, match): boolean",
+          "documentation": "Whether the string starts with the match.",
+          "from": 6,
+          "kind": "function",
+          "label": "starts with",
+          "type": "boolean"
+        },
+        {
+          "detail": "stddev(list): number",
+          "documentation": "The sample standard deviation of the numbers.",
+          "from": 6,
+          "kind": "function",
+          "label": "stddev",
+          "type": "number"
+        },
+        {
+          "detail": "string(from): string",
+          "documentation": "The text of a value.",
+          "from": 6,
+          "kind": "function",
+          "label": "string",
+          "type": "string"
+        },
+        {
+          "detail": "string join(list, delimiter?): string",
+          "documentation": "The strings joined, with a delimiter between them if one is given.",
+          "from": 6,
+          "kind": "function",
+          "label": "string join",
+          "type": "string"
+        },
+        {
+          "detail": "string length(string): number",
+          "documentation": "The number of characters.",
+          "from": 6,
+          "kind": "function",
+          "label": "string length",
+          "type": "number"
+        },
+        {
+          "detail": "sublist(list, start position, length?): list",
+          "documentation": "The items from a position, as many as the length says or all that follow.",
+          "from": 6,
+          "kind": "function",
+          "label": "sublist",
+          "type": "list"
+        },
+        {
+          "detail": "substring(string, start position, length?): string",
+          "documentation": "The characters from a position, as many as the length says or all that follow.",
+          "from": 6,
+          "kind": "function",
+          "label": "substring",
+          "type": "string"
+        },
+        {
+          "detail": "substring after(string, match): string",
+          "documentation": "The part of the string after the first match.",
+          "from": 6,
+          "kind": "function",
+          "label": "substring after",
+          "type": "string"
+        },
+        {
+          "detail": "substring before(string, match): string",
+          "documentation": "The part of the string before the first match.",
+          "from": 6,
+          "kind": "function",
+          "label": "substring before",
+          "type": "string"
+        },
+        {
+          "detail": "sum(list): number",
+          "documentation": "The sum of the numbers.",
+          "from": 6,
+          "kind": "function",
+          "label": "sum",
+          "type": "number"
+        },
+        {
+          "detail": "time(from): time",
+          "documentation": "A time from its text, from a date and time, or from an hour, a minute and a second.",
+          "from": 6,
+          "kind": "function",
+          "label": "time",
+          "type": "time"
+        },
+        {
+          "detail": "today(): date",
+          "documentation": "The current date.",
+          "from": 6,
+          "kind": "function",
+          "label": "today",
+          "type": "date"
+        },
+        {
+          "detail": "trim(string): string",
+          "documentation": "The string without the white space at its ends.",
+          "from": 6,
+          "kind": "function",
+          "label": "trim",
+          "type": "string"
+        },
+        {
+          "detail": "union(list...): list",
+          "documentation": "The items of the lists, each once.",
+          "from": 6,
+          "kind": "function",
+          "label": "union",
+          "type": "list"
+        },
+        {
+          "detail": "upper case(string): string",
+          "documentation": "The string in upper case.",
+          "from": 6,
+          "kind": "function",
+          "label": "upper case",
+          "type": "string"
+        },
+        {
+          "detail": "week of year(date): number",
+          "documentation": "The number of the week in its year.",
+          "from": 6,
+          "kind": "function",
+          "label": "week of year",
+          "type": "number"
+        },
+        {
+          "detail": "years and months duration(from): years and months duration",
+          "documentation": "A years and months duration from its text, or the years and months between two dates.",
+          "from": 6,
+          "kind": "function",
+          "label": "years and months duration",
+          "type": "years and months duration"
+        }
+      ],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "rou",
+      "outline": {
+        "names": {
+          "round": {
+            "function": {
+              "parameters": [
+                {
+                  "name": "x"
+                }
+              ],
+              "result": "string"
+            }
+          }
+        }
+      }
+    },
+    "why": "Review of the scoping fix and of outline v2: a function in the predicate of a filter that is written in a function reads the parameter around the filter (the walk stopped at the item); completion answers a path without its name before a comparison (the module trapped); the values of a type by name and of the type itself; a value is written as a string holds it; the values of the unary tests input only where a test starts; an outline function named as a built-in function; hover at the end of a name.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": "round(x): string",
+          "from": 0,
+          "kind": "function",
+          "label": "round",
+          "type": "function<Any>->string"
+        },
+        {
+          "detail": "round down(n, scale?): number",
+          "documentation": "The number rounded towards zero.",
+          "from": 0,
+          "kind": "function",
+          "label": "round down",
+          "type": "number"
+        },
+        {
+          "detail": "round half down(n, scale?): number",
+          "documentation": "The number rounded to the nearest, a tie towards zero.",
+          "from": 0,
+          "kind": "function",
+          "label": "round half down",
+          "type": "number"
+        },
+        {
+          "detail": "round half up(n, scale?): number",
+          "documentation": "The number rounded to the nearest, a tie away from zero.",
+          "from": 0,
+          "kind": "function",
+          "label": "round half up",
+          "type": "number"
+        },
+        {
+          "detail": "round up(n, scale?): number",
+          "documentation": "The number rounded away from zero.",
+          "from": 0,
+          "kind": "function",
+          "label": "round up",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "a",
+      "outline": {
+        "type": "number",
+        "types": {
+          "T": {
+            "function": 5
+          }
+        }
+      }
+    },
+    "why": "Review of the scoping fix and of outline v2: a function in the predicate of a filter that is written in a function reads the parameter around the filter (the walk stopped at the item); completion answers a path without its name before a comparison (the module trapped); the values of a type by name and of the type itself; a value is written as a string holds it; the values of the unary tests input only where a test starts; an outline function named as a built-in function; hover at the end of a name.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}}, {\"items\": <outline>} or {\"function\": {\"parameters\": […], \"result\": <type>}}, with \"description\" and \"deprecated\" beside it when it has them, and \"values\" beside a type"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "hover",
+      "expression": "a.b",
+      "at": 1,
+      "context": {
+        "a": {
+          "b": 1
+        }
+      }
+    },
+    "why": "Review of the scoping fix and of outline v2: a function in the predicate of a filter that is written in a function reads the parameter around the filter (the walk stopped at the item); completion answers a path without its name before a comparison (the module trapped); the values of a type by name and of the type itself; a value is written as a string holds it; the values of the unary tests input only where a test starts; an outline function named as a built-in function; hover at the end of a name.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'hover' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "hover": {
+        "from": 0,
+        "kind": "name",
+        "to": 1,
+        "type": "context"
+      },
+      "ok": true
+    }
+  },
+  {
+    "expression": "{x: \"s\", h: function(x) function() [1][(function() x)() = 1], r: h(1)()}.r",
+    "why": "Review of the scoping fix and of outline v2: a function in the predicate of a filter that is written in a function reads the parameter around the filter (the walk stopped at the item); completion answers a path without its name before a comparison (the module trapped); the values of a type by name and of the type itself; a value is written as a string holds it; the values of the unary tests input only where a test starts; an outline function named as a built-in function; hover at the end of a name.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '\"s\"' =?= '1'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1]",
+        "feel": "[1]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{x: \"s\", h: function(x) function() [{x: 5}][(function() x)() = 5], r: h(1)()}.r",
+    "why": "Review of the scoping fix and of outline v2: a function in the predicate of a filter that is written in a function reads the parameter around the filter (the walk stopped at the item); completion answers a path without its name before a comparison (the module trapped); the values of a type by name and of the type itself; a value is written as a string holds it; the values of the unary tests input only where a test starts; an outline function named as a built-in function; hover at the end of a name.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '\"s\"' =?= '5'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"x\": 5}]",
+        "feel": "[{x: 5}]",
+        "isNull": false,
+        "type": "list<context<x: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "x",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "5",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  }
+]

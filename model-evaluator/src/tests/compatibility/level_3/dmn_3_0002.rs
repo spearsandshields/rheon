@@ -11,7 +11,7 @@ fn _0001() {
     &MODEL_NAME,
     "Basic",
     &ctx,
-    r#"{containsB: true, containsX: false, endsWithB: true, endsWithX: false, lowercase: "a", startsWithB: false, startsWithX: false, stringlength: 6, substringAfterB: "nana", substringBeforeB: "b", substringC1: "a", uppercase: "BANANA"}"#,
+    r#"{startsWithX: false, startsWithB: false, endsWithX: false, endsWithB: true, containsX: false, containsB: true, substringC1: "a", stringlength: 6, uppercase: "BANANA", lowercase: "a", substringBeforeB: "b", substringAfterB: "nana"}"#,
   );
 }
 
@@ -30,7 +30,7 @@ fn _0003() {
     &MODEL_NAME,
     "Replace",
     &ctx,
-    r#"{AanplusStarstar: "b**a", Aao: "bonono", encloseVowels: "b[a]n[a]n[a]"}"#,
+    r#"{Aao: "bonono", AanplusStarstar: "b**a", encloseVowels: "b[a]n[a]n[a]"}"#,
   );
 }
 

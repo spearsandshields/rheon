@@ -48,7 +48,12 @@ fn _0009() {
 
 #[test]
 fn _0010() {
-  te_null(false, &scope!(), "odd(n:4)", r#"parameter 'number' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    "odd(n:4)",
+    r#"expected the parameters of odd(number): boolean, found the parameter name 'n'"#,
+  );
 }
 
 #[test]

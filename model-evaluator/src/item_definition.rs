@@ -376,7 +376,8 @@ mod tests {
       wide.set_entry(&Name::from(format!("entry{i}")), value_number!(i));
     }
     let actual_type = "context<entry0: number, entry1: number, entry10: number, entry100: number, entry1000: number, entry1001: number, entry10";
-    let actual_value = "{entry0: 0, entry1: 1, entry10: 10, entry100: 100, entry1000: 1000, entry1001: 1001, entry1002: 1002, entry1003: 1003, e";
+    // the type has its entries in the order of their names, the value in the order they were written in
+    let actual_value = "{entry0: 0, entry1: 1, entry2: 2, entry3: 3, entry4: 4, entry5: 5, entry6: 6, entry7: 7, entry8: 8, entry9: 9, entry10: ";
     let expected = format!("expected type 'string', actual type is '{actual_type}… (10000 entries)' in value '{actual_value}… (10000 entries)'");
     assert_eq!(
       Value::Null(Some(expected)),

@@ -40,11 +40,112 @@ use std::thread::LocalKey;
 /// counts all errors.
 pub const MAX_MESSAGES: usize = 64;
 
+/// What a warning is about, for a program: the codes of the warnings that an evaluation
+/// records. A code is stable; the message of a warning is for people and can change.
+#[non_exhaustive]
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum WarningCode {
+  /// A number of more digits than a number holds was rounded.
+  NumberRounded,
+  /// Fraction digits of seconds beyond nanoseconds were dropped.
+  FractionTruncated,
+  /// The zone of a date string was dropped: a date holds none.
+  DateZoneDropped,
+  /// A fraction of a month was dropped in the arithmetic of a duration of years and months.
+  MonthsTruncated,
+  /// B-FEEL gave its default where FEEL has an error: the error, as a warning.
+  BfeelDefault,
+}
+
+impl WarningCode {
+  /// Every code, in the order of their numbers.
+  pub const ALL: [WarningCode; 5] = [
+    WarningCode::NumberRounded,
+    WarningCode::FractionTruncated,
+    WarningCode::DateZoneDropped,
+    WarningCode::MonthsTruncated,
+    WarningCode::BfeelDefault,
+  ];
+
+  /// The code as responses write it.
+  pub fn as_str(self) -> &'static str {
+    match self {
+      WarningCode::NumberRounded => "number-rounded",
+      WarningCode::FractionTruncated => "fraction-truncated",
+      WarningCode::DateZoneDropped => "date-zone-dropped",
+      WarningCode::MonthsTruncated => "months-truncated",
+      WarningCode::BfeelDefault => "bfeel-default",
+    }
+  }
+
+  /// The code of the number `number` ([WarningCode] as `u8`), None for a number that is none.
+  pub fn from_number(number: u8) -> Option<WarningCode> {
+    Self::ALL.get(number as usize).copied()
+  }
+}
+
+/// A warning of an evaluation: what it is about, and the message.
+#[derive(Clone, PartialEq, Eq)]
+pub struct Warning {
+  pub code: WarningCode,
+  pub message: String,
+}
+
+/// Shown as its message is: the recorded outcomes of the tests hold the warnings so.
+impl std::fmt::Debug for Warning {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    std::fmt::Debug::fmt(&self.message, f)
+  }
+}
+
+impl std::fmt::Display for Warning {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.write_str(&self.message)
+  }
+}
+
+/// A warning is read as a text by its message.
+impl std::ops::Deref for Warning {
+  type Target = str;
+
+  fn deref(&self) -> &str {
+    &self.message
+  }
+}
+
+/// A warning is compared with a text by its message.
+impl PartialEq<Warning> for String {
+  fn eq(&self, other: &Warning) -> bool {
+    *self == other.message
+  }
+}
+
+impl PartialEq<Warning> for &str {
+  fn eq(&self, other: &Warning) -> bool {
+    *self == other.message
+  }
+}
+
+impl PartialEq<&str> for Warning {
+  fn eq(&self, other: &&str) -> bool {
+    self.message == *other
+  }
+}
+
+impl PartialEq<String> for Warning {
+  fn eq(&self, other: &String) -> bool {
+    self.message == *other
+  }
+}
+
 thread_local! {
   static ACTIVE: Cell<bool> = const { Cell::new(false) };
   static COUNT: Cell<usize> = const { Cell::new(0) };
   static MESSAGES: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
-  static WARNINGS: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
+  static WARNINGS: RefCell<Vec<Warning>> = const { RefCell::new(Vec::new()) };
+  /// The errors recorded now are warnings ([as_warnings]).
+  static AS_WARNINGS: Cell<bool> = const { Cell::new(false) };
 }
 
 /// Errors and warnings recorded during one evaluation.
@@ -56,7 +157,7 @@ pub struct Diagnostics {
   /// the same message (an error passed up through several operators) are kept once.
   pub messages: Vec<String>,
   /// The first [MAX_MESSAGES] warnings, kept as the messages are.
-  warnings: Vec<String>,
+  warnings: Vec<Warning>,
 }
 
 impl Diagnostics {
@@ -67,7 +168,7 @@ impl Diagnostics {
 
   /// The first [MAX_MESSAGES] warnings, in the order they occurred; consecutive repeats of the
   /// same warning (a literal evaluated in a loop) are kept once.
-  pub fn warnings(&self) -> &[String] {
+  pub fn warnings(&self) -> &[Warning] {
     &self.warnings
   }
 }
@@ -91,15 +192,41 @@ pub fn record(severity: Severity, message: &str) {
   if severity == Severity::Note || !ACTIVE.with(Cell::get) {
     return;
   }
+  if AS_WARNINGS.with(Cell::get) {
+    keep_warning(WarningCode::BfeelDefault, message);
+    return;
+  }
   COUNT.with(|count| count.set(count.get() + 1));
   keep(&MESSAGES, message);
 }
 
+/// Makes the errors recorded from now on warnings (`on`), or errors again, and gives what was in
+/// force before, for the caller to put back. B-FEEL turns on around an operation whose answer it
+/// defines whatever it is (a comparison, `between`, `in`: DMN 1.7 Beta 1, 11.1), so its errors
+/// become warnings as they are recorded, not moved there after. A collection starts with it off
+/// and puts back what was in force around it, also when the evaluation stops.
+pub fn as_warnings(on: bool) -> bool {
+  AS_WARNINGS.with(|flag| flag.replace(on))
+}
+
 /// Records a warning when a collection is active; outside one it has no effect, as [record].
-pub fn warn(message: &str) {
+pub fn warn(code: WarningCode, message: &str) {
   if ACTIVE.with(Cell::get) {
-    keep(&WARNINGS, message);
+    keep_warning(code, message);
   }
+}
+
+/// Keeps a warning: the first [MAX_MESSAGES], a consecutive repeat of a message once.
+fn keep_warning(code: WarningCode, message: &str) {
+  WARNINGS.with(|list| {
+    let mut list = list.borrow_mut();
+    if list.len() < MAX_MESSAGES && list.last().map(|last| last.message.as_str()) != Some(message) {
+      list.push(Warning {
+        code,
+        message: message.to_string(),
+      });
+    }
+  });
 }
 
 /// Keeps `message` in `list`: the first [MAX_MESSAGES], a consecutive repeat once.
@@ -145,6 +272,32 @@ struct Mark {
 }
 
 impl Tentative {
+  /// Makes the errors recorded since the mark warnings: the count is set back, the messages cut
+  /// to their marked length, and the cut messages kept among the warnings (B-FEEL, DMN 1.7 Beta 1,
+  /// 11.1: where B-FEEL defines a result for what FEEL calls an error, the error is no error).
+  pub fn demote(self) {
+    if let Some(mark) = self.0 {
+      COUNT.with(|count| count.set(mark.count));
+      // the messages are moved, not copied, and no list is made for them: a B-FEEL evaluation
+      // demotes on every operation whose answer it defines
+      MESSAGES.with(|messages| {
+        let mut messages = messages.borrow_mut();
+        let at = mark.messages.min(messages.len());
+        WARNINGS.with(|warnings| {
+          let mut warnings = warnings.borrow_mut();
+          for message in messages.drain(at..) {
+            if warnings.len() < MAX_MESSAGES && warnings.last().map(|last| &last.message) != Some(&message) {
+              warnings.push(Warning {
+                code: WarningCode::BfeelDefault,
+                message,
+              });
+            }
+          }
+        });
+      });
+    }
+  }
+
   /// Removes the errors and the warnings recorded since the mark: the count is set back and both
   /// lists are cut to their marked lengths. A message that repeated the last one before the mark
   /// was counted but not kept, so the cut is exact, also at the cap; a collection nested in the
@@ -163,15 +316,17 @@ impl Tentative {
 /// when the evaluation panics (a thread that keeps collecting would record forever).
 struct Collection {
   was_active: bool,
+  saved_as_warnings: bool,
   saved_count: usize,
   saved_messages: Vec<String>,
-  saved_warnings: Vec<String>,
+  saved_warnings: Vec<Warning>,
 }
 
 impl Collection {
   fn start() -> Self {
     Self {
       was_active: ACTIVE.with(|active| active.replace(true)),
+      saved_as_warnings: AS_WARNINGS.with(|flag| flag.replace(false)),
       saved_count: COUNT.with(|count| count.replace(0)),
       saved_messages: MESSAGES.with(|messages| messages.replace(Vec::new())),
       saved_warnings: WARNINGS.with(|warnings| warnings.replace(Vec::new())),
@@ -192,6 +347,7 @@ impl Drop for Collection {
   fn drop(&mut self) {
     let count = COUNT.with(Cell::get);
     ACTIVE.with(|active| active.set(self.was_active));
+    AS_WARNINGS.with(|flag| flag.set(self.saved_as_warnings));
     COUNT.with(|outer| outer.set(self.saved_count + if self.was_active { count } else { 0 }));
     restore(&MESSAGES, std::mem::take(&mut self.saved_messages), self.was_active);
     restore(&WARNINGS, std::mem::take(&mut self.saved_warnings), self.was_active);
@@ -200,7 +356,7 @@ impl Drop for Collection {
 
 /// Puts the enclosing collection's `saved` list back into `list`, followed by as many of the
 /// inner collection's entries as the cap leaves room for when the enclosing one was collecting.
-fn restore(list: &'static LocalKey<RefCell<Vec<String>>>, mut saved: Vec<String>, add_inner: bool) {
+fn restore<T>(list: &'static LocalKey<RefCell<Vec<T>>>, mut saved: Vec<T>, add_inner: bool) {
   list.with(|list| {
     let inner = list.take();
     if add_inner {
@@ -577,6 +733,11 @@ pub enum ErrorMode {
 mod tests {
   use super::*;
 
+  /// A warning of some code: these tests are about the messages.
+  fn warn(message: &str) {
+    super::warn(WarningCode::NumberRounded, message);
+  }
+
   #[test]
   fn collection_ends_when_the_evaluation_panics() {
     let result = std::panic::catch_unwind(|| {
@@ -750,7 +911,11 @@ mod tests {
 
   /// What a collection holds: the count, the messages and the warnings.
   fn held(diagnostics: &Diagnostics) -> (usize, Vec<String>, Vec<String>) {
-    (diagnostics.count, diagnostics.messages.clone(), diagnostics.warnings().to_vec())
+    (
+      diagnostics.count,
+      diagnostics.messages.clone(),
+      diagnostics.warnings().iter().map(|warning| warning.message.clone()).collect(),
+    )
   }
 
   #[test]

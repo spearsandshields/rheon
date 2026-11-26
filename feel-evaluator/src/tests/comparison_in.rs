@@ -646,22 +646,42 @@ fn _0124() {
 
 #[test]
 fn _0125() {
-  te_null(false, &scope!(), r#" true in <= @"P2D" "#, "eval_in_unary_less_or_equal");
+  te_null(
+    false,
+    &scope!(),
+    r#" true in <= @"P2D" "#,
+    "comparison '<=' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+  );
 }
 
 #[test]
 fn _0126() {
-  te_null(false, &scope!(), r#" true in < @"P2D" "#, "eval_in_unary_less");
+  te_null(
+    false,
+    &scope!(),
+    r#" true in < @"P2D" "#,
+    "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+  );
 }
 
 #[test]
 fn _0127() {
-  te_null(false, &scope!(), r#" true in >= @"P2D" "#, "eval_in_unary_greater_or_equal");
+  te_null(
+    false,
+    &scope!(),
+    r#" true in >= @"P2D" "#,
+    "comparison '>=' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+  );
 }
 
 #[test]
 fn _0128() {
-  te_null(false, &scope!(), r#" true in > @"P2D" "#, "eval_in_unary_greater");
+  te_null(
+    false,
+    &scope!(),
+    r#" true in > @"P2D" "#,
+    "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+  );
 }
 
 #[test]
@@ -726,7 +746,8 @@ fn _0138() {
 
 #[test]
 fn _0139() {
-  te_null(false, &scope!(), r#" 10 in [(function() 1)] "#, "unexpected type in list: function<>->Any");
+  // an item of a list value is compared by equality, a function too (list contains)
+  te_bool(false, &scope!(), r#" 10 in [(function() 1)] "#, false);
 }
 
 #[test]
@@ -776,7 +797,11 @@ fn _0148() {
 
 #[test]
 fn _0149() {
-  te_bool(false, &scope!(), r#"5 in (!=4,!=5,!=6)"#, false);
+  // a list of tests is the or of its tests (Table 56, grammar rule 15): 5 != 4 is true
+  te_bool(false, &scope!(), r#"5 in (!=4,!=5,!=6)"#, true);
+  te_bool(false, &scope!(), r#"5 in (!=5)"#, false);
+  te_bool(false, &scope!(), r#"5 in (!=5, !=5)"#, false);
+  te_null(false, &scope!(), r#""a" in (!=5, !=6)"#, r#"equal err '"a"' =?= '5'"#);
 }
 
 #[test]
@@ -873,8 +898,18 @@ fn _0160() {
   let scope = scope!();
   te_null(false, &scope, r#" "sad" in (true, false) "#, r#"equal err '"sad"' =?= 'true'"#);
   te_null(false, &scope, r#" "a" in (1, 2) "#, r#"equal err '"a"' =?= '1'"#);
-  te_null(false, &scope, r#" "a" in (< 10, 5) "#, "eval_in_unary_less");
-  te_null(false, &scope, r#" "a" in ([1..5], 2) "#, "eval_in_range");
+  te_null(
+    false,
+    &scope,
+    r#" "a" in (< 10, 5) "#,
+    "comparison '<' expected string on the right, as on the left, found number",
+  );
+  te_null(
+    false,
+    &scope,
+    r#" "a" in ([1..5], 2) "#,
+    "comparison '>=' expected string on the right, as on the left, found number",
+  );
   te_bool(false, &scope, r#" 1 in ("a", 1) "#, true);
   te_bool(false, &scope, r#" 3 in (1, 2) "#, false);
   te_bool(false, &scope, r#" null in (1, 2) "#, false);
@@ -882,4 +917,45 @@ fn _0160() {
   // a list value among the tests is searched as a list
   te_bool(false, &scope, r#" "a" in ([1, 2], [3]) "#, false);
   te_bool(false, &scope, r#" "a" in [1, 2] "#, false);
+}
+
+#[test]
+fn _0200() {
+  // a range, a unary comparison and between are the comparisons of Table 56 and Table 55, joined by
+  // the and of Table 51
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#""b" in ("a"..null)"#,
+    "comparison '<' expected string on the right, as on the left, found Null",
+  );
+  te_bool(false, scope, r#""b" in ("c"..null)"#, false);
+  te_bool(false, scope, r#"15 in (null..10]"#, false);
+  te_bool(false, scope, r#"5 between 10 and null"#, false);
+  te_null(
+    false,
+    scope,
+    r#"5 between null and 10"#,
+    "expected number as a second argument in 'between' operator, actual value type is Null",
+  );
+  // `in = e` and `in != e` are = and !=: null for values of other kinds
+  te_null(false, scope, r#""a" in = 1"#, r#"equal err '"a"' =?= '1'"#);
+  te_null(false, scope, r#""a" in != 1"#, r#"equal err '"a"' =?= '1'"#);
+  // a time without an offset takes the offset of the other (Table 55)
+  te_bool(false, scope, r#"@"10:00:00" in < @"10:30:00+01:00""#, true);
+  te_bool(false, scope, r#"@"10:00:00" in [@"09:00:00+01:00"..@"11:00:00"]"#, true);
+  te_bool(false, scope, r#"@"12:00:00" in [@"09:00:00+01:00"..@"11:00:00"]"#, false);
+}
+
+#[test]
+fn _0201() {
+  // e1 in a list value: an item equal to e1 (e1 = e2 or e1 = e3 ..., Table 56), also when e1 is a list
+  let scope = &scope!();
+  te_bool(false, scope, r#"[1, 2] in [[1, 2], [3]]"#, true);
+  te_bool(false, scope, r#"[3] in [[1, 2], [3]]"#, true);
+  te_bool(false, scope, r#"[2, 1] in [[1, 2]]"#, false);
+  te_bool(false, scope, r#"[1, 2] in [1, 2]"#, false);
+  te_bool(false, scope, r#"5 in [[5]]"#, false);
+  te_bool(false, scope, r#"5 in [5, [6]]"#, true);
 }

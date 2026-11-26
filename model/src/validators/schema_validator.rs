@@ -357,7 +357,7 @@ mod v14 {
 
   pub const V_DECISION: ([&str; 1], [&str; 3], [&str; 0], [&str; 26]) = (
     [ATTR_NAME],
-    [ATTR_ID, NODE_AUTHORITY_REQUIREMENT, ATTR_NAME],
+    [ATTR_ID, ATTR_LABEL, ATTR_NAME],
     [],
     [
       NODE_ALLOWED_ANSWERS,

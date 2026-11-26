@@ -31,7 +31,7 @@ fn _0001() {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"[{Flight Number: "UA456", Miles: 500000, Name: "Jenny", Status: "gold"}, {Flight Number: "UA456", Miles: 100000, Name: "Harry", Status: "gold"}, {Flight Number: "UA789", Miles: 50000, Name: "Igor", Status: "gold"}, {Flight Number: "UA789", Miles: 100, Name: "Dick", Status: "silver"}, {Flight Number: null, Miles: 10, Name: "Tom", Status: "bronze"}]"#,
+    r#"[{Name: "Jenny", Status: "gold", Miles: 500000, Flight Number: "UA456"}, {Name: "Harry", Status: "gold", Miles: 100000, Flight Number: "UA456"}, {Name: "Igor", Status: "gold", Miles: 50000, Flight Number: "UA789"}, {Name: "Dick", Status: "silver", Miles: 100, Flight Number: "UA789"}, {Name: "Tom", Status: "bronze", Miles: 10, Flight Number: null}]"#,
   );
 }
 
@@ -44,6 +44,6 @@ fn _0002() {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"[{Flight Number: "UA123", Miles: 500000, Name: "Jenny", Status: "gold"}, {Flight Number: "UA123", Miles: 100000, Name: "Harry", Status: "gold"}, {Flight Number: "UA123", Miles: 50000, Name: "Igor", Status: "gold"}, {Flight Number: "UA123", Miles: 100, Name: "Dick", Status: "silver"}, {Flight Number: "UA123", Miles: 10, Name: "Tom", Status: "bronze"}]"#,
+    r#"[{Name: "Jenny", Status: "gold", Miles: 500000, Flight Number: "UA123"}, {Name: "Harry", Status: "gold", Miles: 100000, Flight Number: "UA123"}, {Name: "Igor", Status: "gold", Miles: 50000, Flight Number: "UA123"}, {Name: "Dick", Status: "silver", Miles: 100, Flight Number: "UA123"}, {Name: "Tom", Status: "bronze", Miles: 10, Flight Number: "UA123"}]"#,
   );
 }

@@ -17,7 +17,7 @@
         </informationRequirement>
         <context id="_eQfF0IDoEee-MeWXoLgrYg">
             <contextEntry>
-                <variable name="boxedFnDefinition" typeRef="string" id="_eSTqx4DoEee-MeWXoLgrYg"/>
+                <variable name="boxedFnDefinition" id="_eSTqx4DoEee-MeWXoLgrYg"/>
                 <functionDefinition id="_e0S9gIDoEee-MeWXoLgrYg">
                     <formalParameter typeRef="string" name="a" id="_htc78IDoEee-MeWXoLgrYg"/>
                     <formalParameter typeRef="string" name="b" id="_a6M_IIDrEeehqsf_bU54Lw"/>
@@ -27,7 +27,7 @@
                 </functionDefinition>
             </contextEntry>
             <contextEntry>
-                <variable name="literalFnDefinition" typeRef="string" id="_nsnCAIDoEee-MeWXoLgrYg"/>
+                <variable name="literalFnDefinition" id="_nsnCAIDoEee-MeWXoLgrYg"/>
                 <literalExpression id="_nsnCAYDoEee-MeWXoLgrYg">
                     <text>function(a,b) a + b</text>
                 </literalExpression>
@@ -49,7 +49,7 @@
         </informationRequirement>
         <context id="_HeJ8gYDzEeehqsf_bU54Lw">
             <contextEntry>
-                <variable name="boxedFnDefinition" typeRef="string" id="_HeJ8g4DzEeehqsf_bU54Lw"/>
+                <variable name="boxedFnDefinition" id="_HeJ8g4DzEeehqsf_bU54Lw"/>
                 <functionDefinition id="_HeKjkYDzEeehqsf_bU54Lw">
                     <formalParameter typeRef="string" name="a" id="_HeKjk4DzEeehqsf_bU54Lw"/>
                     <formalParameter typeRef="string" name="b" id="_HeKjlYDzEeehqsf_bU54Lw"/>
@@ -59,7 +59,7 @@
                 </functionDefinition>
             </contextEntry>
             <contextEntry>
-                <variable name="literalFnDefinition" typeRef="string" id="_HeKjmYDzEeehqsf_bU54Lw"/>
+                <variable name="literalFnDefinition" id="_HeKjmYDzEeehqsf_bU54Lw"/>
                 <literalExpression id="_HeKjm4DzEeehqsf_bU54Lw">
                     <text>function(a,b) a + b</text>
                 </literalExpression>

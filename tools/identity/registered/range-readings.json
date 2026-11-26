@@ -1,0 +1,60 @@
+[
+  {
+    "expression": "x in [1..2]",
+    "why": "Range readings pinned (DT-035 record): the null reason of a test on a range with a null operand names the comparison (F2: ranges are their comparisons); the answer, null, is unchanged.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "eval_in_range"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_in_range)",
+        "isNull": true,
+        "nullReason": "eval_in_range",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "comparison '>=' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>=' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+        "isNull": true,
+        "nullReason": "comparison '>=' expected a number, string, date, time, date and time, or duration on the left, found Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]

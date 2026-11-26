@@ -15,10 +15,6 @@ pub fn err_empty_literal_expression() -> DsntkError {
   ModelEvaluatorError("empty literal expression".into()).into()
 }
 
-pub fn err_empty_encapsulated_logic() -> DsntkError {
-  ModelEvaluatorError("empty encapsulated logic in business knowledge model".into()).into()
-}
-
 pub fn err_invalid_item_definition_type(s: &str) -> DsntkError {
   ModelEvaluatorError(format!("invalid item definition type for '{}'", arg(s))).into()
 }
@@ -33,6 +29,31 @@ pub fn err_empty_feel_type() -> DsntkError {
 
 pub fn err_empty_function_body() -> DsntkError {
   ModelEvaluatorError("empty function definition body".into()).into()
+}
+
+/// Errors of a decision table whose parts do not make a table (DMN 1.6 §8.2, §8.3).
+#[derive(ToErrorMessage)]
+struct DecisionTableError(String);
+
+/// Raised when a decision table has no output clause.
+pub fn err_table_without_output() -> DsntkError {
+  DecisionTableError("decision table: expected one or more output clauses, found none".into()).into()
+}
+
+/// Raised when a decision table of several outputs has an output without a name.
+pub fn err_table_unnamed_output(output: usize, outputs: usize) -> DsntkError {
+  DecisionTableError(format!("decision table: expected a name for each of its {outputs} outputs, found none for output {output}")).into()
+}
+
+/// Raised when a rule has not an entry for each clause; `what` is `input` or `output`.
+pub fn err_table_rule_entries(rule: usize, what: &str, expected: usize, found: usize) -> DsntkError {
+  let entries = if expected == 1 { "entry" } else { "entries" };
+  DecisionTableError(format!("decision table: expected {expected} {what} {entries} in rule {rule}, found {found}")).into()
+}
+
+/// Raised when the hit policy of a decision table is not one that its shape allows.
+pub fn err_table_hit_policy(policy: &str, expected: &str, found: &str) -> DsntkError {
+  DecisionTableError(format!("decision table: expected {expected} for the hit policy {policy}, found {found}")).into()
 }
 
 /// Errors of the item definitions of the models of a build, found before any of their types is built.

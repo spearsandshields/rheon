@@ -1,0 +1,2196 @@
+[
+  {
+    "request": {
+      "op": "paths",
+      "expression": "loan.amount * rate",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              0,
+              4
+            ]
+          ],
+          "text": "loan",
+          "whole": false
+        },
+        {
+          "path": [
+            "loan",
+            "amount"
+          ],
+          "places": [
+            [
+              0,
+              11
+            ]
+          ],
+          "text": "loan.amount",
+          "whole": true
+        },
+        {
+          "path": [
+            "rate"
+          ],
+          "places": [
+            [
+              14,
+              18
+            ]
+          ],
+          "text": "rate",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "loan",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              0,
+              4
+            ]
+          ],
+          "text": "loan",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "count(loans)",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              6,
+              11
+            ]
+          ],
+          "text": "loans",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "sum(loans[status = \"a\"].payment) / loan.amount",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              4,
+              9
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "payment"
+          ],
+          "places": [
+            [
+              4,
+              31
+            ]
+          ],
+          "text": "loans[].payment",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "status"
+          ],
+          "places": [
+            [
+              10,
+              16
+            ]
+          ],
+          "text": "loans[].status",
+          "whole": true
+        },
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              35,
+              39
+            ]
+          ],
+          "text": "loan",
+          "whole": false
+        },
+        {
+          "path": [
+            "loan",
+            "amount"
+          ],
+          "places": [
+            [
+              35,
+              46
+            ]
+          ],
+          "text": "loan.amount",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "for l in loans return l.customer.name",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              9,
+              14
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "customer"
+          ],
+          "places": [
+            [
+              22,
+              32
+            ]
+          ],
+          "text": "loans[].customer",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "customer",
+            "name"
+          ],
+          "places": [
+            [
+              22,
+              37
+            ]
+          ],
+          "text": "loans[].customer.name",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "loans[1].customer",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              0,
+              5
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "customer"
+          ],
+          "places": [
+            [
+              0,
+              17
+            ]
+          ],
+          "text": "loans[].customer",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "some l in loans satisfies l.amount > rate",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              10,
+              15
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "amount"
+          ],
+          "places": [
+            [
+              26,
+              34
+            ]
+          ],
+          "text": "loans[].amount",
+          "whole": true
+        },
+        {
+          "path": [
+            "rate"
+          ],
+          "places": [
+            [
+              37,
+              41
+            ]
+          ],
+          "text": "rate",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "loans.amount",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              0,
+              5
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "amount"
+          ],
+          "places": [
+            [
+              0,
+              12
+            ]
+          ],
+          "text": "loans[].amount",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "{a: loan, b: a.customer.age, c: b + 1}.c",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              4,
+              8
+            ]
+          ],
+          "text": "loan",
+          "whole": false
+        },
+        {
+          "path": [
+            "loan",
+            "customer"
+          ],
+          "places": [
+            [
+              13,
+              23
+            ]
+          ],
+          "text": "loan.customer",
+          "whole": false
+        },
+        {
+          "path": [
+            "loan",
+            "customer",
+            "age"
+          ],
+          "places": [
+            [
+              13,
+              27
+            ]
+          ],
+          "text": "loan.customer.age",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "{f: function(l) l.customer.name, r: f(loan)}.r",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loan",
+            "customer"
+          ],
+          "places": [
+            [
+              16,
+              26
+            ]
+          ],
+          "text": "loan.customer",
+          "whole": false
+        },
+        {
+          "path": [
+            "loan",
+            "customer",
+            "name"
+          ],
+          "places": [
+            [
+              16,
+              31
+            ]
+          ],
+          "text": "loan.customer.name",
+          "whole": true
+        },
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              38,
+              42
+            ]
+          ],
+          "text": "loan",
+          "whole": false
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "(if rate > 1 then loan else loans[1]).amount",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loan",
+            "amount"
+          ],
+          "places": [
+            [
+              0,
+              44
+            ]
+          ],
+          "text": "loan.amount",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "amount"
+          ],
+          "places": [
+            [
+              0,
+              44
+            ]
+          ],
+          "text": "loans[].amount",
+          "whole": true
+        },
+        {
+          "path": [
+            "rate"
+          ],
+          "places": [
+            [
+              4,
+              8
+            ]
+          ],
+          "text": "rate",
+          "whole": true
+        },
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              18,
+              22
+            ]
+          ],
+          "text": "loan",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              28,
+              33
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "[loan, rate][1].amount",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              0,
+              15
+            ],
+            [
+              1,
+              5
+            ]
+          ],
+          "text": "loan",
+          "whole": false
+        },
+        {
+          "path": [
+            "rate"
+          ],
+          "places": [
+            [
+              0,
+              15
+            ],
+            [
+              0,
+              22
+            ],
+            [
+              7,
+              11
+            ]
+          ],
+          "text": "rate",
+          "whole": true
+        },
+        {
+          "path": [
+            "loan",
+            "amount"
+          ],
+          "places": [
+            [
+              0,
+              22
+            ]
+          ],
+          "text": "loan.amount",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "reverse(loans)[1].status",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans",
+            [],
+            "status"
+          ],
+          "places": [
+            [
+              0,
+              24
+            ]
+          ],
+          "text": "loans[].status",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              8,
+              13
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "get value(loan, \"purpose\")",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loan",
+            "purpose"
+          ],
+          "places": [
+            [
+              0,
+              26
+            ]
+          ],
+          "text": "loan.purpose",
+          "whole": true
+        },
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              10,
+              14
+            ]
+          ],
+          "text": "loan",
+          "whole": false
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "sort(loans, function(a, b) a.amount < b.amount)[1].status",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              5,
+              10
+            ]
+          ],
+          "text": "loans",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "Net-Price + 1",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "Net - Price"
+          ],
+          "places": [
+            [
+              0,
+              9
+            ]
+          ],
+          "text": "Net - Price",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "rate + missing + sum(1) + missing",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "rate"
+          ],
+          "places": [
+            [
+              0,
+              4
+            ]
+          ],
+          "text": "rate",
+          "whole": true
+        }
+      ],
+      "unknown": [
+        {
+          "name": "missing",
+          "places": [
+            [
+              7,
+              14
+            ],
+            [
+              26,
+              33
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "loans[item.amount > rate].payment",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              0,
+              5
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "payment"
+          ],
+          "places": [
+            [
+              0,
+              33
+            ]
+          ],
+          "text": "loans[].payment",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "amount"
+          ],
+          "places": [
+            [
+              6,
+              17
+            ]
+          ],
+          "text": "loans[].amount",
+          "whole": true
+        },
+        {
+          "path": [
+            "rate"
+          ],
+          "places": [
+            [
+              20,
+              24
+            ]
+          ],
+          "text": "rate",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "loan +",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "expected-expression",
+            "from": 6,
+            "message": "Expected an expression after `+`, but the expression ends here.",
+            "to": 6
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: loan +"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "{f: function(n) if n > 0 then f(n - 1) else loan.amount, r: f(rate)}.r",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loan"
+          ],
+          "places": [
+            [
+              44,
+              48
+            ]
+          ],
+          "text": "loan",
+          "whole": false
+        },
+        {
+          "path": [
+            "loan",
+            "amount"
+          ],
+          "places": [
+            [
+              44,
+              55
+            ]
+          ],
+          "text": "loan.amount",
+          "whole": true
+        },
+        {
+          "path": [
+            "rate"
+          ],
+          "places": [
+            [
+              62,
+              66
+            ]
+          ],
+          "text": "rate",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "loans.amount"
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              0,
+              5
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            "amount"
+          ],
+          "places": [
+            [
+              0,
+              12
+            ]
+          ],
+          "text": "loans.amount",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "loans[status = \"a\"].payment"
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              0,
+              5
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "payment"
+          ],
+          "places": [
+            [
+              0,
+              27
+            ]
+          ],
+          "text": "loans[].payment",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "status"
+          ],
+          "places": [
+            [
+              6,
+              12
+            ]
+          ],
+          "text": "loans[].status",
+          "whole": true
+        },
+        {
+          "path": [
+            "status"
+          ],
+          "places": [
+            [
+              6,
+              12
+            ]
+          ],
+          "text": "status",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "rate + missing"
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "rate"
+          ],
+          "places": [
+            [
+              0,
+              4
+            ]
+          ],
+          "text": "rate",
+          "whole": true
+        },
+        {
+          "path": [
+            "missing"
+          ],
+          "places": [
+            [
+              7,
+              14
+            ]
+          ],
+          "text": "missing",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "net operating income / sum(loans[status = \"active\"].payment)"
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "net operating income"
+          ],
+          "places": [
+            [
+              0,
+              20
+            ]
+          ],
+          "text": "net operating income",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              27,
+              32
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "payment"
+          ],
+          "places": [
+            [
+              27,
+              59
+            ]
+          ],
+          "text": "loans[].payment",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "status"
+          ],
+          "places": [
+            [
+              33,
+              39
+            ]
+          ],
+          "text": "loans[].status",
+          "whole": true
+        },
+        {
+          "path": [
+            "status"
+          ],
+          "places": [
+            [
+              33,
+              39
+            ]
+          ],
+          "text": "status",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "loans.amount",
+      "outline": {
+        "types": {
+          "Loan": {
+            "names": {
+              "amount": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string"
+              },
+              "payment": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "names": {
+          "loans": {
+            "type": "list<Loan>"
+          },
+          "loan": {
+            "type": "Loan"
+          },
+          "net operating income": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              0,
+              5
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "amount"
+          ],
+          "places": [
+            [
+              0,
+              12
+            ]
+          ],
+          "text": "loans[].amount",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "loans[status = \"a\"]",
+      "outline": {
+        "types": {
+          "Loan": {
+            "names": {
+              "amount": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string"
+              },
+              "payment": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "names": {
+          "loans": {
+            "type": "list<Loan>"
+          },
+          "loan": {
+            "type": "Loan"
+          },
+          "net operating income": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              0,
+              5
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            []
+          ],
+          "places": [
+            [
+              0,
+              19
+            ]
+          ],
+          "text": "loans[]",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "status"
+          ],
+          "places": [
+            [
+              6,
+              12
+            ]
+          ],
+          "text": "loans[].status",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "expression": "net operating income / sum(loans[status = \"active\"].payment)",
+      "outline": {
+        "types": {
+          "Loan": {
+            "names": {
+              "amount": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string"
+              },
+              "payment": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "names": {
+          "loans": {
+            "type": "list<Loan>"
+          },
+          "loan": {
+            "type": "Loan"
+          },
+          "net operating income": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "net operating income"
+          ],
+          "places": [
+            [
+              0,
+              20
+            ]
+          ],
+          "text": "net operating income",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans"
+          ],
+          "places": [
+            [
+              27,
+              32
+            ]
+          ],
+          "text": "loans",
+          "whole": false
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "payment"
+          ],
+          "places": [
+            [
+              27,
+              59
+            ]
+          ],
+          "text": "loans[].payment",
+          "whole": true
+        },
+        {
+          "path": [
+            "loans",
+            [],
+            "status"
+          ],
+          "places": [
+            [
+              33,
+              39
+            ]
+          ],
+          "text": "loans[].status",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths",
+      "dialect": "unaryTests",
+      "expression": "> rate, 5",
+      "context": {
+        "loan": {
+          "amount": 1,
+          "purpose": "x",
+          "customer": {
+            "name": "n",
+            "age": 3
+          }
+        },
+        "loans": [
+          {
+            "amount": 1,
+            "payment": 2,
+            "status": "a",
+            "customer": {
+              "name": "n"
+            }
+          }
+        ],
+        "rate": 2,
+        "Net - Price": 5
+      }
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "complete": true,
+      "ok": true,
+      "paths": [
+        {
+          "path": [
+            "rate"
+          ],
+          "places": [
+            [
+              2,
+              6
+            ]
+          ],
+          "text": "rate",
+          "whole": true
+        },
+        {
+          "path": [
+            "?"
+          ],
+          "places": [],
+          "text": "?",
+          "whole": true
+        }
+      ],
+      "unknown": []
+    }
+  },
+  {
+    "request": {
+      "op": "paths"
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'paths' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "request",
+        "message": "missing 'expression'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "nope",
+      "expression": "1"
+    },
+    "why": "A new operation, paths: what an expression reads of the names in scope, without evaluating it (request 4 of the consumer's editor requests; owner's yes 2026-11-25). The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'nope' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'nope' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    }
+  }
+]

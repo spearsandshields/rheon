@@ -154,6 +154,10 @@ pub(crate) struct Layout {
   pub(crate) entries: Box<[(u32, Place)]>,
   /// The entries sorted by name, then by position.
   by_name: Box<[u32]>,
+  /// For a context literal whose entries are bound in another order than they are written in
+  /// (the order they need each other): the entries in the order of writing, each by its place
+  /// among `entries`. Empty when the two orders are one.
+  pub(crate) written: Box<[u32]>,
   /// Whether a key of a context literal is written in another form than FEEL reads a name (a
   /// key that is a string): its context says so ([rheon_feel::context::FeelContext::note_key_forms]).
   pub(crate) other_forms: bool,
@@ -182,6 +186,7 @@ impl Layout {
       kind,
       entries: entries.into(),
       by_name: by_name.into(),
+      written: Box::default(),
       other_forms: false,
       aliases: Box::new([]),
       hidden,
@@ -249,6 +254,12 @@ pub(crate) struct Proto {
   /// For each name of `closure`, in its order, the index of its first segment in
   /// [Resolved::names], [NONE] for a name that no binder binds.
   pub(crate) captures: Box<[u32]>,
+  /// The names that the body reads from outside and whose nearest binder there is a variable, a
+  /// parameter or the item of a filter, sorted: the body reads them from its closure before the
+  /// context literals it is written in (DMN 1.6 clause 10.3.2.11: the contexts of a scope are
+  /// looked through from the first, the innermost, to the last). A name whose nearest binder is
+  /// an entry of a context literal is read from that literal first, as every other name is.
+  pub(crate) nearer: Box<[u32]>,
   /// The body, [NONE] for a function whose body is external.
   pub(crate) body: u32,
 }
@@ -291,6 +302,16 @@ impl<'a> Resolved<'a> {
 
 /// Resolves the names of the expression `ast`.
 pub(crate) fn resolve(ast: &AstNode) -> Resolved<'_> {
+  resolve_as(ast, true)
+}
+
+/// [resolve] without the names that each function closes over ([Proto::closure] and
+/// [Proto::captures] are empty): for a reader that does not make closures, the analysis.
+pub(crate) fn resolve_names(ast: &AstNode) -> Resolved<'_> {
+  resolve_as(ast, false)
+}
+
+fn resolve_as(ast: &AstNode, closures: bool) -> Resolved<'_> {
   // every node of the tree is resolved once, and is the child of at most one
   let size = count(ast);
   let mut resolver = Resolver {
@@ -306,6 +327,7 @@ pub(crate) fn resolve(ast: &AstNode) -> Resolved<'_> {
         region: NONE,
         closure: Closure::default(),
         captures: Box::new([]),
+        nearer: Box::new([]),
         body: NONE,
       },
       functions: vec![],
@@ -314,7 +336,12 @@ pub(crate) fn resolve(ast: &AstNode) -> Resolved<'_> {
       frees: vec![],
     },
     interned: HashMap::new(),
+    owned: HashMap::new(),
     partial: NONE,
+    closures,
+    sites: vec![],
+    nearer: vec![],
+    decided: std::collections::HashSet::new(),
     free_names: vec![],
     body: Body {
       proto: NONE,
@@ -327,6 +354,17 @@ pub(crate) fn resolve(ast: &AstNode) -> Resolved<'_> {
   let root = resolver.node(ast);
   resolver.out.root.body = root;
   resolver.out.root.binders = resolver.body.max;
+  // the names that each function reads from its closure first, sorted
+  let mut nearer = std::mem::take(&mut resolver.nearer);
+  nearer.sort_unstable();
+  nearer.dedup();
+  let mut at = 0;
+  while at < nearer.len() {
+    let function = nearer[at].0;
+    let end = at + nearer[at..].partition_point(|(of, _)| *of == function);
+    resolver.out.functions[function as usize].nearer = nearer[at..end].iter().map(|&(_, name)| name).collect();
+    at = end;
+  }
   resolver.out
 }
 
@@ -357,35 +395,48 @@ struct Resolver<'a> {
   /// The names of the tree, each with its index, once there are more than a few (the standard
   /// map, whose hasher is keyed at random, so no input makes its lookups slow).
   interned: HashMap<&'a Name, u32>,
+  /// The names that are not written in the tree (a key by the form FEEL reads a name in,
+  /// `partial`), each with its index, once there are more than a few: `interned` borrows its
+  /// names from the tree and can not hold them.
+  owned: HashMap<Name, u32>,
   /// The index of `partial`, which a `for` binds without a node of the tree, or [NONE].
   partial: u32,
+  /// Whether the names that each function closes over are listed ([resolve_names]).
+  closures: bool,
+  /// Where the function definitions around the position being resolved are written, the
+  /// outermost first: the function, and the innermost region where its definition stands.
+  sites: Vec<(u32, u32)>,
+  /// The names that functions read from their closure first ([Proto::nearer]), as found: the
+  /// function and the name.
+  nearer: Vec<(u32, u32)>,
+  /// The functions and names decided so far ([Resolver::beyond]).
+  decided: std::collections::HashSet<(u32, u32)>,
   /// The free name of each name, read as a name and as a qualified name, or [NONE].
   free_names: Vec<[u32; 2]>,
   body: Body,
 }
 
 impl<'a> Resolver<'a> {
+  /// The index of `name` among the names resolved so far: a few names are found by comparing
+  /// them with each, more in the maps ([Resolver::add_name]).
+  fn index_of(&self, name: &Name) -> Option<u32> {
+    if self.interned.is_empty() && self.owned.is_empty() {
+      self.out.names.iter().position(|known| **known == *name).map(|index| index as u32)
+    } else {
+      self.interned.get(name).or_else(|| self.owned.get(name)).copied()
+    }
+  }
+
   /// The index of a name that is not written in the tree.
   fn owned_name(&mut self, name: Name) -> u32 {
-    let known = if self.interned.is_empty() {
-      self.out.names.iter().position(|known| **known == name).map(|index| index as u32)
-    } else {
-      self.interned.get(&name).copied()
-    };
-    known.unwrap_or_else(|| self.add_name(Cow::Owned(name)))
+    self.index_of(&name).unwrap_or_else(|| self.add_name(Cow::Owned(name)))
   }
 
   fn name(&mut self, name: &'a Name) -> u32 {
     if Borrow::<str>::borrow(name) == PARTIAL {
       return self.partial();
     }
-    // a few names are found by comparing them with each, more in a map ([Resolver::add_name])
-    let known = if self.interned.is_empty() {
-      self.out.names.iter().position(|known| **known == *name).map(|index| index as u32)
-    } else {
-      self.interned.get(name).copied()
-    };
-    known.unwrap_or_else(|| self.add_name(Cow::Borrowed(name)))
+    self.index_of(name).unwrap_or_else(|| self.add_name(Cow::Borrowed(name)))
   }
 
   /// The index of `name` when it is a name of the tree resolved so far, [NONE] otherwise.
@@ -393,12 +444,7 @@ impl<'a> Resolver<'a> {
     if Borrow::<str>::borrow(name) == PARTIAL {
       return self.partial;
     }
-    let known = if self.interned.is_empty() {
-      self.out.names.iter().position(|known| **known == *name).map(|index| index as u32)
-    } else {
-      self.interned.get(name).copied()
-    };
-    known.unwrap_or(NONE)
+    self.index_of(name).unwrap_or(NONE)
   }
 
   /// The index of `partial`.
@@ -409,19 +455,23 @@ impl<'a> Resolver<'a> {
     self.partial
   }
 
-  /// Adds a name; beyond a few names, every name of the tree is in the map too (`partial`, which
-  /// is not, is never looked up by [Resolver::name]).
+  /// Adds a name; beyond a few names, every name is in a map too: a name of the tree in
+  /// `interned`, a name that is not written in the tree in `owned`.
   fn add_name(&mut self, name: Cow<'a, Name>) -> u32 {
     let index = self.out.names.len() as u32;
     self.out.names.push(name);
     self.free_names.push([NONE; 2]);
     if self.out.names.len() > FEW_NAMES {
-      let interned = &mut self.interned;
-      let names = &self.out.names;
-      let new = if interned.is_empty() { 0 } else { index as usize };
+      let (names, interned, owned) = (&self.out.names, &mut self.interned, &mut self.owned);
+      let new = if interned.is_empty() && owned.is_empty() { 0 } else { index as usize };
       for (index, known) in names.iter().enumerate().skip(new) {
-        if let Cow::Borrowed(known) = known {
-          interned.insert(known, index as u32);
+        match known {
+          Cow::Borrowed(known) => {
+            interned.insert(known, index as u32);
+          }
+          Cow::Owned(known) => {
+            owned.insert(known.clone(), index as u32);
+          }
         }
       }
     }
@@ -481,10 +531,64 @@ impl<'a> Resolver<'a> {
       region = parent;
     }
     let used = self.uses(!probes.is_empty(), callee);
+    self.beyond(name);
     Read {
       name,
       probes: probes.into(),
       target: Target::Free(self.free(name, qualified, used)),
+    }
+  }
+
+  /// Decides where the function whose body is being resolved reads the name `name`, which its
+  /// body does not bind, first: the scopes around its definition are looked through from the
+  /// innermost, across the functions it is written in. When the first that has the name is a
+  /// variable or a parameter (or the item of a filter, which has the name or not when it is
+  /// evaluated), the function and every function crossed on the way read their closure first
+  /// ([Proto::nearer]); when it is an entry of a context literal, or nothing has the name,
+  /// they read as every function does, the context literals they are written in first. A
+  /// function whose closure is not listed ([resolve_names]) is not decided.
+  fn beyond(&mut self, name: u32) {
+    let Some(&(innermost, _)) = self.sites.last() else {
+      return;
+    };
+    if !self.closures || !self.decided.insert((innermost, name)) {
+      return;
+    }
+    // the outermost function that reads its closure first: the one whose definition stands in
+    // the scope of the variable or parameter found, or in the predicate of a filter passed on
+    // the way (its item has the name or not when it is evaluated)
+    let mut from = None;
+    'sites: for depth in (0..self.sites.len()).rev() {
+      let mut region = self.sites[depth].1;
+      while region != NONE {
+        let Region { parent, kind } = self.out.regions[region as usize];
+        match kind {
+          RegionKind::Layout { layout, visible } => {
+            let layout = &self.out.layouts[layout as usize];
+            if layout.kind == LayoutKind::Context {
+              // every entry of the literal is in scope for the function (10.3.2.11.1)
+              if layout.find(name, layout.entries.len() as u32).is_some() {
+                break 'sites;
+              }
+            } else if layout.find(name, visible).is_some() {
+              from = Some(depth);
+              break 'sites;
+            }
+          }
+          // the functions written in the predicate read their closure first, whatever has the
+          // name further out, which decides the functions around the filter
+          RegionKind::Item { .. } => from = Some(depth),
+          RegionKind::Closure => break,
+        }
+        region = parent;
+      }
+    }
+    if let Some(from) = from {
+      for depth in from..self.sites.len() {
+        let function = self.sites[depth].0;
+        self.decided.insert((function, name));
+        self.nearer.push((function, name));
+      }
     }
   }
 
@@ -571,6 +675,8 @@ impl<'a> Resolver<'a> {
       | In(a, b)
       | Out(a, b)
       | InstanceOf(a, b)
+      | As(a, b)
+      | AbstractType(a, b)
       | Range(a, b)
       | ContextEntry(a, b)
       | ContextTypeEntry(a, b)
@@ -654,6 +760,7 @@ impl<'a> Resolver<'a> {
             let first = self.name(first);
             let used = self.uses(self.in_filter(), callee);
             self.free(first, true, used);
+            self.beyond(first);
             first
           }
           None => NONE,
@@ -716,6 +823,15 @@ impl<'a> Resolver<'a> {
       .collect();
     self.out.layouts[layout as usize].other_forms = !aliases.is_empty();
     self.out.layouts[layout as usize].aliases = aliases.into();
+    // the entries are bound in the order they are evaluated in; the context shows them in the
+    // order they are written in
+    if order.iter().enumerate().any(|(position, &index)| position != index) {
+      let mut written = vec![0_u32; order.len()];
+      for (position, &index) in order.iter().enumerate() {
+        written[index] = position as u32;
+      }
+      self.out.layouts[layout as usize].written = written.into();
+    }
     let outer = self.body.region;
     let mut kids = Vec::with_capacity(entries.len());
     let mut region = NONE;
@@ -852,14 +968,20 @@ impl<'a> Resolver<'a> {
           params: Box::new([]),
           binders: 0,
           region: NONE,
-          closure: ClosureBuilder::from_function_definition(parameters, body),
+          closure: if self.closures {
+            ClosureBuilder::from_function_definition(parameters, body)
+          } else {
+            Closure::default()
+          },
           captures: Box::new([]),
+          nearer: Box::new([]),
           body: NONE,
         });
         let body_kid = if *external {
           self.node(body)
         } else {
           let outer = self.body;
+          self.sites.push((proto, outer.region));
           self.body = Body {
             proto,
             region: NONE,
@@ -895,6 +1017,7 @@ impl<'a> Resolver<'a> {
           proto_entry.region = region;
           proto_entry.body = expression;
           self.body = outer;
+          self.sites.pop();
           self.add(body, Info::None, &[expression])
         };
         (proto, body_kid)
@@ -964,10 +1087,19 @@ pub(crate) fn variables(contexts: &AstNode, quantified: bool) -> Vec<(&Name, Vec
     }
     AstNode::QuantifiedContexts(items) if quantified => {
       for item in items {
-        if let AstNode::QuantifiedContext(name, domain) = item
-          && let AstNode::Name(name) = name.as_ref()
-        {
-          variables.push((name, vec![domain.as_ref()]));
+        match item {
+          AstNode::QuantifiedContext(name, domain) => {
+            if let AstNode::Name(name) = name.as_ref() {
+              variables.push((name, vec![domain.as_ref()]));
+            }
+          }
+          // `some i in 1..3` (DMN 1.7 Beta 1, grammar rule 46)
+          AstNode::IterationContextInterval(name, start, end) => {
+            if let AstNode::Name(name) = name.as_ref() {
+              variables.push((name, vec![start.as_ref(), end.as_ref()]));
+            }
+          }
+          _ => {}
         }
       }
     }

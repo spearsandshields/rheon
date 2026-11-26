@@ -166,5 +166,29 @@ fn _0018() {
   let not_conformant = "argument for parameter 'x' does not conform to type number";
   te_null(false, scope, r#"f("a")"#, not_conformant);
   te_null(false, scope, r#"f(x: "a")"#, not_conformant);
-  te_string(false, scope, r#"f([1])"#, "PMML, document = d, model name = m");
+  te_null(false, scope, r#"f([1])"#, "external PMML functions are not supported");
+}
+
+#[test]
+fn a_list_is_the_list_of_it_where_a_list_of_lists_is_taken() {
+  // to singleton list applies to a list as to any value of type T (10.3.2.9.4)
+  let scope = &te_scope("{}");
+  te_be_value(false, scope, "{f: function(x: list<list<number>>) x, r: f([1, 2])}.r", "[[1, 2]]");
+  te_be_value(false, scope, "{f: function(x: list<list<number>>) x, r: f([[1], [2]])}.r", "[[1], [2]]");
+  // from singleton list comes first: [[1]] is the list [1]
+  te_be_value(false, scope, "{f: function(x: list<number>) x, r: f([[1]])}.r", "[1]");
+}
+
+#[test]
+fn a_built_in_whose_result_is_any_binds_to_a_function_type() {
+  // as a function literal does: a result of type Any is not held against the target in a binding
+  let scope = &te_scope("{}");
+  te_number(false, scope, "{f: function(g: function<list<number>>->number) g([1, 2]), r: f(max)}.r", 2, 0);
+  te_number(false, scope, "{f: function(g: function<list<number>>->number) g([1, 2]), r: f(function(l) max(l))}.r", 2, 0);
+  te_null(
+    false,
+    scope,
+    "{f: function(g: function<>->number) g(), r: f(sum)}.r",
+    "argument for parameter 'g' does not conform to type function<>->number",
+  );
 }

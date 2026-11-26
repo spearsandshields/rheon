@@ -15,6 +15,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFile
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { strip } from './strip.mjs';
 import { canonical, parseJson } from './json.mjs';
 import { checkRule, explainedBy, explains } from './rules.mjs';
 
@@ -587,4 +588,27 @@ test('bisect.sh tells a module that makes the recorded changes from one that doe
   // a module that cannot be loaded is skipped, a usage error ends the bisect
   assert.equal(bisect(reference, recorded, path.join(dir, 'missing.wasm')).status, 125);
   assert.equal(bisect(reference).status, 128);
+});
+
+test('the code of a failure and of a warning is left out of the comparison, the code of a syntax error is not', () => {
+  const request = { op: 'evaluate' };
+  assert.deepEqual(strip({ ok: false, error: { kind: 'syntax', code: 'syntax-error', message: 'm', diagnostics: [{ code: 'expected', message: 'd', from: 0, to: 1 }] }, elapsedMicros: 3 }, request), {
+    ok: false,
+    error: { kind: 'syntax', message: 'm', diagnostics: [{ code: 'expected', message: 'd', from: 0, to: 1 }] },
+  });
+  assert.deepEqual(strip({ ok: true, result: { display: '1' }, warnings: [{ code: 'unknown-field', message: 'w' }], diagnostics: [{ code: 'expected', message: 'd' }] }, request), {
+    ok: true,
+    result: { display: '1' },
+    warnings: [{ message: 'w' }],
+    diagnostics: [{ code: 'expected', message: 'd' }],
+  });
+  // the answers of the entries of a request, and its own warnings
+  assert.deepEqual(
+    strip({ ok: true, contextWarnings: [{ code: 'unknown-field', message: 'c' }], results: [{ ok: false, error: { kind: 'request', code: 'missing-field', message: 'e' } }, { ok: true, warnings: [{ code: 'no-input', message: 'w' }] }, 1] }, { op: 'evaluateAll' }),
+    { ok: true, contextWarnings: [{ message: 'c' }], results: [{ ok: false, error: { kind: 'request', message: 'e' } }, { ok: true, warnings: [{ message: 'w' }] }, 1] },
+  );
+  // the fields of the build go as before, and the response given is not changed
+  const response = { ok: true, version: '1', engineCommit: 'c', elapsedMicros: 1, warnings: [{ code: 'x', message: 'w' }] };
+  assert.deepEqual(strip(response, { op: 'info' }), { ok: true, warnings: [{ message: 'w' }] });
+  assert.equal(response.warnings[0].code, 'x');
 });

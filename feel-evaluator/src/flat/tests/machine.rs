@@ -44,7 +44,13 @@ fn verify_rejects_indices_out_of_range() {
   );
   assert_eq!(
     at(0, "message out of range"),
-    program(vec![Op::Warn { msg: 1 }, Op::Return { src: Opnd::konst(0) }], vec![Value::Null(None)], vec!["w"], 0).verify()
+    program(
+      vec![Op::Warn { msg: 1, code: 0 }, Op::Return { src: Opnd::konst(0) }],
+      vec![Value::Null(None)],
+      vec!["w"],
+      0
+    )
+    .verify()
   );
   assert_eq!(
     at(0, "constant out of range"),
@@ -52,7 +58,7 @@ fn verify_rejects_indices_out_of_range() {
   );
   assert_eq!(
     at(1, "the code of a body does not end with a return"),
-    program(vec![Op::Warn { msg: 0 }], vec![], vec!["w"], 0).verify()
+    program(vec![Op::Warn { msg: 0, code: 0 }], vec![], vec!["w"], 0).verify()
   );
 }
 
@@ -87,14 +93,14 @@ fn a_run_records_errors_and_warnings_in_order() {
   let mut builder = ProgramBuilder::default();
   let warning = builder.message("w");
   let error = builder.message("e");
-  builder.emit(Op::Warn { msg: warning });
+  builder.emit(Op::Warn { msg: warning, code: 0 });
   builder.emit(Op::Fail { dst: 0, msg: error });
   builder.emit(Op::Return { src: Opnd::take(0) });
   let end = builder.here();
   let program = builder.finish(1, end, crate::Dialect::Feel, vec![], vec![]);
   let (value, recorded) = diagnostics::collect(|| program.run(&FeelScope::default()));
   let (expected, expected_recorded) = diagnostics::collect(|| {
-    diagnostics::warn("w");
+    diagnostics::warn(diagnostics::WarningCode::NumberRounded, "w");
     value_null!("e")
   });
   assert_eq!((format!("{expected:?}"), expected_recorded), (format!("{value:?}"), recorded));

@@ -376,7 +376,8 @@ fn _0062() {
 #[test]
 fn _0063() {
   let scope = &te_scope(r#"{Power: 25.5,engine:{power:280.5}}"#);
-  te_bool(false, scope, "Power instance of engine.power", true);
+  // a value on the right maps to no node of the type lattice: null (Table 62)
+  te_null(false, scope, "Power instance of engine.power", "instance of expected a type on the right, found number");
 }
 
 #[test]
@@ -419,4 +420,164 @@ fn _0070() {
     r#"null(invalid value in 'instance of' operator: Irrelevant)"#,
     crate::tests::eval(&scope!(), &node).to_string()
   );
+}
+
+/// The type of the items of a list is the type of the item that the types of all the others
+/// conform to, wherever that item stands: a null beside numbers is a list of numbers.
+#[test]
+fn the_type_of_a_list_does_not_depend_on_the_order_of_its_items() {
+  for (items, feel_type, expected) in [
+    (vec!["null", "1"], "list<number>", true),
+    (vec!["null", "1", "null", "2"], "list<number>", true),
+    (vec!["null", "1"], "list<string>", false),
+    (vec!["null", "1", r#""a""#], "list<number>", false),
+    (vec!["null", "1", r#""a""#], "list<Any>", true),
+    (vec!["[null]", "[1]"], "list<list<number>>", true),
+    (vec!["[null]", "[1]", "[]"], "list<list<number>>", true),
+    (vec!["{a: null}", "{a: 1}"], "list<context<a: number>>", true),
+    (vec!["{a: 1, b: 2}", "{a: 1}"], "list<context<a: number>>", true),
+    (vec!["{a: 1, b: 2}", "{a: 1}"], "list<context<a: number, b: number>>", false),
+    (vec!["{a: 1}", "{b: 1}"], "list<context<a: number>>", false),
+    // null conforms to every type (Table 62: conformance)
+    (vec!["null", "null"], "list<number>", true),
+    (vec!["null", "null"], "list<Null>", true),
+  ] {
+    // every rotation of the items, and their reverse
+    let mut items = items;
+    for _ in 0..items.len() {
+      items.rotate_left(1);
+      for list in [items.clone(), items.iter().rev().cloned().collect()] {
+        let text = format!("[{}] instance of {feel_type}", list.join(", "));
+        te_bool(false, &scope!(), &text, expected);
+      }
+    }
+  }
+  // the type that a message names
+  te_null(
+    false,
+    &scope!(),
+    "abs([null, 1, 2])",
+    "[core::abs] invalid argument type, expected number, actual type is list<number>",
+  );
+  te_null(
+    false,
+    &scope!(),
+    "abs([1, null, 2])",
+    "[core::abs] invalid argument type, expected number, actual type is list<number>",
+  );
+}
+
+#[test]
+fn built_in_functions_are_of_function_types() {
+  // a built-in is of a function type when one of its signatures is (10.3.2.9.2)
+  let scope = &te_scope("{}");
+  te_bool(false, scope, "abs instance of Any", true);
+  // abs of a number is a number, and abs of a duration a duration (TCK 0092 decision_014_1)
+  te_bool(false, scope, "abs instance of function<number>->number", true);
+  te_bool(false, scope, "abs instance of function<years and months duration>->years and months duration", true);
+  te_bool(false, scope, "abs instance of function<number>->string", false);
+  te_bool(false, scope, "abs instance of function<number>->Any", true);
+  te_bool(false, scope, "sqrt instance of function<number>->number", true);
+  te_bool(false, scope, "sqrt instance of function<string>->number", false);
+  te_bool(false, scope, "sqrt instance of function<number, number>->number", false);
+  te_bool(false, scope, "string length instance of function<string>->number", true);
+  te_bool(false, scope, "sum instance of function<number, number, number>->number", true);
+  te_bool(false, scope, "sort instance of function<list<number>, function<number, number>->boolean>->list<Any>", true);
+  te_bool(false, scope, "abs instance of number", false);
+}
+
+#[test]
+fn a_rest_parameter_takes_one_argument_or_more() {
+  let scope = &te_scope("{}");
+  te_bool(false, scope, "sum instance of function<>->number", false);
+  te_bool(false, scope, "sum instance of function<number>->number", true);
+  // instance of holds a result of type Any against the target
+  te_bool(false, scope, "max instance of function<list<number>>->number", false);
+}
+
+#[test]
+fn the_context_type_without_entries_is_every_context() {
+  // DMN 1.7 Beta 1, grammar rule 54: context<>
+  let scope = &te_scope("{}");
+  te_bool(false, scope, "{a: 1} instance of context<>", true);
+  te_bool(false, scope, "{} instance of context<>", true);
+  te_bool(false, scope, "1 instance of context<>", false);
+  te_number(false, scope, "(function(c: context<>) c.a)({a: 5})", 5, 0);
+}
+
+#[test]
+fn as_converts_to_a_type_the_value_is_of() {
+  // DMN 1.7 Beta 1, Table 62: e as T is e when e instance of T, otherwise null
+  let scope = &te_scope(r#"{x: 5, as of date: "2020", price as of today: 7, y: "s"}"#);
+  te_string(false, scope, r#""abc" as string"#, "abc");
+  te_null(false, scope, "123 as string", "a value of type number is no string");
+  te_be_value(false, scope, "[1, 2, 3] as list<number>", "[1, 2, 3]");
+  te_number(false, scope, "abs(x as number)", 5, 0);
+  te_null(false, scope, "abs(y as number)", "[core::abs] invalid argument type, expected number, actual type is Null");
+  te_null(false, scope, "null as number", "");
+  // names that hold `as` keep their meaning
+  te_string(false, scope, "as of date", "2020");
+  te_number(false, scope, "price as of today", 7, 0);
+  te_number(false, scope, "price as of today + 1", 8, 0);
+}
+
+#[test]
+fn the_abstract_types_of_dmn_1_7() {
+  // DMN 1.7 Beta 1, Figure 10-26: comparable above number, string, temporal and duration;
+  // temporal above date, time and date and time; duration above both durations
+  let scope = &te_scope("{}");
+  for (text, expected) in [
+    ("1 instance of comparable", true),
+    (r#""a" instance of comparable"#, true),
+    (r#"@"2020-01-01" instance of comparable"#, true),
+    (r#"@"P1D" instance of comparable"#, true),
+    ("true instance of comparable", false),
+    ("[1] instance of comparable", false),
+    (r#"@"2020-01-01" instance of temporal"#, true),
+    (r#"@"10:00:00" instance of temporal"#, true),
+    (r#"@"2020-01-01T10:00:00" instance of temporal"#, true),
+    (r#"@"P1D" instance of temporal"#, false),
+    (r#"@"P1D" instance of duration"#, true),
+    (r#"@"P1Y" instance of duration"#, true),
+    ("1 instance of duration", false),
+    ("{a: 1} instance of context", true),
+    ("1 instance of context", false),
+    ("[1, 2] instance of list<comparable>", true),
+    ("[1, true] instance of list<comparable>", false),
+  ] {
+    te_bool(false, scope, text, expected);
+  }
+  // a name in scope of the same text wins
+  let scope = &te_scope("{temporal: 5}");
+  te_null(false, scope, "1 instance of temporal", "instance of expected a type on the right, found number");
+}
+
+#[test]
+fn a_type_of_the_context_wins_over_an_abstract_type() {
+  // an item definition named duration, as a model gives it through its context: the type wins
+  let mut ctx = rheon_feel::context::FeelContext::default();
+  ctx.set_entry(&"duration".into(), rheon_feel::values::Value::FeelType(rheon_feel::FeelType::Number));
+  let scope = rheon_feel::FeelScope::default();
+  scope.push(ctx);
+  let node = rheon_feel_parser::parse_expression(&scope, "5 instance of duration").unwrap();
+  assert_eq!("true", super::eval(&scope, &node).to_string());
+  let node = rheon_feel_parser::parse_expression(&scope, r#"@"P1D" instance of duration"#).unwrap();
+  assert_eq!("false", super::eval(&scope, &node).to_string());
+  // in a filter, a key named duration does not hide the type
+  let scope = &te_scope("{}");
+  te_be_value(false, scope, r#"{a: {duration: 1}, b: [@"P1D"][item instance of duration]}.b"#, r#"[@"P1D"]"#);
+}
+
+#[test]
+fn review_of_f7_types() {
+  let scope = &te_scope("{}");
+  // a range is an instance of the range types it conforms to (Table 62)
+  te_bool(false, scope, "[1..5] instance of range<comparable>", true);
+  te_bool(false, scope, "[1..5] instance of range<Any>", true);
+  te_bool(false, scope, "[1..5] instance of range<string>", false);
+  // abs is a function of a duration to a duration
+  te_bool(false, scope, "abs instance of function<duration>->duration", true);
+  te_bool(false, scope, "abs instance of function<years and months duration>->years and months duration", true);
+  te_bool(false, scope, "abs instance of function<number>->string", false);
+  te_bool(false, scope, "sum instance of function<>->number", false);
 }

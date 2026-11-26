@@ -85,16 +85,16 @@ fn _0015() {
 
 #[test]
 fn _0016() {
-  eq("decision015", &CTX, "null(parameter 'entries' not found)");
+  eq(
+    "decision015",
+    &CTX,
+    "null(expected the parameters of context(entries): context, found the parameter name 'entris')",
+  );
 }
 
 #[test]
 fn _0017() {
-  eq(
-    "decision016",
-    &CTX,
-    "null([core::context] invalid argument type, expected list or context, actual type is string)",
-  );
+  eq("decision016", &CTX, "null(context: invalid entry, expected context, actual type is string)");
 }
 
 #[test]

@@ -1,0 +1,894 @@
+[
+  {
+    "request": {
+      "op": "complete",
+      "expression": "",
+      "outline": {
+        "names": {
+          "a": {
+            "type": "number",
+            "names": {}
+          }
+        }
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}}, {\"items\": <outline>} or {\"function\": {\"parameters\": […], \"result\": <type>}}, with \"description\" and \"deprecated\" beside it when it has them, and \"values\" beside a type"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "lo",
+      "outline": {
+        "types": {
+          "Loan": {
+            "names": {
+              "amount": {
+                "type": "number"
+              },
+              "purpose": {
+                "type": "string",
+                "description": "Loan purpose"
+              },
+              "customer": {
+                "type": "Customer"
+              }
+            }
+          },
+          "Customer": {
+            "description": "The borrower",
+            "names": {
+              "loans": {
+                "type": "list<Loan>"
+              },
+              "old score": {
+                "type": "number",
+                "deprecated": "use score"
+              },
+              "score": {
+                "type": "number"
+              },
+              "Monthly Income": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "names": {
+          "loan": {
+            "type": "Loan",
+            "description": "The loan being assessed"
+          }
+        }
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms. The fields of the answer have the names of the Language Server Protocol since outline-v2-completion.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "documentation": "The loan being assessed",
+          "from": 0,
+          "kind": "name",
+          "label": "loan",
+          "type": "Loan"
+        },
+        {
+          "detail": "log(number): number",
+          "documentation": "The natural logarithm.",
+          "from": 0,
+          "kind": "function",
+          "label": "log",
+          "type": "number"
+        },
+        {
+          "detail": "lower case(string): string",
+          "documentation": "The string in lower case.",
+          "from": 0,
+          "kind": "function",
+          "label": "lower case",
+          "type": "string"
+        }
+      ],
+      "ok": true,
+      "to": 2,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "loan.",
+      "outline": {
+        "types": {
+          "Loan": {
+            "names": {
+              "amount": {
+                "type": "number"
+              },
+              "purpose": {
+                "type": "string",
+                "description": "Loan purpose"
+              },
+              "customer": {
+                "type": "Customer"
+              }
+            }
+          },
+          "Customer": {
+            "description": "The borrower",
+            "names": {
+              "loans": {
+                "type": "list<Loan>"
+              },
+              "old score": {
+                "type": "number",
+                "deprecated": "use score"
+              },
+              "score": {
+                "type": "number"
+              },
+              "Monthly Income": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "names": {
+          "loan": {
+            "type": "Loan",
+            "description": "The loan being assessed"
+          }
+        }
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms. The fields of the answer have the names of the Language Server Protocol since outline-v2-completion.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 5,
+          "kind": "entry",
+          "label": "amount",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 5,
+          "kind": "entry",
+          "label": "customer",
+          "type": "Customer"
+        },
+        {
+          "detail": null,
+          "documentation": "Loan purpose",
+          "from": 5,
+          "kind": "entry",
+          "label": "purpose",
+          "type": "string"
+        }
+      ],
+      "ok": true,
+      "to": 5,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "loan.customer.",
+      "outline": {
+        "types": {
+          "Loan": {
+            "names": {
+              "amount": {
+                "type": "number"
+              },
+              "purpose": {
+                "type": "string",
+                "description": "Loan purpose"
+              },
+              "customer": {
+                "type": "Customer"
+              }
+            }
+          },
+          "Customer": {
+            "description": "The borrower",
+            "names": {
+              "loans": {
+                "type": "list<Loan>"
+              },
+              "old score": {
+                "type": "number",
+                "deprecated": "use score"
+              },
+              "score": {
+                "type": "number"
+              },
+              "Monthly Income": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "names": {
+          "loan": {
+            "type": "Loan",
+            "description": "The loan being assessed"
+          }
+        }
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "entry",
+          "label": "loans",
+          "type": "list<Loan>"
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "entry",
+          "label": "Monthly Income",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "entry",
+          "label": "score",
+          "type": "number"
+        },
+        {
+          "deprecated": "use score",
+          "detail": null,
+          "from": 14,
+          "kind": "entry",
+          "label": "old score",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 14,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "loan.customer.loans[1].customer.loans.",
+      "outline": {
+        "types": {
+          "Loan": {
+            "names": {
+              "amount": {
+                "type": "number"
+              },
+              "purpose": {
+                "type": "string",
+                "description": "Loan purpose"
+              },
+              "customer": {
+                "type": "Customer"
+              }
+            }
+          },
+          "Customer": {
+            "description": "The borrower",
+            "names": {
+              "loans": {
+                "type": "list<Loan>"
+              },
+              "old score": {
+                "type": "number",
+                "deprecated": "use score"
+              },
+              "score": {
+                "type": "number"
+              },
+              "Monthly Income": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "names": {
+          "loan": {
+            "type": "Loan",
+            "description": "The loan being assessed"
+          }
+        }
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms. The fields of the answer have the names of the Language Server Protocol since outline-v2-completion.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 38,
+          "kind": "entry",
+          "label": "amount",
+          "type": "list<number>"
+        },
+        {
+          "detail": null,
+          "from": 38,
+          "kind": "entry",
+          "label": "customer",
+          "type": "list<Customer>"
+        },
+        {
+          "detail": null,
+          "documentation": "Loan purpose",
+          "from": 38,
+          "kind": "entry",
+          "label": "purpose",
+          "type": "list<string>"
+        }
+      ],
+      "ok": true,
+      "to": 38,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "for l in loan.customer.loans return l.customer.",
+      "outline": {
+        "types": {
+          "Loan": {
+            "names": {
+              "amount": {
+                "type": "number"
+              },
+              "purpose": {
+                "type": "string",
+                "description": "Loan purpose"
+              },
+              "customer": {
+                "type": "Customer"
+              }
+            }
+          },
+          "Customer": {
+            "description": "The borrower",
+            "names": {
+              "loans": {
+                "type": "list<Loan>"
+              },
+              "old score": {
+                "type": "number",
+                "deprecated": "use score"
+              },
+              "score": {
+                "type": "number"
+              },
+              "Monthly Income": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "names": {
+          "loan": {
+            "type": "Loan",
+            "description": "The loan being assessed"
+          }
+        }
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 47,
+          "kind": "entry",
+          "label": "loans",
+          "type": "list<Loan>"
+        },
+        {
+          "detail": null,
+          "from": 47,
+          "kind": "entry",
+          "label": "Monthly Income",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 47,
+          "kind": "entry",
+          "label": "score",
+          "type": "number"
+        },
+        {
+          "deprecated": "use score",
+          "detail": null,
+          "from": 47,
+          "kind": "entry",
+          "label": "old score",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 47,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "loan.customer.Monthly Income + loan.",
+      "outline": {
+        "types": {
+          "Loan": {
+            "names": {
+              "amount": {
+                "type": "number"
+              },
+              "purpose": {
+                "type": "string",
+                "description": "Loan purpose"
+              },
+              "customer": {
+                "type": "Customer"
+              }
+            }
+          },
+          "Customer": {
+            "description": "The borrower",
+            "names": {
+              "loans": {
+                "type": "list<Loan>"
+              },
+              "old score": {
+                "type": "number",
+                "deprecated": "use score"
+              },
+              "score": {
+                "type": "number"
+              },
+              "Monthly Income": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "names": {
+          "loan": {
+            "type": "Loan",
+            "description": "The loan being assessed"
+          }
+        }
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms. The fields of the answer have the names of the Language Server Protocol since outline-v2-completion.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 36,
+          "kind": "entry",
+          "label": "amount",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 36,
+          "kind": "entry",
+          "label": "customer",
+          "type": "Customer"
+        },
+        {
+          "detail": null,
+          "documentation": "Loan purpose",
+          "from": 36,
+          "kind": "entry",
+          "label": "purpose",
+          "type": "string"
+        }
+      ],
+      "ok": true,
+      "to": 36,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "syntax",
+      "expression": "loan.customer.Monthly Income * 12",
+      "outline": {
+        "types": {
+          "Loan": {
+            "names": {
+              "amount": {
+                "type": "number"
+              },
+              "purpose": {
+                "type": "string",
+                "description": "Loan purpose"
+              },
+              "customer": {
+                "type": "Customer"
+              }
+            }
+          },
+          "Customer": {
+            "description": "The borrower",
+            "names": {
+              "loans": {
+                "type": "list<Loan>"
+              },
+              "old score": {
+                "type": "number",
+                "deprecated": "use score"
+              },
+              "score": {
+                "type": "number"
+              },
+              "Monthly Income": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "names": {
+          "loan": {
+            "type": "Loan",
+            "description": "The loan being assessed"
+          }
+        }
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": [],
+      "ok": true,
+      "tokens": [
+        [
+          "name",
+          0,
+          4
+        ],
+        [
+          "operator",
+          4,
+          5
+        ],
+        [
+          "property",
+          5,
+          13
+        ],
+        [
+          "operator",
+          13,
+          14
+        ],
+        [
+          "property",
+          14,
+          28
+        ],
+        [
+          "whitespace",
+          28,
+          29
+        ],
+        [
+          "operator",
+          29,
+          30
+        ],
+        [
+          "whitespace",
+          30,
+          31
+        ],
+        [
+          "number",
+          31,
+          33
+        ]
+      ],
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "format",
+      "expression": "loan.customer.Monthly Income*12",
+      "outline": {
+        "types": {
+          "Loan": {
+            "names": {
+              "amount": {
+                "type": "number"
+              },
+              "purpose": {
+                "type": "string",
+                "description": "Loan purpose"
+              },
+              "customer": {
+                "type": "Customer"
+              }
+            }
+          },
+          "Customer": {
+            "description": "The borrower",
+            "names": {
+              "loans": {
+                "type": "list<Loan>"
+              },
+              "old score": {
+                "type": "number",
+                "deprecated": "use score"
+              },
+              "score": {
+                "type": "number"
+              },
+              "Monthly Income": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "names": {
+          "loan": {
+            "type": "Loan",
+            "description": "The loan being assessed"
+          }
+        }
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "changed": true,
+      "formatted": "loan.customer.Monthly Income * 12",
+      "ok": true
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "a",
+      "outline": {
+        "types": {
+          "A": {
+            "type": "B"
+          },
+          "B": {
+            "type": "A"
+          }
+        },
+        "names": {}
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "context",
+        "message": "outline.types.A: expected a type that is more than the name of another, found types that are only each other"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "a",
+      "outline": {
+        "types": {
+          "number": {
+            "names": {}
+          }
+        }
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "context",
+        "message": "outline.types: expected a name that is no type of FEEL, found \"number\""
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "a",
+      "outline": {
+        "names": {
+          "a": {
+            "type": "number",
+            "descripton": "x"
+          }
+        }
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "context",
+        "message": "outline.a: an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}}, {\"items\": <outline>} or {\"function\": {\"parameters\": […], \"result\": <type>}}, with \"description\" and \"deprecated\" beside it when it has them, and \"values\" beside a type; found the field \"descripton\" with the value \"x\""
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "a",
+      "outline": {
+        "types": {
+          "T": {
+            "names": {
+              "x": {
+                "type": "T"
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms. The fields of the answer have the names of the Language Server Protocol since outline-v2-completion.",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": "abs(n): number or duration",
+          "documentation": "The absolute value.",
+          "from": 0,
+          "kind": "function",
+          "label": "abs",
+          "type": "number or duration"
+        },
+        {
+          "detail": "after(point1, point2): boolean",
+          "documentation": "Whether the first comes after the second.",
+          "from": 0,
+          "kind": "function",
+          "label": "after",
+          "type": "boolean"
+        },
+        {
+          "detail": "all(list): boolean",
+          "documentation": "False when an item is false.",
+          "from": 0,
+          "kind": "function",
+          "label": "all",
+          "type": "boolean"
+        },
+        {
+          "detail": "any(list): boolean",
+          "documentation": "True when an item is true.",
+          "from": 0,
+          "kind": "function",
+          "label": "any",
+          "type": "boolean"
+        },
+        {
+          "detail": "append(list, item...): list",
+          "documentation": "The list with the items added at its end.",
+          "from": 0,
+          "kind": "function",
+          "label": "append",
+          "type": "list"
+        }
+      ],
+      "ok": true,
+      "to": 1,
+      "truncated": false
+    }
+  }
+]

@@ -153,17 +153,32 @@ fn _0018() {
 
 #[test]
 fn _0019() {
-  te_null(false, &scope!(), r#"overlaps(range1: [1..5],r2: [3..8])"#, "parameter 'range2' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"overlaps(range1: [1..5],r2: [3..8])"#,
+    "expected the parameters of overlaps(range1, range2): boolean, found the parameter name 'r2'",
+  );
 }
 
 #[test]
 fn _0020() {
-  te_null(false, &scope!(), r#"overlaps(r1: [1..5],range2: [3..8])"#, "parameter 'range1' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"overlaps(r1: [1..5],range2: [3..8])"#,
+    "expected the parameters of overlaps(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
 fn _0021() {
-  te_null(false, &scope!(), r#"overlaps(r1: [1..5], r2: [3..8])"#, "parameter 'range1' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"overlaps(r1: [1..5], r2: [3..8])"#,
+    "expected the parameters of overlaps(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
@@ -182,6 +197,6 @@ fn _0023() {
     false,
     &scope!(),
     r#"overlaps(1, [date("2022-12-28")..date("2022-12-31")])"#,
-    "[core::overlaps] invalid argument type, expected range<scalar>, actual type is number",
+    "[core::overlaps] invalid argument type, expected range of scalars, actual type is number",
   );
 }

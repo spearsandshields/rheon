@@ -138,7 +138,7 @@ export interface FeelInstance {
 }
 
 function crashJson(message: string): string {
-  return JSON.stringify({ ok: false, error: { kind: 'crash', message } });
+  return JSON.stringify({ ok: false, error: { kind: 'crash', code: 'crash', message } });
 }
 
 /**

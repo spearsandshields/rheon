@@ -1,0 +1,2006 @@
+[
+  {
+    "expression": "date(\"999999999-12-31\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date] invalid date string '999999999-12-31')",
+        "isNull": true,
+        "nullReason": "[core::date] invalid date string '999999999-12-31'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"999999999-12-31\"",
+        "feel": "999999999-12-31",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "999999999-12-31",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"-999999999-01-01\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '-999999999-01-01'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date] invalid date string '-999999999-01-01')",
+        "isNull": true,
+        "nullReason": "[core::date] invalid date string '-999999999-01-01'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-999999999-01-01\"",
+        "feel": "-999999999-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-999999999-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(999999999, 12, 31)",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date_3] invalid date y=999999999 m=12 d=31"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date_3] invalid date y=999999999 m=12 d=31)",
+        "isNull": true,
+        "nullReason": "[core::date_3] invalid date y=999999999 m=12 d=31",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"999999999-12-31\"",
+        "feel": "999999999-12-31",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "999999999-12-31",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "@\"262143-01-01\"",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid @ literal: 262143-01-01"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid @ literal: 262143-01-01)",
+        "isNull": true,
+        "nullReason": "invalid @ literal: 262143-01-01",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"262143-01-01\"",
+        "feel": "262143-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "262143-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"999999999-12-31\") = date(999999999, 12, 31)",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'",
+          "[core::date_3] invalid date y=999999999 m=12 d=31"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"999999999-12-31\") > date(\"999999999-12-30\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'",
+          "[core::date] invalid date string '999999999-12-30'",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"-999999999-01-01\") < date(\"2024-01-01\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '-999999999-01-01'",
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+        "isNull": true,
+        "nullReason": "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"300000-06-15\") in [date(\"300000-01-01\")..date(\"300000-12-31\")]",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "[core::date] invalid date string '300000-06-15'",
+          "[core::date] invalid date string '300000-01-01'",
+          "[core::date] invalid date string '300000-12-31'",
+          "eval_in_range"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_in_range)",
+        "isNull": true,
+        "nullReason": "eval_in_range",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"999999999-12-31\").year",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date] invalid date string '999999999-12-31')",
+        "isNull": true,
+        "nullReason": "[core::date] invalid date string '999999999-12-31'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "999999999",
+        "feel": "999999999",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "999999999",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "day of week(date(\"999999999-12-31\"))",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'",
+          "[core::day of week] invalid argument type, expected date, date and time, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::day of week] invalid argument type, expected date, date and time, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::day of week] invalid argument type, expected date, date and time, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"Friday\"",
+        "feel": "\"Friday\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "Friday",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "day of year(date(\"999999999-12-31\"))",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'",
+          "[core::day of year] invalid argument type, expected date, date and time, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::day of year] invalid argument type, expected date, date and time, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::day of year] invalid argument type, expected date, date and time, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "365",
+        "feel": "365",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "365",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "week of year(date(\"999999999-12-31\"))",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'",
+          "[core::week of year] invalid argument type, expected date, date and time, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::week of year] invalid argument type, expected date, date and time, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::week of year] invalid argument type, expected date, date and time, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "52",
+        "feel": "52",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "52",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "month of year(date(\"999999999-12-31\"))",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'",
+          "[core::month of year] invalid argument type, expected date, date and time, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::month of year] invalid argument type, expected date, date and time, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::month of year] invalid argument type, expected date, date and time, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"December\"",
+        "feel": "\"December\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "December",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"999999999-12-30\") + duration(\"P1D\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-30'",
+          "[addition] incompatible types: null([core::date] invalid date string '999999999-12-30') + P1D"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null([core::date] invalid date string '999999999-12-30') + P1D)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null([core::date] invalid date string '999999999-12-30') + P1D",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"999999999-12-31\"",
+        "feel": "999999999-12-31",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "999999999-12-31",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"999999999-12-31\") + duration(\"P1D\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'",
+          "[addition] incompatible types: null([core::date] invalid date string '999999999-12-31') + P1D"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null([core::date] invalid date string '999999999-12-31') + P1D)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null([core::date] invalid date string '999999999-12-31') + P1D",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid result while adding days and time duration to date"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid result while adding days and time duration to date)",
+        "isNull": true,
+        "nullReason": "invalid result while adding days and time duration to date",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"999999998-12-31\") + duration(\"P1Y\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '999999998-12-31'",
+          "[addition] incompatible types: null([core::date] invalid date string '999999998-12-31') + P1Y"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null([core::date] invalid date string '999999998-12-31') + P1Y)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null([core::date] invalid date string '999999998-12-31') + P1Y",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"999999999-12-31\"",
+        "feel": "999999999-12-31",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "999999999-12-31",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"300000-03-01\") - duration(\"P1D\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '300000-03-01'",
+          "[subtraction] incompatible types: null([core::date] invalid date string '300000-03-01') - P1D"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: null([core::date] invalid date string '300000-03-01') - P1D)",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: null([core::date] invalid date string '300000-03-01') - P1D",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"300000-02-29\"",
+        "feel": "300000-02-29",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "300000-02-29",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"300000-03-01\") - date(\"300000-02-28\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "[core::date] invalid date string '300000-03-01'",
+          "[core::date] invalid date string '300000-02-28'",
+          "[subtraction] incompatible types: null([core::date] invalid date string '300000-03-01') - null([core::date] invalid date string '300000-02-28')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: null([core::date] invalid date string '300000-03-01') - null([core::date] invalid date string '300000-02-28'))",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: null([core::date] invalid date string '300000-03-01') - null([core::date] invalid date string '300000-02-28')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P2D\"",
+        "feel": "P2D",
+        "isNull": false,
+        "type": "days and time duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P2D",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"-300000-01-01\") - date(\"-300000-01-02\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "[core::date] invalid date string '-300000-01-01'",
+          "[core::date] invalid date string '-300000-01-02'",
+          "[subtraction] incompatible types: null([core::date] invalid date string '-300000-01-01') - null([core::date] invalid date string '-300000-01-02')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: null([core::date] invalid date string '-300000-01-01') - null([core::date] invalid date string '-300000-01-02'))",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: null([core::date] invalid date string '-300000-01-01') - null([core::date] invalid date string '-300000-01-02')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-P1D\"",
+        "feel": "-P1D",
+        "isNull": false,
+        "type": "days and time duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-P1D",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"262142-12-31\") + duration(\"P1D\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid result while adding days and time duration to date"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid result while adding days and time duration to date)",
+        "isNull": true,
+        "nullReason": "invalid result while adding days and time duration to date",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"262143-01-01\"",
+        "feel": "262143-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "262143-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"-262143-01-01\") - duration(\"P1D\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[subtraction] incompatible types: -262143-01-01 - P1D"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: -262143-01-01 - P1D)",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: -262143-01-01 - P1D",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-262144-12-31\"",
+        "feel": "-262144-12-31",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-262144-12-31",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"999999999-12-31\") - date(\"-999999999-01-01\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'",
+          "[core::date] invalid date string '-999999999-01-01'",
+          "[subtraction] incompatible types: null([core::date] invalid date string '999999999-12-31') - null([core::date] invalid date string '-999999999-01-01')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: null([core::date] invalid date string '999999999-12-31') - null([core::date] invalid date string '-999999999-01-01'))",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: null([core::date] invalid date string '999999999-12-31') - null([core::date] invalid date string '-999999999-01-01')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[subtraction] incompatible types: 999999999-12-31 - -999999999-01-01"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: 999999999-12-31 - -999999999-01-01)",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: 999999999-12-31 - -999999999-01-01",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "years and months duration(date(\"-999999999-01-01\"), date(\"999999999-12-31\"))",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "[core::date] invalid date string '-999999999-01-01'",
+          "[core::date] invalid date string '999999999-12-31'",
+          "[core::years and months duration] invalid argument type, expected date, date and time, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::years and months duration] invalid argument type, expected date, date and time, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::years and months duration] invalid argument type, expected date, date and time, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P1999999998Y11M\"",
+        "feel": "P1999999998Y11M",
+        "isNull": false,
+        "type": "years and months duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P1999999998Y11M",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date and time(date(\"262143-01-01\"), time(\"00:00:00\"))",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '262143-01-01'",
+          "[core::date and time] invalid argument type, expected date and time or date, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date and time] invalid argument type, expected date and time or date, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::date and time] invalid argument type, expected date and time or date, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date and time] expected a year from -262143 to 262142, found the year 262143"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date and time] expected a year from -262143 to 262142, found the year 262143)",
+        "isNull": true,
+        "nullReason": "[core::date and time] expected a year from -262143 to 262142, found the year 262143",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date and time(date(\"262143-01-01\"), time(\"00:00:00\"), \"Z\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '262143-01-01'",
+          "[core::date and time] invalid argument type, expected date and time or date, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date and time] invalid argument type, expected date and time or date, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::date and time] invalid argument type, expected date and time or date, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date and time] expected a year from -262143 to 262142, found the year 262143"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date and time] expected a year from -262143 to 262142, found the year 262143)",
+        "isNull": true,
+        "nullReason": "[core::date and time] expected a year from -262143 to 262142, found the year 262143",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function(d: date and time) d, r: f(date(\"262143-01-01\"))}.r",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '262143-01-01'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date] invalid date string '262143-01-01')",
+        "isNull": true,
+        "nullReason": "[core::date] invalid date string '262143-01-01'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "argument for parameter 'd' does not conform to type date and time"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(argument for parameter 'd' does not conform to type date and time)",
+        "isNull": true,
+        "nullReason": "argument for parameter 'd' does not conform to type date and time",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"300000-01-01\") < date and time(\"2024-01-01T00:00:00Z\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '300000-01-01'",
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+        "isNull": true,
+        "nullReason": "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '<' expected date on the right, as on the left, found date and time"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '<' expected date on the right, as on the left, found date and time)",
+        "isNull": true,
+        "nullReason": "comparison '<' expected date on the right, as on the left, found date and time",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"300000-01-01\") = date and time(\"2024-01-01T00:00:00Z\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '300000-01-01'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '300000-01-01' =?= '2024-01-01T00:00:00Z'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '300000-01-01' =?= '2024-01-01T00:00:00Z')",
+        "isNull": true,
+        "nullReason": "equal err '300000-01-01' =?= '2024-01-01T00:00:00Z'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(date(\"999999999-12-31\"))",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"999999999-12-31\"",
+        "feel": "\"999999999-12-31\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "999999999-12-31",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"999999999-12-31\") instance of date",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[date(\"999999999-12-31\")..date(\"999999999-12-31\")]",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::date] invalid date string '999999999-12-31'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[null([core::date] invalid date string '999999999-12-31')..null([core::date] invalid date string '999999999-12-31')]\"",
+        "feel": "[null([core::date] invalid date string '999999999-12-31')..null([core::date] invalid date string '999999999-12-31')]",
+        "isNull": false,
+        "type": "range<Null>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[999999999-12-31..999999999-12-31]\"",
+        "feel": "[999999999-12-31..999999999-12-31]",
+        "isNull": false,
+        "type": "range<date>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sort([date(\"999999999-01-01\"), date(\"-999999999-01-01\"), date(\"2024-01-01\")], function(a, b) a < b)",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "[core::date] invalid date string '999999999-01-01'",
+          "[core::date] invalid date string '-999999999-01-01'",
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null",
+          "comparison '<' expected date on the right, as on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, null, \"2024-01-01\"]",
+        "feel": "[null([core::date] invalid date string '999999999-01-01'), null([core::date] invalid date string '-999999999-01-01'), 2024-01-01]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2024-01-01",
+                  "type": "xsd:date"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[\"-999999999-01-01\", \"2024-01-01\", \"999999999-01-01\"]",
+        "feel": "[-999999999-01-01, 2024-01-01, 999999999-01-01]",
+        "isNull": false,
+        "type": "list<date>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "-999999999-01-01",
+                  "type": "xsd:date"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2024-01-01",
+                  "type": "xsd:date"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "999999999-01-01",
+                  "type": "xsd:date"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "> date(\"262142-12-31\")",
+      "context": "{\"?\": date(\"999999999-12-31\")}",
+      "contextFormat": "feel"
+    },
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_in_unary_greater"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_in_unary_greater)",
+        "isNull": true,
+        "nullReason": "eval_in_unary_greater",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"262143-01-01\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '262143-01-01'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date] invalid date string '262143-01-01')",
+        "isNull": true,
+        "nullReason": "[core::date] invalid date string '262143-01-01'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"262143-01-01\"",
+        "feel": "262143-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "262143-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"-262144-12-31\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string '-262144-12-31'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date] invalid date string '-262144-12-31')",
+        "isNull": true,
+        "nullReason": "[core::date] invalid date string '-262144-12-31'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"-262144-12-31\"",
+        "feel": "-262144-12-31",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-262144-12-31",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date(\"262142-12-31\") + duration(\"P1M\")",
+    "why": "TMP-3: the years of a date are -999,999,999 to 999,999,999 (DMN 1.6, 10.3.4.1, date(year, month, day)). A date was valid only in the years of the calendar library (-262,143 to 262,142), so date(\"999999999-12-31\") was null. The calendar of a date is now computed here, for every year of FEEL. A date and time keeps the years that have instants (to 262,142).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid result while adding years and months duration to date"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid result while adding years and months duration to date)",
+        "isNull": true,
+        "nullReason": "invalid result while adding years and months duration to date",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"262143-01-31\"",
+        "feel": "262143-01-31",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "262143-01-31",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]

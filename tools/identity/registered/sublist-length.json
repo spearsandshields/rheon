@@ -1,0 +1,428 @@
+[
+  {
+    "expression": "sublist([1, 2, 3], 1, 0)",
+    "why": "DT-059: the length of sublist is in [1..E] (DMN 1.7 Beta 1, 10.3.4.4, note 2), also after a decimal length is converted to an integer (note 3); a length below 1 is null with one reason, whether it is 0, a decimal that converts to 0 or negative, and the position is checked first.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sublist: length must be at least 1, actual length is 0"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: length must be at least 1, actual length is 0)",
+        "isNull": true,
+        "nullReason": "sublist: length must be at least 1, actual length is 0",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sublist([1, 2, 3], 1, 0)",
+      "errorMode": "strict"
+    },
+    "why": "DT-059: the length of sublist is in [1..E] (DMN 1.7 Beta 1, 10.3.4.4, note 2), also after a decimal length is converted to an integer (note 3); a length below 1 is null with one reason, whether it is 0, a decimal that converts to 0 or negative, and the position is checked first.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: sublist: length must be at least 1, actual length is 0"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "sublist([1, 2, 3], 2, 0.5)",
+    "why": "DT-059: the length of sublist is in [1..E] (DMN 1.7 Beta 1, 10.3.4.4, note 2), also after a decimal length is converted to an integer (note 3); a length below 1 is null with one reason, whether it is 0, a decimal that converts to 0 or negative, and the position is checked first.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sublist: length must be at least 1, actual length is 0.5"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: length must be at least 1, actual length is 0.5)",
+        "isNull": true,
+        "nullReason": "sublist: length must be at least 1, actual length is 0.5",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sublist([1, 2, 3], 2, 0.5)",
+      "errorMode": "strict"
+    },
+    "why": "DT-059: the length of sublist is in [1..E] (DMN 1.7 Beta 1, 10.3.4.4, note 2), also after a decimal length is converted to an integer (note 3); a length below 1 is null with one reason, whether it is 0, a decimal that converts to 0 or negative, and the position is checked first.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: sublist: length must be at least 1, actual length is 0.5"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "sublist([1, 2, 3], 1, -1)",
+    "why": "DT-059: the length of sublist is in [1..E] (DMN 1.7 Beta 1, 10.3.4.4, note 2), also after a decimal length is converted to an integer (note 3); a length below 1 is null with one reason, whether it is 0, a decimal that converts to 0 or negative, and the position is checked first.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sublist: invalid length value: -1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: invalid length value: -1)",
+        "isNull": true,
+        "nullReason": "sublist: invalid length value: -1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sublist: length must be at least 1, actual length is -1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: length must be at least 1, actual length is -1)",
+        "isNull": true,
+        "nullReason": "sublist: length must be at least 1, actual length is -1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sublist([1, 2, 3], 1, -1)",
+      "errorMode": "strict"
+    },
+    "why": "DT-059: the length of sublist is in [1..E] (DMN 1.7 Beta 1, 10.3.4.4, note 2), also after a decimal length is converted to an integer (note 3); a length below 1 is null with one reason, whether it is 0, a decimal that converts to 0 or negative, and the position is checked first.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: sublist: invalid length value: -1"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: sublist: length must be at least 1, actual length is -1"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sublist([1, 2, 3], 1, 0)",
+      "language": "b-feel"
+    },
+    "why": "DT-059: the length of sublist is in [1..E] (DMN 1.7 Beta 1, 10.3.4.4, note 2), also after a decimal length is converted to an integer (note 3); a length below 1 is null with one reason, whether it is 0, a decimal that converts to 0 or negative, and the position is checked first. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": [
+        {
+          "message": "sublist: length must be at least 1, actual length is 0"
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sublist([1, 2, 3], 2, 0.5)",
+      "language": "b-feel"
+    },
+    "why": "DT-059: the length of sublist is in [1..E] (DMN 1.7 Beta 1, 10.3.4.4, note 2), also after a decimal length is converted to an integer (note 3); a length below 1 is null with one reason, whether it is 0, a decimal that converts to 0 or negative, and the position is checked first. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": [
+        {
+          "message": "sublist: length must be at least 1, actual length is 0.5"
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sublist([1, 2, 3], 1, -1)",
+      "language": "b-feel"
+    },
+    "why": "DT-059: the length of sublist is in [1..E] (DMN 1.7 Beta 1, 10.3.4.4, note 2), also after a decimal length is converted to an integer (note 3); a length below 1 is null with one reason, whether it is 0, a decimal that converts to 0 or negative, and the position is checked first. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sublist: invalid length value: -1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": [
+        {
+          "message": "sublist: length must be at least 1, actual length is -1"
+        }
+      ]
+    }
+  }
+]

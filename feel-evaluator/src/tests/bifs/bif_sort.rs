@@ -37,19 +37,15 @@ fn _0005() {
 
 #[test]
 fn _0006() {
+  // 10 is the list [10] for the list parameter (10.3.2.9.4); 10 is no function
   let scope = &te_scope("{}");
-  te_null(false, scope, "sort(10,10)", r#"sort: expected a list of values as a first argument"#);
+  te_null(false, scope, "sort(10,10)", r#"sort: expected ordering function as a second argument"#);
 }
 
 #[test]
 fn _0007() {
   let scope = &te_scope("{}");
-  te_null(
-    false,
-    scope,
-    r#"sort([5,4,3,2,1],10)"#,
-    r#"sort: expected ordering function definition as a second argument"#,
-  );
+  te_null(false, scope, r#"sort([5,4,3,2,1],10)"#, r#"sort: expected ordering function as a second argument"#);
 }
 
 #[test]
@@ -94,13 +90,23 @@ fn _0011() {
 #[test]
 fn _0012() {
   let scope = &te_scope("{}");
-  te_null(false, scope, "sort(l: [3,1,4,5,2], precedes: function(x,y) x < y)", r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    scope,
+    "sort(l: [3,1,4,5,2], precedes: function(x,y) x < y)",
+    r#"expected the parameters of sort(list, precedes): list, found the parameter name 'l'"#,
+  );
 }
 
 #[test]
 fn _0013() {
   let scope = &te_scope("{}");
-  te_null(false, scope, "sort(list: [3,1,4,5,2], p: function(x,y) x < y)", r#"parameter 'precedes' not found"#);
+  te_null(
+    false,
+    scope,
+    "sort(list: [3,1,4,5,2], p: function(x,y) x < y)",
+    r#"expected the parameters of sort(list, precedes): list, found the parameter name 'p'"#,
+  );
 }
 
 #[test]
@@ -192,4 +198,12 @@ fn _0018() {
     "sort(for i in 1..1000 return modulo(i * 7919, 1001), function(x, y) x < y)",
     "for i in 1..1000 return i",
   );
+}
+
+#[test]
+fn a_built_in_function_orders() {
+  // a built-in function value is a function of two arguments (10.3.4.9)
+  let scope = &te_scope("{}");
+  te_be_value(false, scope, "sort([[3..4], [1..2], [5..6]], before)", "[[1..2], [3..4], [5..6]]");
+  te_null(false, scope, "sort([1, 2], abs)", "sort: ordering function should take exactly two arguments");
 }

@@ -13,6 +13,6 @@ fn _0002() {
     false,
     &scope!(),
     r#"today(when: 1)"#,
-    r#"[named::today] this function has no implementation with named parameters"#,
+    r#"expected the parameters of today(): date, found the parameter name 'when'"#,
   );
 }

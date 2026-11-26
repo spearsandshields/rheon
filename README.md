@@ -130,7 +130,7 @@ let value = evaluate(&scope, &rule).into_result()?;   // 33.75
 
 rheon is at version 0.x: the wasm contract and the npm API grow by addition, and the Rust API of
 the crates can change between minor versions. [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) lists
-what the engine does not do (Java external functions, time zone rules beyond a fixed offset) and
+what the engine does not do (Java, PMML and ONNX external functions, time zone rules beyond a fixed offset) and
 the limits it enforces; [`docs/BACKLOG.md`](docs/BACKLOG.md) lists known bugs.
 
 ## How it fits together

@@ -23,15 +23,16 @@ fn _0004() {
 
 #[test]
 fn _0005() {
-  te_null(
-    false,
-    &scope!(),
-    r#"flatten(10)"#,
-    r#"[core::flatten] invalid argument type, expected list, actual type is number"#,
-  );
+  // a value that is no list is the list of it where a list is taken (10.3.2.9.4)
+  te_be_value(false, &scope!(), r#"flatten(10)"#, r#"[10]"#);
 }
 
 #[test]
 fn _0006() {
-  te_null(false, &scope!(), r#"flatten(l:[1])"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"flatten(l:[1])"#,
+    r#"expected the parameters of flatten(list): list, found the parameter name 'l'"#,
+  );
 }

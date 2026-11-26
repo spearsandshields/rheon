@@ -1,0 +1,214 @@
+[
+  {
+    "expression": "sum instance of function<>->number",
+    "why": "Review of F4: a built-in bound to a function type is not held to a result of type Any in the table of signatures (f(max) for a function<list<number>>->number parameter works, as f(function(l) max(l)) does); instance of still is. A rest parameter stands for one argument or more, so sum is no function<>->number.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sum instance of function<number>->number",
+    "why": "Review of F4: a built-in bound to a function type is not held to a result of type Any in the table of signatures (f(max) for a function<list<number>>->number parameter works, as f(function(l) max(l)) does); instance of still is. A rest parameter stands for one argument or more, so sum is no function<>->number.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function(g: function<list<number>>->number) g([1, 2]), r: f(max)}.r",
+    "why": "Review of F4: a built-in bound to a function type is not held to a result of type Any in the table of signatures (f(max) for a function<list<number>>->number parameter works, as f(function(l) max(l)) does); instance of still is. A rest parameter stands for one argument or more, so sum is no function<>->number.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "argument for parameter 'g' does not conform to type function<list<number>>->number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(argument for parameter 'g' does not conform to type function<list<number>>->number)",
+        "isNull": true,
+        "nullReason": "argument for parameter 'g' does not conform to type function<list<number>>->number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "max instance of function<list<number>>->number",
+    "why": "Review of F4: a built-in bound to a function type is not held to a result of type Any in the table of signatures (f(max) for a function<list<number>>->number parameter works, as f(function(l) max(l)) does); instance of still is. A rest parameter stands for one argument or more, so sum is no function<>->number.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]

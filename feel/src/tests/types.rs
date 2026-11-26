@@ -547,7 +547,8 @@ fn test_type_get_conformant_value() {
   gcv_ok!(T_FUNCTION_A, v_function_a);
   gcv_ok!(T_FUNCTION_B, v_function_b);
   gcv_ok!(T_FUNCTION_C, v_function_c);
-  gcv_ok!(T_FUNCTION_F, v_function_c);
+  // parameters are contravariant (10.3.2.9.2): a function of a number is no function of Any
+  gcv_err!(T_FUNCTION_F, v_function_c);
   gcv_ok!(T_FUNCTION_A, v_null);
   gcv_err!(T_FUNCTION_A, v_function_b);
   gcv_err!(T_FUNCTION_A, v_function_c);

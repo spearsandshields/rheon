@@ -61,12 +61,12 @@ impl Value {
 }
 
 impl FeelList {
-  /// Whether the type of each item after the first conforms to the type of the first item, so
-  /// that the type of this list ([Value::type_of]) is a list of the type of its first item;
-  /// `false` for the empty list. Decided without building a type, reading the items only as far
-  /// as their conformance needs, a pair with a shared list or context once.
-  pub fn items_conform_to_first(&self) -> bool {
-    !self.is_empty() && Relations::default().uniform(self)
+  /// The item whose type the types of all the items conform to, so that the type of this list
+  /// ([Value::type_of]) is a list of the type of that item, wherever it stands; `None` when no
+  /// item is one, and for the empty list. Decided without building a type, reading the items
+  /// only as far as their conformance needs, a pair with a shared list or context once.
+  pub fn item_of_the_widest_type(&self) -> Option<&Value> {
+    Relations::default().widest(self)
   }
 }
 
@@ -155,7 +155,10 @@ impl<'a> Ty<'a> {
         | FeelType::Number
         | FeelType::String
         | FeelType::Time
-        | FeelType::YearsAndMonthsDuration => Shape::Leaf(feel_type),
+        | FeelType::YearsAndMonthsDuration
+        | FeelType::Comparable
+        | FeelType::Temporal
+        | FeelType::Duration => Shape::Leaf(feel_type),
       },
       Ty::Of(value) => match value {
         Value::List(items) => Shape::List(Items::Of(items)),
@@ -237,54 +240,61 @@ enum Relation {
 /// The memory of one relation (see the module documentation).
 #[derive(Default)]
 struct Relations {
-  /// Whether the items of a list conform to its first item, by the address of the items.
-  uniform: Option<HashMap<usize, bool>>,
+  /// The place of the item of a list that all its items conform to ([Relations::widest]), by
+  /// the address of the items.
+  widest: Option<HashMap<usize, Option<usize>>>,
   /// The answers for the pairs with a shared list or a shared context on either side.
   pairs: Option<HashMap<(Relation, Node, Node), bool>>,
 }
 
 impl<'a> Relations {
   /// The type of the items of a list type: for a list value, `Null` when it is empty, the type
-  /// of its first item when the types of the other items conform to it, `Any` otherwise.
+  /// of the item that the types of all its items conform to, `Any` when there is no such item.
   fn items(&mut self, items: Items<'a>) -> Ty<'a> {
     match items {
       Items::Is(feel_type) => Ty::Is(feel_type),
-      Items::Of(list) => match list.first() {
-        None => Ty::Is(NULL),
-        Some(first) => {
-          if self.uniform(list) {
-            Ty::Of(first)
-          } else {
-            Ty::Is(ANY)
-          }
-        }
-      },
+      Items::Of(list) if list.is_empty() => Ty::Is(NULL),
+      Items::Of(list) => self.widest(list).map_or(Ty::Is(ANY), Ty::Of),
     }
   }
 
-  /// Whether the types of the items of a list after the first conform to the type of the first
-  /// (`true` for a list of at most one item).
-  fn uniform(&mut self, list: &'a FeelList) -> bool {
-    let Some((first, rest)) = list.split_first() else {
-      return true;
-    };
-    if rest.is_empty() {
-      return true;
+  /// The item of a list whose type the types of all its items conform to (the only item of a
+  /// list of one); `None` when there is none, and for the empty list. The item does not depend
+  /// on the order of the items but for items of one type, of which it is the first: a null
+  /// beside numbers is not it, wherever it stands.
+  fn widest(&mut self, list: &'a FeelList) -> Option<&'a Value> {
+    if list.len() <= 1 {
+      return list.first();
     }
-    let alike = |relations: &mut Self| rest.iter().all(|item| relations.conforms(Ty::Of(item), Ty::Of(first)));
     // a list of scalars, or of containers of scalars, is cheap to decide again when it is
     // reached again; a deeper one is decided once, so that deciding it never repeats the
     // decisions below it
     if list.nesting_depth() <= 2 {
-      return alike(self);
+      return self.widest_place(list).and_then(|place| list.get(place));
     }
     let address = list.address().expect("a list with items has an address");
-    if let Some(uniform) = self.uniform.as_ref().and_then(|uniform| uniform.get(&address)) {
-      return *uniform;
+    if let Some(place) = self.widest.as_ref().and_then(|widest| widest.get(&address)) {
+      return place.and_then(|place| list.get(place));
     }
-    let uniform = alike(self);
-    self.uniform.get_or_insert_with(HashMap::new).insert(address, uniform);
-    uniform
+    let place = self.widest_place(list);
+    self.widest.get_or_insert_with(HashMap::new).insert(address, place);
+    place.and_then(|place| list.get(place))
+  }
+
+  /// The place of the item of [Relations::widest], in two passes. The first holds an item and
+  /// gives it up for the next item that does not conform to it: the item that all conform to,
+  /// if there is one, is that item or a later one. The second holds the items before the one
+  /// held last against it; those after it conform to it.
+  fn widest_place(&mut self, list: &'a FeelList) -> Option<usize> {
+    let mut held = 0;
+    for (place, item) in list.iter().enumerate().skip(1) {
+      if !self.conforms(Ty::Of(item), Ty::Of(&list[held])) {
+        held = place;
+      }
+    }
+    // the items after the one held conform to it; those before it are still to be held against it
+    let widest = &list[held];
+    list.iter().take(held).all(|item| self.conforms(Ty::Of(item), Ty::Of(widest))).then_some(held)
   }
 
   /// The type of the endpoints of a range type: for a range value, that of its start when its
@@ -358,7 +368,8 @@ impl<'a> Relations {
       return true;
     }
     match (shape, target) {
-      (Shape::Leaf(a), Shape::Leaf(b)) => a == b,
+      // a leaf conforms to itself and to the abstract types above it (Figure 10-26)
+      (Shape::Leaf(a), Shape::Leaf(b)) => a.is_conformant(b),
       (Shape::List(a), Shape::List(b)) => {
         let (a, b) = (self.items(a), self.items(b));
         self.conforms(a, b)
@@ -429,14 +440,15 @@ impl Conformance {
   fn decide(&mut self, value: &Value, target: &FeelType) -> bool {
     match value {
       Value::Null(_) => true,
-      Value::Boolean(_) => matches!(target, FeelType::Boolean),
-      Value::Number(_) => matches!(target, FeelType::Number),
-      Value::String(_) => matches!(target, FeelType::String),
-      Value::Date(_) => matches!(target, FeelType::Date),
-      Value::Time(_) => matches!(target, FeelType::Time),
-      Value::DateTime(_) => matches!(target, FeelType::DateTime),
-      Value::DaysAndTimeDuration(_) => matches!(target, FeelType::DaysAndTimeDuration),
-      Value::YearsAndMonthsDuration(_) => matches!(target, FeelType::YearsAndMonthsDuration),
+      // a value of a simple type conforms to its type and to the abstract types above it
+      Value::Boolean(_) => FeelType::Boolean.is_conformant(target),
+      Value::Number(_) => FeelType::Number.is_conformant(target),
+      Value::String(_) => FeelType::String.is_conformant(target),
+      Value::Date(_) => FeelType::Date.is_conformant(target),
+      Value::Time(_) => FeelType::Time.is_conformant(target),
+      Value::DateTime(_) => FeelType::DateTime.is_conformant(target),
+      Value::DaysAndTimeDuration(_) => FeelType::DaysAndTimeDuration.is_conformant(target),
+      Value::YearsAndMonthsDuration(_) => FeelType::YearsAndMonthsDuration.is_conformant(target),
       Value::Range(start, start_type, end, end_type) => match target {
         // an undefined endpoint has the type of the other one
         FeelType::Range(ends) if start_type.undefined() => self.check(end, ends),
@@ -462,15 +474,23 @@ impl Conformance {
         _ => false,
       },
       Value::FunctionDefinition(function) => match target {
+        // the parameters are contravariant: the target's parameter types conform to the
+        // function's, and the result covariant (10.3.2.9.2). A result type that is Any is one
+        // not declared: the result type of a function literal is not inferred, so it is not
+        // held against the target
         FeelType::Function(parameter_types, result_type) => {
           function.parameters().len() == parameter_types.len()
-            && function.result_type().is_conformant(result_type)
+            && (*function.result_type() == FeelType::Any || function.result_type().is_conformant(result_type))
             && function
               .parameters()
               .iter()
               .zip(parameter_types)
-              .all(|((_, parameter_type), target_type)| parameter_type.is_conformant(target_type))
+              .all(|((_, parameter_type), target_type)| target_type.is_conformant(parameter_type))
         }
+        _ => false,
+      },
+      Value::BuiltInFunction(bif) => match target {
+        FeelType::Function(parameter_types, result_type) => crate::signatures::conforms(bif, parameter_types, result_type, true),
         _ => false,
       },
       _ => false,

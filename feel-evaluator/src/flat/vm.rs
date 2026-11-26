@@ -11,7 +11,7 @@
 //! (its home), its closure, then the scope of the host. It reads nothing of its caller.
 
 use super::program::{CallInfo, Compare, Domain, Fold, Kernel1, Kernel2, ListKind, LoopKind, NONE, Op, Operand, Opnd, Pc, Program, Slot};
-use super::resolve::{Place, Region, RegionKind};
+use super::resolve::{Layout, LayoutKind, Place, Region, RegionKind};
 use crate::Dialect;
 use crate::MAX_CALL_DEPTH;
 use crate::bfeel;
@@ -52,6 +52,11 @@ impl Program {
   pub(crate) fn run(self: &Arc<Self>, scope: &FeelScope) -> Value {
     with_slots(self.slots as usize, |slots| Vm::new(Activation::root(self), scope, slots).execute(0))
   }
+}
+
+/// Whether `value` is a function whose body is of a program: its invocation runs that body.
+fn of_program(value: &Value) -> bool {
+  matches!(value, Value::FunctionDefinition(definition) if !definition.external && matches!(definition.body, FunctionBody::Feel(..)))
 }
 
 /// The program and the proto of `body`, when it is the body of a function definition of the
@@ -187,6 +192,12 @@ struct Vm<'p> {
   calls: Vec<diagnostics::Call>,
   /// The open walks, innermost last: the record of a walk of an activation is its index there.
   records: Vec<Record>,
+  /// B-FEEL: whether errors were recorded as warnings before each operation whose errors are
+  /// recorded as warnings, innermost last (an [Op::DiagMark] and its [Op::BoolDefault] stand
+  /// around one operation).
+  marks: Vec<bool>,
+  /// The diagnostics before the name reads of [Op::TypeName], innermost last.
+  reads: Vec<diagnostics::Tentative>,
   /// The domains of the variables that have a value in the open walks, innermost last.
   domains: Vec<Sequence>,
   /// For each layout of the program the run starts with, the scope that invocations of
@@ -252,6 +263,9 @@ struct Walk {
   base: usize,
   results: FeelList,
   value: Option<Value>,
+  /// `some` and `every`: an item's `satisfies` gave no boolean. The answer is then null unless a
+  /// later item decides it (Table 51: `null or true` is true, `null and false` is false).
+  undecided: bool,
 }
 
 impl Drop for Vm<'_> {
@@ -291,6 +305,8 @@ impl<'p> Vm<'p> {
       folds: vec![],
       calls: vec![],
       records: vec![],
+      marks: vec![],
+      reads: vec![],
       domains: vec![],
       layout_scopes: vec![],
       scopes: vec![],
@@ -402,7 +418,51 @@ impl<'p> Vm<'p> {
           let value = value_null!(&*program.messages[msg as usize]);
           self.set(dst, value);
         }
-        Op::Warn { msg } => diagnostics::warn(&program.messages[msg as usize]),
+        Op::TraceLoop { repeat, closed } => {
+          if closed {
+            super::trace::closed(repeat);
+          } else {
+            super::trace::opened(repeat);
+          }
+        }
+        Op::TraceStep { repeat, record, filter } => {
+          let item = if filter {
+            let filter = self.filter_of(self.act.records, record);
+            filter.visiting.then_some(filter.at)
+          } else {
+            None
+          };
+          super::trace::stepped(repeat, !filter, item);
+        }
+        Op::TraceCall { site, function, done } => {
+          // only a function whose body is of a program enters a body for this invocation
+          let of_text = !done
+            && match function.decode() {
+              Operand::Slot(slot) | Operand::Take(slot) => of_program(self.slot(slot)),
+              Operand::Const(index) => of_program(&self.act.program.consts[index as usize]),
+            };
+          super::trace::calling(of_text.then_some(site));
+        }
+        Op::TraceBody { left } => {
+          if left {
+            super::trace::left();
+          } else {
+            super::trace::entered();
+          }
+        }
+        Op::Record { src, target } => {
+          if super::trace::wants(target) {
+            let value = match src.decode() {
+              Operand::Slot(slot) | Operand::Take(slot) => self.slot(slot).copied(),
+              Operand::Const(index) => self.act.program.consts[index as usize].copied(),
+            };
+            super::trace::record(target, value);
+          }
+        }
+        Op::Warn { msg, code } => diagnostics::warn(
+          diagnostics::WarningCode::from_number(code).unwrap_or(diagnostics::WarningCode::NumberRounded),
+          &program.messages[msg as usize],
+        ),
         Op::LoadName { dst, name, cell } => {
           let value = self.load_name(program, name, cell);
           self.set(dst, value);
@@ -460,8 +520,30 @@ impl<'p> Vm<'p> {
           let value = kernels::between(a, low, high);
           self.set(dst, value);
         }
-        Op::BoolDefault { dst, ne } => {
+        Op::DiagMark => self.marks.push(diagnostics::as_warnings(true)),
+        Op::ReadMark => self.reads.push(diagnostics::tentative_mark()),
+        Op::TypeName { dst, a, b } => {
+          let mark = self.reads.pop();
+          let value = match self.read(a) {
+            Value::Null(_) | Value::BuiltInFunction(_) => {
+              // the name holds nothing of its own: the abstract type, and no error of the read
+              if let Some(mark) = mark {
+                mark.discard();
+              }
+              self.read(b)
+            }
+            value => value,
+          };
+          self.set(dst, value);
+        }
+        Op::BoolDefault { dst, ne, marked } => {
           let value = self.take(dst);
+          // what the operation recorded since its mark went to the warnings (its operands came
+          // before): B-FEEL defines its result, also where the operation gave it itself (a list
+          // of tests in two-valued `in`, which answers false for a test that is null)
+          if marked && let Some(before) = self.marks.pop() {
+            diagnostics::as_warnings(before);
+          }
           let value = bfeel::boolean_result(value, ne);
           self.set(dst, value);
         }
@@ -516,6 +598,7 @@ impl<'p> Vm<'p> {
             },
             Kernel2::Range => kernels::range_of(a, b),
             Kernel2::InstanceOf => kernels::instance_of(a, b),
+            Kernel2::As => kernels::as_type(a, b),
             Kernel2::ContextTypeEntry => kernels::context_type_entry(a, b),
             Kernel2::FunctionType => kernels::function_type(a, b),
             Kernel2::FormalParameter => kernels::formal_parameter(a, b),
@@ -663,7 +746,10 @@ impl<'p> Vm<'p> {
         }
         Op::Context { dst, layout } => {
           let mut context = FeelContext::default();
-          for &(name, place) in program.layouts[layout as usize].entries.iter() {
+          let Layout { entries, written, .. } = &program.layouts[layout as usize];
+          // in the order the entries are written in, which the context shows them in
+          for position in 0..entries.len() {
+            let (name, place) = entries[written.get(position).map_or(position, |place| *place as usize)];
             if let Place::Slot(slot) = place {
               let value = self.take(slot);
               context.set_entry(&program.names[name as usize], value);
@@ -682,14 +768,14 @@ impl<'p> Vm<'p> {
             base,
             results: FeelList::new(),
             value: None,
+            undecided: false,
           }));
         }
         Op::LevelPush { record, domain, a, b } => {
           let a = self.read(a);
           let domain = match domain {
             Domain::Interval => Sequence::interval(a, self.read(b)),
-            Domain::Range => Sequence::range(a, self.read(b)),
-            Domain::Of => Ok(Sequence::of(a)),
+            Domain::Of => Sequence::of_context(a),
           };
           let walk = self.walk(record);
           let info = &program.loops[walk.info as usize];
@@ -699,7 +785,15 @@ impl<'p> Vm<'p> {
               info.step
             }
             Err(reason) => {
-              walk.value = Some(value_null!(reason));
+              // B-FEEL defines the answer of some and every then (false: a boolean expression is
+              // never null, 11.2), so its reason is a warning
+              walk.value = Some(if info.defaulted {
+                let reason = rheon_feel::message::compose(format_args!("{reason}"));
+                diagnostics::warn(diagnostics::WarningCode::BfeelDefault, &reason);
+                Value::Null(Some(reason))
+              } else {
+                value_null!(reason)
+              });
               info.exit
             }
           } as usize;
@@ -730,14 +824,14 @@ impl<'p> Vm<'p> {
                   info.exit
                 }
                 _ => {
-                  walk.value = Some(value_null!());
-                  info.exit
+                  walk.undecided = true;
+                  info.step
                 }
               }
             }
           } as usize;
         }
-        Op::FilterOpen { record: _, info, list } => {
+        Op::FilterOpen { record, info, list } => {
           let (items, wrap) = match self.read(list) {
             Value::List(items) => (items, false),
             Value::Null(_) => {
@@ -749,17 +843,23 @@ impl<'p> Vm<'p> {
             }
             other => (FeelList::from(vec![other]), true),
           };
+          // a predicate that is only a test is not evaluated in the scope around the filter
+          // first: the filter starts with its first item
+          let test = program.filters[info as usize].test;
           self.records.push(Record::Filter(Filter {
             info,
             items,
             wrap,
-            mark: Some(diagnostics::tentative_mark()),
-            visiting: false,
+            mark: (!test).then(diagnostics::tentative_mark),
+            visiting: test,
             at: 0,
             item_entry: false,
             kept: vec![],
             value: None,
           }));
+          if test {
+            pc = self.filter_next(program, record) as usize;
+          }
         }
         Op::FilterStep { record, c } => {
           let c = self.read(c);
@@ -806,6 +906,8 @@ impl<'p> Vm<'p> {
             }
             let value = walk.value.unwrap_or_else(|| match info.kind {
               LoopKind::For => Value::List(walk.results),
+              // no item decided it and one gave no boolean: the or (and) of the answers is null
+              LoopKind::Some | LoopKind::Every if walk.undecided => value_null!(),
               LoopKind::Some => Value::Boolean(false),
               LoopKind::Every => Value::Boolean(true),
             });
@@ -877,7 +979,7 @@ impl<'p> Vm<'p> {
     let mut captures = proto.captures.iter();
     let function = kernels::function_definition(parameters, body, &proto.closure, |name| {
       let first = captures.next().copied().unwrap_or(NONE);
-      self.search_from(info.region, first, name)
+      self.captured(info.region, first, name)
     });
     // a function sees the entries of the context literal it is written in
     match (function, self.home()) {
@@ -1095,13 +1197,13 @@ impl<'p> Vm<'p> {
   }
 
   /// Visits the scopes from the region `region` of the activation that runs down, innermost
-  /// first; the first value that `visit` gives.
-  fn scopes_below(&self, region: u32, mut visit: impl FnMut(&Self, &Activation, Region) -> Option<Value>) -> Option<Value> {
+  /// first; what the first scope that `visit` decides in gives.
+  fn scopes_below<T>(&self, region: u32, mut visit: impl FnMut(&Self, &Activation, Region) -> Option<T>) -> Option<T> {
     let mut at = region;
     while at != NONE {
       let region = self.act.program.regions[at as usize];
-      if let Some(value) = visit(self, &self.act, region) {
-        return Some(value);
+      if let Some(decided) = visit(self, &self.act, region) {
+        return Some(decided);
       }
       at = region.parent;
     }
@@ -1127,9 +1229,21 @@ impl<'p> Vm<'p> {
       }
       RegionKind::Closure => {
         let function = act.function.as_ref()?;
-        self.at_home(function, name).or_else(|| function.closure_ctx.get_entry(name).cloned())
+        let closed = || function.closure_ctx.get_entry(name).cloned();
+        if self.closure_first(act, index) {
+          closed().or_else(|| self.at_home(function, name))
+        } else {
+          self.at_home(function, name).or_else(closed)
+        }
       }
     }
+  }
+
+  /// Whether the body of `act` reads the name `names[index]` of its program from its closure
+  /// before the context literals it is written in: the nearest scope around the function that
+  /// has the name is a variable, a parameter or the item of a filter ([Proto::nearer]).
+  fn closure_first(&self, act: &Activation, index: u32) -> bool {
+    act.program.protos.get(act.proto as usize).is_some_and(|proto| proto.nearer.binary_search(&index).is_ok())
   }
 
   /// The step of the filter of `record` after its predicate gave `c`: evaluated in the scope around the filter, a number selects
@@ -1168,6 +1282,14 @@ impl<'p> Vm<'p> {
         }
       }
     }
+    self.filter_next(program, record)
+  }
+
+  /// Where a filter that visits its items goes on: at its predicate for the item at hand, or at
+  /// its close with its value after the last item or when the evaluation was stopped.
+  fn filter_next(&mut self, program: &Program, record: u32) -> Pc {
+    let filter = self.filter_mut(record);
+    let info = &program.filters[filter.info as usize];
     // an item is a step of the evaluation; after the last one the result is given unless the
     // evaluation was stopped
     let stopped = match filter.items.get(filter.at) {
@@ -1415,13 +1537,82 @@ impl<'p> Vm<'p> {
           }
           RegionKind::Closure => {
             let function = act.function.as_ref()?;
-            vm.at_home(function, head)
-              .and_then(|value| search_in(&value, &segments[1..]))
-              .or_else(|| function.closure_ctx.search_deep(segments).cloned())
+            let closed = || function.closure_ctx.search_deep(segments).cloned();
+            let at_home = || vm.at_home(function, head).and_then(|value| search_in(&value, &segments[1..]));
+            if vm.closure_first(act, first) {
+              closed().or_else(at_home)
+            } else {
+              at_home().or_else(closed)
+            }
           }
         }
       })
       .or_else(|| self.host.search(segments))
+  }
+
+  /// What a function definition at the region `region` keeps of the qualified name `segments`
+  /// that its body reads: the value of the name, with the number of its segments; or, when the
+  /// innermost scope that has the first segment has not the others, the value of the first
+  /// segment alone, with 1, so that the body reads the name there (it has no value) and not in a
+  /// scope further out. An entry of a context literal is not kept so: the body reads it where
+  /// the function is written, when the entry has its value.
+  #[cold]
+  #[inline(never)]
+  fn captured(&self, region: u32, first: u32, segments: &[Name]) -> Option<(usize, Value)> {
+    let Some(head) = segments.first() else {
+      return self.host.search(segments).map(|value| (segments.len(), value));
+    };
+    let program = &self.act.program;
+    // in the scope that decides: the value of the name, and the value of its first segment
+    let decided: Option<(Option<Value>, Option<Value>)> = self.scopes_below(region, |vm, act, region| {
+      let first = if Arc::ptr_eq(&act.program, program) {
+        first
+      } else {
+        vm.name_index(&act.program, Some(head))
+      };
+      match region.kind {
+        RegionKind::Layout { layout, visible } => {
+          let layout = &act.program.layouts[layout as usize];
+          layout.find(first, visible).map(|place| {
+            let value = vm.place(act, place);
+            let found = search_in(&value, &segments[1..]);
+            (found, (layout.kind != LayoutKind::Context).then_some(value))
+          })
+        }
+        RegionKind::Item { record } => {
+          let filter = vm.filter_of(act.records, record);
+          let item = filter.item()?;
+          if !filter.item_entry && *head == *ITEM {
+            return Some((search_in(item, &segments[1..]), Some(item.clone())));
+          }
+          match item {
+            Value::Context(context) => context.get_entry(head).map(|entry| (context.search_deep(segments).cloned(), Some(entry.clone()))),
+            _ => None,
+          }
+        }
+        RegionKind::Closure => {
+          let function = act.function.as_ref()?;
+          let closed = || {
+            function
+              .closure_ctx
+              .get_entry(head)
+              .map(|entry| (function.closure_ctx.search_deep(segments).cloned(), Some(entry.clone())))
+          };
+          let at_home = || vm.at_home(function, head).map(|value| (search_in(&value, &segments[1..]), None));
+          if vm.closure_first(act, first) {
+            closed().or_else(at_home)
+          } else {
+            at_home().or_else(closed)
+          }
+        }
+      }
+    });
+    match decided {
+      Some((Some(value), _)) => Some((segments.len(), value)),
+      Some((None, Some(first))) if segments.len() > 1 => Some((1, first)),
+      Some((None, _)) => None,
+      None => self.host.search(segments).map(|value| (segments.len(), value)),
+    }
   }
 }
 

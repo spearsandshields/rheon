@@ -103,7 +103,19 @@ fn init_blocks() -> Blocks {
   map.insert("IsHighSurrogates", r#"[\uD800-\uDB7F]"#);
   map.insert("IsHighPrivateUseSurrogates", r#"[\uDB80-\uDBFF]"#);
   map.insert("IsLowSurrogates", r#"[\uDC00-\uDFFF]"#);
-  map.insert("IsPrivateUse lub IsPrivateUseArea", r#"[\uE000-\uF8FF]"#);
+  // XML Schema names the three private use ranges of Unicode 3.1 by one block name
+  map.insert("IsPrivateUse", r#"[\uE000-\uF8FF\x{F0000}-\x{FFFFF}\x{100000}-\x{10FFFF}]"#);
+  map.insert("IsPrivateUseArea", r#"[\uE000-\uF8FF]"#);
+  // the blocks above the basic multilingual plane that XML Schema 1.0 names
+  map.insert("IsOldItalic", r#"[\x{10300}-\x{1032F}]"#);
+  map.insert("IsGothic", r#"[\x{10330}-\x{1034F}]"#);
+  map.insert("IsDeseret", r#"[\x{10400}-\x{1044F}]"#);
+  map.insert("IsByzantineMusicalSymbols", r#"[\x{1D000}-\x{1D0FF}]"#);
+  map.insert("IsMusicalSymbols", r#"[\x{1D100}-\x{1D1FF}]"#);
+  map.insert("IsMathematicalAlphanumericSymbols", r#"[\x{1D400}-\x{1D7FF}]"#);
+  map.insert("IsCJKUnifiedIdeographsExtensionB", r#"[\x{20000}-\x{2A6DF}]"#);
+  map.insert("IsCJKCompatibilityIdeographsSupplement", r#"[\x{2F800}-\x{2FA1F}]"#);
+  map.insert("IsTags", r#"[\x{E0000}-\x{E007F}]"#);
   map.insert("IsCJKCompatibilityIdeographs", r#"[\uF900-\uFAFF]"#);
   map.insert("IsAlphabeticPresentationForms", r#"[\uFB00-\uFB4F]"#);
   map.insert("IsArabicPresentationForms-A", r#"[\uFB50-\uFDFF]"#);
@@ -117,84 +129,20 @@ fn init_blocks() -> Blocks {
   map
 }
 
-pub fn replace_block_names(input: &str) -> String {
-  let mut output = String::new();
-  let mut buffer = String::new();
-  let mut name = String::new();
-  let mut state = 0;
-  for ch in input.chars() {
-    match state {
-      0 => {
-        if ch == '\\' {
-          buffer.push(ch);
-          state = 1;
-        } else {
-          output.push(ch);
-          // State remains 0.
-        }
-      }
-      1 => {
-        if ch == 'p' {
-          buffer.push(ch);
-          state = 2;
-        } else {
-          output.push_str(&buffer);
-          buffer.clear();
-          output.push(ch);
-          state = 0;
-        }
-      }
-      2 => {
-        if ch == '{' {
-          buffer.push(ch);
-          state = 3;
-        } else {
-          output.push_str(&buffer);
-          buffer.clear();
-          output.push(ch);
-          state = 0;
-        }
-      }
-      3 => {
-        buffer.push(ch);
-        match ch {
-          '}' => {
-            // Reached the end of the block name.
-            if let Some(block) = UNICODE_BLOCKS.get(name.as_str()) {
-              output.push_str(block);
-            } else {
-              output.push_str(&buffer);
-            }
-            buffer.clear();
-            name.clear();
-            state = 0;
-          }
-          other => {
-            // Collect the next character of the block name.
-            name.push(other);
-            // State remains 3.
-          }
-        }
-      }
-      _ => break,
-    }
-  }
-  if !buffer.is_empty() {
-    output.push_str(&buffer);
-  }
-  output
+/// The class of the XSD block name `name` (`IsBasicLatin`), with its brackets.
+pub(crate) fn block(name: &str) -> Option<&'static str> {
+  UNICODE_BLOCKS.get(name).copied()
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+
   #[test]
-  fn replacing_block_names_should_work() {
-    assert_eq!(r#"[\u0000-\u007F]+"#, replace_block_names(r#"\p{IsBasicLatin}+"#));
-    assert_eq!(r#"[\u0000-\u007F]+\s[\uFFF0-\uFFFF]+"#, replace_block_names(r#"\p{IsBasicLatin}+\s\p{IsSpecials}+"#));
-    assert_eq!(r#"[\u0000-\u007F]+\s"#, replace_block_names(r#"\p{IsBasicLatin}+\s"#));
-    assert_eq!(r#"\p{IsBasicLatin+"#, replace_block_names(r#"\p{IsBasicLatin+"#));
-    assert_eq!(r#"\p{}+"#, replace_block_names(r#"\p{}+"#));
-    assert_eq!(r#"\p{NonExistingBlockName}+"#, replace_block_names(r#"\p{NonExistingBlockName}+"#));
+  fn block_names_name_their_classes() {
+    assert_eq!(Some(r"[\u0000-\u007F]"), block("IsBasicLatin"));
+    assert_eq!(Some(r"[\uFFF0-\uFFFF]"), block("IsSpecials"));
+    assert_eq!(None, block("IsLatin"));
+    assert_eq!(None, block("BasicLatin"));
   }
 }

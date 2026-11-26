@@ -345,7 +345,12 @@ fn _0044() {
 
 #[test]
 fn _0045() {
-  te_null(false, &scope!(), r#"date and time(f: "2012-12-24")"#, r#"invalid parameters in named::bif_date_and_time"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"date and time(f: "2012-12-24")"#,
+    r#"expected the parameters of one of date and time(from): date and time, date and time(date, time): date and time, date and time(date, time, timezone): date and time, found the parameter name 'f'"#,
+  );
 }
 
 #[test]
@@ -461,6 +466,10 @@ fn date_and_time_from_date_time_and_zone_takes_the_zone_suffix_rules() {
     ("+14:00", "2020-01-01T10:00:00.5+14:00"),
     ("Europe/Paris", "2020-01-01T10:00:00.5@Europe/Paris"),
     ("Etc/UTC", "2020-01-01T10:00:00.5@Etc/UTC"),
+    // zone ids with '-', '+' and digits are names of the tz database too
+    ("America/Port-au-Prince", "2020-01-01T10:00:00.5@America/Port-au-Prince"),
+    ("Etc/GMT+5", "2020-01-01T10:00:00.5@Etc/GMT+5"),
+    ("EST5EDT", "2020-01-01T10:00:00.5@EST5EDT"),
   ] {
     te_string(false, scope, &format!(r#"string(date and time(date(2020,1,1), time(10,0,0.5), "{zone}"))"#), expected);
   }
@@ -468,7 +477,7 @@ fn date_and_time_from_date_time_and_zone_takes_the_zone_suffix_rules() {
     "+14:01",
     "+15:00",
     "Mars/Olympus",
-    "America/Port-au-Prince",
+    "Etc/GMT+15",
     "",
     "@Europe/Paris",
     "Z@Europe/Paris",

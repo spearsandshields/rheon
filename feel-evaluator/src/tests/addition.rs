@@ -171,12 +171,7 @@ fn _0028() {
 
 #[test]
 fn _0029() {
-  te_null(
-    false,
-    &scope!(),
-    r#" @"2023-02-06" + @"P999999Y" "#,
-    "invalid result while adding years and months duration to date",
-  );
+  te_be_value(false, &scope!(), r#" @"2023-02-06" + @"P999999Y" "#, r#"date("1002022-02-06")"#);
 }
 
 #[test]
@@ -196,12 +191,7 @@ fn _0031() {
 
 #[test]
 fn _0032() {
-  te_null(
-    false,
-    &scope!(),
-    r#" @"262142-01-01" + @"P99999D" "#,
-    r#"invalid result while adding days and time duration to date"#,
-  );
+  te_be_value(false, &scope!(), r#" @"262142-01-01" + @"P99999D" "#, r#"date("262415-10-16")"#);
 }
 
 #[test]
@@ -216,12 +206,7 @@ fn _0034() {
 
 #[test]
 fn _0035() {
-  te_null(
-    false,
-    &scope!(),
-    r#" @"262142-01-01" + @"P100Y" "#,
-    r#"invalid result while adding years and months duration to date"#,
-  );
+  te_be_value(false, &scope!(), r#" @"262142-01-01" + @"P100Y" "#, r#"date("262242-01-01")"#);
 }
 
 #[test]
@@ -257,22 +242,12 @@ fn _0038() {
 
 #[test]
 fn _0039() {
-  te_null(
-    false,
-    &scope!(),
-    r#" @"P99999D" + @"262142-01-01" "#,
-    r#"invalid result while adding date to days and time duration"#,
-  );
+  te_be_value(false, &scope!(), r#" @"P99999D" + @"262142-01-01" "#, r#"date("262415-10-16")"#);
 }
 
 #[test]
 fn _0040() {
-  te_null(
-    false,
-    &scope!(),
-    r#" @"P100Y" + @"262043-01-01" "#,
-    r#"invalid result while adding date to years and months duration"#,
-  );
+  te_be_value(false, &scope!(), r#" @"P100Y" + @"262043-01-01" "#, r#"date("262143-01-01")"#);
 }
 
 #[test]
@@ -399,10 +374,11 @@ fn _0050() {
   te_date(false, scope, r#"date("2020-01-02") + duration("PT23H59M59.999999999S")"#, 2020, 1, 2);
   te_date(false, scope, r#"date("2020-01-02") + duration("PT24H")"#, 2020, 1, 3);
   te_date(false, scope, r#"duration("-PT0.5S") + date("2020-01-02")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("262142-12-31") + duration("P1D")"#, 262143, 1, 1);
   te_null(
     false,
     scope,
-    r#"date("262142-12-31") + duration("P1D")"#,
+    r#"date("999999999-12-31") + duration("P1D")"#,
     "invalid result while adding days and time duration to date",
   );
 }

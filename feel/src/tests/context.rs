@@ -4,7 +4,9 @@ use crate::qualified_names::QualifiedName;
 use crate::values::{VALUE_FALSE, VALUE_TRUE, Value};
 use crate::{ToFeelString, value_number};
 use dsntk_common::Jsonify;
+use rheon_feel_number::FeelNumber;
 use std::slice;
+use std::sync::Arc;
 
 #[test]
 fn test_context_default() {
@@ -27,7 +29,7 @@ fn test_context_to_string() {
   ctx.set_entry(&name_x_y, Value::Boolean(true));
   assert_eq!(r#"{a: 10, x y: true}"#, ctx.to_string());
   ctx.set_entry(&name_k_plus_l_minus_m, Value::String("KLM".into()));
-  assert_eq!(r#"{a: 10, k+l-m: "KLM", x y: true}"#, ctx.to_string());
+  assert_eq!(r#"{a: 10, x y: true, k+l-m: "KLM"}"#, ctx.to_string());
 }
 
 #[test]
@@ -41,7 +43,7 @@ fn test_context_to_feel_string() {
   ctx.set_entry(&name_x_y, Value::Boolean(true));
   assert_eq!(r#"{a: 10, x y: true}"#, ctx.to_feel_string());
   ctx.set_entry(&name_k_plus_l_minus_m, Value::String("KLM".into()));
-  assert_eq!(r#"{a: 10, k+l-m: "KLM", x y: true}"#, ctx.to_feel_string());
+  assert_eq!(r#"{a: 10, x y: true, k+l-m: "KLM"}"#, ctx.to_feel_string());
   let mut ctx: FeelContext = Default::default();
   let name_left_bracket = Name::from("{");
   ctx.set_entry(&name_left_bracket, value_number!(1));
@@ -51,13 +53,13 @@ fn test_context_to_feel_string() {
   assert_eq!(r#"{"{": 1, "}": 2}"#, ctx.to_feel_string());
   let name_colon = Name::from(":");
   ctx.set_entry(&name_colon, value_number!(3));
-  assert_eq!(r#"{":": 3, "{": 1, "}": 2}"#, ctx.to_feel_string());
+  assert_eq!(r#"{"{": 1, "}": 2, ":": 3}"#, ctx.to_feel_string());
   let name_comma = Name::from(",");
   ctx.set_entry(&name_comma, value_number!(4));
-  assert_eq!(r#"{",": 4, ":": 3, "{": 1, "}": 2}"#, ctx.to_feel_string());
+  assert_eq!(r#"{"{": 1, "}": 2, ":": 3, ",": 4}"#, ctx.to_feel_string());
   let name_double_quote = Name::from("\"");
   ctx.set_entry(&name_double_quote, value_number!(5));
-  assert_eq!(r#"{"\"": 5, ",": 4, ":": 3, "{": 1, "}": 2}"#, ctx.to_feel_string());
+  assert_eq!(r#"{"{": 1, "}": 2, ":": 3, ",": 4, "\"": 5}"#, ctx.to_feel_string());
 }
 
 #[test]
@@ -71,7 +73,7 @@ fn test_context_to_json() {
   ctx.set_entry(&name_x_y, Value::Boolean(true));
   assert_eq!(r#"{"a": 10, "x y": true}"#, ctx.jsonify());
   ctx.set_entry(&name_k_plus_l_minus_m, Value::String("KLM".into()));
-  assert_eq!(r#"{"a": 10, "k+l-m": "KLM", "x y": true}"#, ctx.jsonify());
+  assert_eq!(r#"{"a": 10, "x y": true, "k+l-m": "KLM"}"#, ctx.jsonify());
 }
 
 #[test]
@@ -114,7 +116,7 @@ fn test_context_two_levels() {
   ctx_a.set_entry(&name_age, value_number!(49));
   ctx_a.set_entry(&name_x_y, Value::Boolean(true));
   ctx_a.set_entry(&name_b, ctx_b.into());
-  assert_eq!("{age: 49, b: {married: true}, x y: true}", ctx_a.to_string());
+  assert_eq!("{age: 49, x y: true, b: {married: true}}", ctx_a.to_string());
   assert!(ctx_a.contains_entry(&name_age));
   assert!(ctx_a.contains_entry(&name_b));
   assert!(ctx_a.contains_entry(&name_x_y));
@@ -140,13 +142,13 @@ fn test_context_three_levels() {
   let mut ctx_b: FeelContext = Default::default();
   ctx_b.set_entry(&name_married, Value::Boolean(true));
   ctx_b.set_entry(&name_c, ctx_c.into());
-  assert_eq!(r#"{c: {car: "opel"}, married: true}"#, ctx_b.to_string());
+  assert_eq!(r#"{married: true, c: {car: "opel"}}"#, ctx_b.to_string());
   assert!(ctx_b.contains_entry(&name_married));
   assert!(ctx_b.contains_entry(&name_c));
   let mut ctx_a: FeelContext = Default::default();
   ctx_a.set_entry(&name_age, value_number!(49));
   ctx_a.set_entry(&name_b, ctx_b.into());
-  assert_eq!(r#"{age: 49, b: {c: {car: "opel"}, married: true}}"#, ctx_a.to_string());
+  assert_eq!(r#"{age: 49, b: {married: true, c: {car: "opel"}}}"#, ctx_a.to_string());
   assert!(ctx_a.contains_entry(&name_age));
   assert!(ctx_a.contains_entry(&name_b));
 }
@@ -729,4 +731,122 @@ fn test_context_read_on_first_use_is_the_context_of_its_source() {
     assert_eq!(2, thread.join().unwrap());
   }
   assert_eq!(1, reads(&source));
+}
+
+/// A context is shown in the order its entries were written in: an entry that is added comes
+/// last, an entry that is replaced keeps its place, and one that is removed leaves the others
+/// as they stand. The order of the names, which two contexts share, is not changed by it.
+#[test]
+fn a_context_keeps_the_order_its_entries_were_written_in() {
+  let name = |text: &str| Name::from(text);
+  let number = |n: i64| Value::Number(FeelNumber::new(n, 0));
+  let mut ctx = FeelContext::default();
+  for (key, n) in [("z", 1), ("a", 2), ("m", 3)] {
+    ctx.set_entry(&name(key), number(n));
+  }
+  assert_eq!("{z: 1, a: 2, m: 3}", ctx.to_string());
+  assert_eq!("{z: 1, a: 2, m: 3}", ctx.to_feel_string());
+  assert_eq!(r#"{"z": 1, "a": 2, "m": 3}"#, ctx.jsonify());
+  assert_eq!(vec!["z", "a", "m"], ctx.iter_written().map(|(key, _)| key.as_str()).collect::<Vec<_>>());
+  assert_eq!(vec!["z", "a", "m"], ctx.get_entries().iter().map(|(key, _)| key.as_str()).collect::<Vec<_>>());
+  assert_eq!(vec!["a", "m", "z"], ctx.iter().map(|(key, _)| key.as_str()).collect::<Vec<_>>());
+  assert_eq!(3, ctx.iter_written().len());
+  // replaced in place, added last
+  ctx.set_entry(&name("a"), number(20));
+  ctx.insert(name("b"), number(4));
+  assert_eq!(None, ctx.assign_entry(&name("y"), number(5)));
+  assert_eq!(Some(number(1)), ctx.assign_entry(&name("z"), number(10)));
+  assert_eq!("{z: 10, a: 20, m: 3, b: 4, y: 5}", ctx.to_string());
+  // removed: the last one, and one in the middle
+  assert_eq!(Some(number(5)), ctx.remove_entry(&name("y")));
+  assert_eq!(Some(number(20)), ctx.remove_entry(&name("a")));
+  assert_eq!(None, ctx.remove_entry(&name("a")));
+  assert_eq!("{z: 10, m: 3, b: 4}", ctx.to_string());
+  ctx.set_entry(&name("a"), number(6));
+  assert_eq!("{z: 10, m: 3, b: 4, a: 6}", ctx.to_string());
+  // a copy has the order, and the order is no part of equality
+  assert_eq!(ctx.to_string(), ctx.clone().to_string());
+  let other: FeelContext = [("a", 6), ("b", 4), ("m", 3), ("z", 10)].into_iter().map(|(key, n)| (name(key), number(n))).collect();
+  assert_eq!("{a: 6, b: 4, m: 3, z: 10}", other.to_string());
+  assert_eq!(other, ctx);
+  // entries collected in an order of their own, with a name twice
+  let collected: FeelContext = [("b", 1), ("c", 2), ("a", 3), ("c", 4), ("d", 5)]
+    .into_iter()
+    .map(|(key, n)| (name(key), number(n)))
+    .collect();
+  assert_eq!("{b: 1, c: 4, a: 3, d: 5}", collected.to_string());
+  // names written in their own order need no list, whatever comes after
+  let mut ascending = FeelContext::default();
+  for key in ["a", "b", "c"] {
+    ascending.set_entry(&name(key), number(1));
+  }
+  ascending.set_entry(&name("b"), number(2));
+  assert_eq!("{a: 1, b: 2, c: 1}", ascending.to_string());
+}
+
+/// A map built from its entries with the places they were written at has that order, as one
+/// told the names has; places that are not every place once, or entries of one name, leave the
+/// order of the names. It is changed as any context is.
+#[test]
+fn a_context_built_with_places_has_the_order_of_writing() {
+  let name = |text: &str| Name::from(text);
+  let number = |n: i64| Value::Number(FeelNumber::new(n, 0));
+  let entries = || [("a", 1), ("b", 2), ("c", 3)].into_iter().map(|(key, n)| (name(key), number(n))).collect::<Vec<_>>();
+  let written = FeelContext::from_ascending_entries_written(entries(), &[2, 0, 1]);
+  assert_eq!("{c: 3, a: 1, b: 2}", written.to_string());
+  assert_eq!(
+    FeelContext::from_ascending_entries(entries()).with_written_names(vec![name("c"), name("a"), name("b")]),
+    written
+  );
+  assert_eq!(Some(&number(2)), written.get_entry(&name("b")));
+  let mut changed = written.clone();
+  changed.set_entry(&name("a"), number(10));
+  changed.set_entry(&name("0"), number(0));
+  changed.remove_entry(&name("c"));
+  assert_eq!("{a: 10, b: 2, 0: 0}", changed.to_string());
+  // the places of the names in their own order
+  assert_eq!("{a: 1, b: 2, c: 3}", FeelContext::from_ascending_entries_written(entries(), &[0, 1, 2]).to_string());
+  // not every place once: too few, one twice, one that is no place
+  for places in [&[2, 0][..], &[2, 2, 1], &[3, 0, 1], &[2, 0, 1, 1]] {
+    assert_eq!(
+      "{a: 1, b: 2, c: 3}",
+      FeelContext::from_ascending_entries_written(entries(), places).to_string(),
+      "{places:?}"
+    );
+  }
+  // two entries of one name are one entry, so the places are not those of the context
+  let doubled = vec![(name("a"), number(1)), (name("a"), number(2)), (name("b"), number(3))];
+  let context = FeelContext::from_ascending_entries_written(doubled, &[2, 0, 1]);
+  assert_eq!(2, context.get_entries().len());
+  assert!(context.to_string().starts_with("{a: "), "{context}");
+  assert_eq!("{}", FeelContext::from_ascending_entries_written(vec![], &[]).to_string());
+}
+
+/// The order of writing that is said for a context built at once: of a map by its names, of a
+/// record by the places of its names; a record that is changed keeps it.
+#[test]
+fn a_context_built_at_once_is_told_its_order() {
+  let name = |text: &str| Name::from(text);
+  let number = |n: i64| Value::Number(FeelNumber::new(n, 0));
+  let entries = || [("a", 1), ("b", 2), ("c", 3)].into_iter().map(|(key, n)| (name(key), number(n)));
+  let map = FeelContext::from_ascending_entries(entries()).with_written_names(vec![name("c"), name("a"), name("b")]);
+  assert_eq!("{c: 3, a: 1, b: 2}", map.to_string());
+  // a list that is not the names of the context is not taken
+  let not_taken = FeelContext::from_ascending_entries(entries()).with_written_names(vec![name("c"), name("a")]);
+  assert_eq!("{a: 1, b: 2, c: 3}", not_taken.to_string());
+  let not_taken = FeelContext::from_ascending_entries(entries()).with_written_names(vec![name("c"), name("a"), name("x")]);
+  assert_eq!("{a: 1, b: 2, c: 3}", not_taken.to_string());
+  let names: Arc<[Name]> = Arc::from(vec![name("a"), name("b"), name("c")]);
+  let places: Arc<[u32]> = Arc::from(vec![2, 0, 1]);
+  let record = || FeelContext::from_shared_names(names.clone(), vec![number(1), number(2), number(3)]).with_written_places(places.clone());
+  assert_eq!("{c: 3, a: 1, b: 2}", record().to_string());
+  assert_eq!(Some(&number(2)), record().get_entry(&name("b")));
+  assert_eq!(map, record());
+  let mut changed = record();
+  changed.set_entry(&name("a"), number(10));
+  changed.set_entry(&name("0"), number(0));
+  assert_eq!("{c: 3, a: 10, b: 2, 0: 0}", changed.to_string());
+  let mut smaller = record();
+  smaller.remove_entry(&name("a"));
+  assert_eq!("{c: 3, b: 2}", smaller.to_string());
 }

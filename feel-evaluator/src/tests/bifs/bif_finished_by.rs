@@ -38,7 +38,7 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  te_bool(false, &scope!(), r#"finished by([5..20],[1..20])"#, true);
+  te_bool(false, &scope!(), r#"finished by([5..20],[1..20])"#, false);
 }
 
 #[test]
@@ -67,7 +67,7 @@ fn _0013() {
     false,
     &scope!(),
     r#"finished by([date("2022-12-11")..date("2022-12-31")],[date("2022-01-01")..date("2022-12-31")])"#,
-    true,
+    false,
   );
 }
 
@@ -117,7 +117,7 @@ fn _0019() {
     false,
     &scope!(),
     r#"finished by([date and time("2022-12-11T00:00:00")..date and time("2022-12-31T23:59:59")],[date and time("2022-01-01T00:00:00")..date and time("2022-12-31T23:59:59")])"#,
-    true,
+    false,
   );
 }
 
@@ -163,7 +163,7 @@ fn _0025() {
 
 #[test]
 fn _0026() {
-  te_bool(false, &scope!(), r#"finished by(range2: [1..20],range1: [5..20])"#, true);
+  te_bool(false, &scope!(), r#"finished by(range2: [1..20],range1: [5..20])"#, false);
 }
 
 #[test]
@@ -178,17 +178,32 @@ fn _0028() {
 
 #[test]
 fn _0029() {
-  te_null(false, &scope!(), r#"finished by(range: [1..20],p: 20)"#, "[named::finished by] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finished by(range: [1..20],p: 20)"#,
+    "expected the parameters of one of finished by(range, point): boolean, finished by(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0030() {
-  te_null(false, &scope!(), r#"finished by(r: [1..20],point: 20)"#, "[named::finished by] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finished by(r: [1..20],point: 20)"#,
+    "expected the parameters of one of finished by(range, point): boolean, finished by(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
 fn _0031() {
-  te_null(false, &scope!(), r#"finished by(r: [1..20],p: 20)"#, "[named::finished by] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finished by(r: [1..20],p: 20)"#,
+    "expected the parameters of one of finished by(range, point): boolean, finished by(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
@@ -197,7 +212,7 @@ fn _0032() {
     false,
     &scope!(),
     r#"finished by(range1: [1..20],r2: [1..20])"#,
-    "[named::finished by] invalid named parameters",
+    "expected the parameters of one of finished by(range, point): boolean, finished by(range1, range2): boolean, found the parameter name 'r2'",
   );
 }
 
@@ -207,13 +222,18 @@ fn _0033() {
     false,
     &scope!(),
     r#"finished by(r1: [1..20],range2: [1..20])"#,
-    "[named::finished by] invalid named parameters",
+    "expected the parameters of one of finished by(range, point): boolean, finished by(range1, range2): boolean, found the parameter name 'r1'",
   );
 }
 
 #[test]
 fn _0034() {
-  te_null(false, &scope!(), r#"finished by(r1: [1..20],r2: [1..20])"#, "[named::finished by] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finished by(r1: [1..20],r2: [1..20])"#,
+    "expected the parameters of one of finished by(range, point): boolean, finished by(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
@@ -232,7 +252,7 @@ fn _0036() {
     false,
     &scope!(),
     r#"finished by(["a".."b"],20)"#,
-    "[core::finished by] invalid argument type, expected range of scalars, actual type is range<string>",
+    "[core::finished by] invalid argument type, expected string or range<string>, actual type is number",
   );
 }
 
@@ -302,7 +322,7 @@ fn _0043() {
     false,
     &scope!(),
     r#"finished by([1..20],[time("00:00:00")..time("23:59:59")])"#,
-    "[core::finished by] invalid argument type, expected range<number>, actual type is range<time>",
+    "[core::finished by] invalid argument type, expected number or range<number>, actual type is range<time>",
   );
 }
 
@@ -312,7 +332,7 @@ fn _0044() {
     false,
     &scope!(),
     r#"finished by([date("2022-12-11")..date("2022-12-31")],[1..20])"#,
-    "[core::finished by] invalid argument type, expected range<date>, actual type is range<number>",
+    "[core::finished by] invalid argument type, expected date or range<date>, actual type is range<number>",
   );
 }
 
@@ -322,7 +342,7 @@ fn _0045() {
     false,
     &scope!(),
     r#"finished by([date and time("2022-12-11T00:00:00")..date and time("2022-12-11T23:59:59")],[1..20])"#,
-    "[core::finished by] invalid argument type, expected range<date and time>, actual type is range<number>",
+    "[core::finished by] invalid argument type, expected date and time or range<date and time>, actual type is range<number>",
   );
 }
 
@@ -332,7 +352,7 @@ fn _0046() {
     false,
     &scope!(),
     r#"finished by([time("00:00:00")..time("23:59:59")],[1..20])"#,
-    "[core::finished by] invalid argument type, expected range<time>, actual type is range<number>",
+    "[core::finished by] invalid argument type, expected time or range<time>, actual type is range<number>",
   );
 }
 
@@ -342,7 +362,7 @@ fn _0047() {
     false,
     &scope!(),
     r#"finished by([duration("P1D")..duration("P2D")],[1..20])"#,
-    "[core::finished by] invalid argument type, expected range<days and time duration>, actual type is range<number>",
+    "[core::finished by] invalid argument type, expected days and time duration or range<days and time duration>, actual type is range<number>",
   );
 }
 
@@ -352,6 +372,6 @@ fn _0048() {
     false,
     &scope!(),
     r#"finished by([duration("P1Y")..duration("P2Y")],[1..20])"#,
-    "[core::finished by] invalid argument type, expected range<years and months duration>, actual type is range<number>",
+    "[core::finished by] invalid argument type, expected years and months duration or range<years and months duration>, actual type is range<number>",
   );
 }

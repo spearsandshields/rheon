@@ -24,9 +24,9 @@ fn equality_compares_each_pair_of_shared_lists_once() {
     "[true, false, true, false]",
     &[],
   );
-  // items that can not be compared make the lists unequal, however often they are reached
+  // functions are compared as other items (Table 54), however often they are reached
   let functions = doubled(60, "f");
-  te_warnings(&format!("{{f: function() 1, x: {functions}, r: [x = x, {{a: x}} = {{a: x}}]}}.r"), "[false, false]", &[]);
+  te_warnings(&format!("{{f: function() 1, x: {functions}, r: [x = x, {{a: x}} = {{a: x}}]}}.r"), "[true, true]", &[]);
 }
 
 /// A small deterministic generator (xorshift).
@@ -181,14 +181,14 @@ fn list_scans_compare_each_pair_of_shared_contexts_once() {
 
 #[test]
 fn instance_of_reads_a_shared_context_once() {
-  // the type of `[x, y]` is a list of the type of `x` only when `y` conforms to it, which reads both
+  // `[x, y]` conforms to a list type when both items conform to its item type, which reads both
   let x = doubled_context(60, "{a: 1}");
   let z = doubled_context(60, "{a: 2}");
   te_warnings(
     &format!(
       "{{x: {x}, y: {x}, z: {z}, r: [[x, y] instance of list<context<c: Any>>, [x, z] instance of list<Any>, [x, y] instance of list<context<a: Any, b: Any>>, x instance of context<a: Any>, x instance of context<c: Any>, [x, 1] instance of list<Any>]}}.r"
     ),
-    "[false, true, false, false, false, true]",
+    "[false, true, true, true, false, true]",
     &[],
   );
 }

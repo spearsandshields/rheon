@@ -115,5 +115,12 @@ fn _0016() {
 #[test]
 fn _0017() {
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision019", &ctx, r#"null(parameter 'list' not found)"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "decision019",
+    &ctx,
+    r#"null(expected the parameters of any(list): boolean, found the parameter name 'l')"#,
+  );
 }

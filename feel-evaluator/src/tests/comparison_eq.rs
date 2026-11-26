@@ -97,7 +97,7 @@ fn _0019() {
     false,
     &scope!(),
     r#"10 = ({c1: {a: {c: "bar", b: "foo"}}})"#,
-    r#"equal err '10' =?= '{c1: {a: {b: "foo", c: "bar"}}}'"#,
+    r#"equal err '10' =?= '{c1: {a: {c: "bar", b: "foo"}}}'"#,
   );
 }
 
@@ -123,12 +123,7 @@ fn _0023() {
 
 #[test]
 fn _0024() {
-  te_null(
-    false,
-    &scope!(),
-    r#"{a: {b: "bar", c: {x: "car"}}} = {a: {b: "bar", c: 15}}"#,
-    r#"equal err '{a: {b: "bar", c: {x: "car"}}}' =?= '{a: {b: "bar", c: 15}}'"#,
-  );
+  te_bool(false, &scope!(), r#"{a: {b: "bar", c: {x: "car"}}} = {a: {b: "bar", c: 15}}"#, false);
 }
 
 #[test]
@@ -392,6 +387,35 @@ fn _0069() {
   te_bool(false, &scope!(), "[1] = [null]", false);
 }
 
+/// Two lists, two contexts and two ranges are equal or they are not (DMN 1.6, Table 54: the
+/// items, the entries or the endpoints are equal, each to its counterpart): a pair of them that
+/// is of two kinds makes the values unequal, wherever it stands among the others.
+#[test]
+fn values_of_one_kind_that_hold_values_of_two_kinds_are_unequal() {
+  for (lhs, rhs) in [
+    (r#"[1]"#, r#"["a"]"#),
+    (r#"{a: 1}"#, r#"{a: "a"}"#),
+    (r#"{a: 1, b: 2}"#, r#"{a: "a", b: 3}"#),
+    (r#"{a: 1, b: 2}"#, r#"{a: 2, b: "b"}"#),
+    (r#"{a: 1, b: 2}"#, r#"{a: 1, b: "b"}"#),
+    (r#"{a: "a", b: 2}"#, r#"{a: 1, b: 2}"#),
+    (r#"{a: {b: [1]}}"#, r#"{a: {b: [true]}}"#),
+    (r#"[{a: 1}]"#, r#"[{a: "a"}]"#),
+    (r#"{a: [1]}"#, r#"{a: 1}"#),
+    (r#"{a: {b: "bar", c: {x: "car"}}}"#, r#"{a: {b: "bar", c: 15}}"#),
+    (r#"[1..2]"#, r#"["a".."b"]"#),
+  ] {
+    te_bool(false, &scope!(), &format!("{lhs} = {rhs}"), false);
+    te_bool(false, &scope!(), &format!("{rhs} = {lhs}"), false);
+    te_bool(false, &scope!(), &format!("{lhs} != {rhs}"), true);
+    te_bool(false, &scope!(), &format!("[{lhs}] = [{rhs}]"), false);
+    te_bool(false, &scope!(), &format!("{{k: {lhs}}} = {{k: {rhs}}}"), false);
+  }
+  // values of two kinds themselves are not compared
+  te_null(false, &scope!(), r#"{a: 1} = [1]"#, r#"equal err '{a: 1}' =?= '[1]'"#);
+  te_null(false, &scope!(), r#"1 = "a""#, r#"equal err '1' =?= '"a"'"#);
+}
+
 /// Grammar rule 49: a comparison takes the comparison on its left as its operand.
 #[test]
 fn comparisons_are_left_associative() {
@@ -410,5 +434,73 @@ fn comparisons_are_left_associative() {
     scope,
     "1 < 2 < 3",
     "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+  );
+}
+
+#[test]
+fn functions_are_equal_when_they_are_the_same_function() {
+  // Table 54: the same parameters, body and scope; a function is no other function
+  let scope = &te_scope("{}");
+  te_bool(false, scope, "abs = abs", true);
+  te_bool(false, scope, "abs = floor", false);
+  te_bool(false, scope, "abs != floor", true);
+  te_bool(false, scope, "{f: function(x) x, g: f, r: f = g}.r", true);
+  // two function literals are two bodies, also when they are written alike
+  te_bool(false, scope, "{f: function(x) x, g: f}.g = {f: function(x) x, g: f}.f", false);
+  te_bool(false, scope, "{f: function(x) x + 1, g: function(x) x + 1, r: f = g}.r", false);
+  te_bool(false, scope, "{fs: for i in [1, 2] return function(x) x, r: fs[1] = fs[2]}.r", true);
+  te_bool(false, scope, "{fs: for i in [1, 2] return function(x) x + i, r: fs[1] = fs[2]}.r", false);
+  te_bool(false, scope, "abs = function(x) x", false);
+  te_null(false, scope, "abs = 1", "equal err 'BuiltInFunction' =?= '1'");
+}
+
+#[test]
+fn functions_that_close_over_shared_functions_are_compared_once() {
+  // each function closes over the one before under two names: compared pair by pair, the
+  // comparison doubled at every level (2^40 calls)
+  let scope = &te_scope("{}");
+  let started = std::time::Instant::now();
+  te_bool(
+    false,
+    scope,
+    "{mk: function(x, y) function() [x, y], build: function() (for i in 1..40 return if i = 1 then mk(0, 0) else mk(partial[-1], partial[-1]))[40], r: build() = build()}.r",
+    true,
+  );
+  te_bool(
+    false,
+    scope,
+    "{mk: function(x, y) function() [x, y], build: function() (for i in 1..40 return if i = 1 then mk(0, 0) else mk(partial[-1], partial[-1]))[40], r: is(build(), build())}.r",
+    true,
+  );
+  assert!(started.elapsed().as_secs() < 5, "took {:?}", started.elapsed());
+}
+
+#[test]
+fn external_functions_are_equal_with_the_same_mapping() {
+  // Table 54: externally defined functions must have the same parameters and mapping
+  let scope = &te_scope("{}");
+  let java = |method: &str| format!(r#"function(x) external {{java: {{class: "C", method signature: "{method}"}}}}"#);
+  te_bool(false, scope, &format!("{{a: {}, b: {}, r: a = b}}.r", java("m(int)"), java("m(int)")), true);
+  te_bool(false, scope, &format!("{{a: {}, b: {}, r: a = b}}.r", java("m(int)"), java("n(int)")), false);
+  te_bool(
+    false,
+    scope,
+    &format!(
+      r#"{{a: {}, b: function(y) external {{java: {{class: "C", method signature: "m(int)"}}}}, r: a = b}}.r"#,
+      java("m(int)")
+    ),
+    false,
+  );
+  te_bool(
+    false,
+    scope,
+    r#"{a: function(x) external {pmml: {document: "d", model: "m"}}, b: function(x) external {pmml: {document: "d", model: "m"}}, r: a = b}.r"#,
+    true,
+  );
+  te_null(
+    false,
+    scope,
+    r#"(function(x) external {onnx: {file: "f", function signature: "s"}})(1)"#,
+    "external ONNX functions are not supported",
   );
 }

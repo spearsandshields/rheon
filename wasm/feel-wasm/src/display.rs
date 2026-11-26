@@ -18,7 +18,6 @@
 use crate::output::write_escaped;
 use rheon_feel::FeelNumber;
 use rheon_feel::values::Value;
-use rheon_feel_temporal::{FeelDateTime, FeelOffset};
 use std::fmt::{self, Write as _};
 use std::io;
 
@@ -139,7 +138,7 @@ fn write_inline(value: &Value, sink: &mut impl Sink) -> Result<(), Full> {
     }
     Value::Context(ctx) => {
       sink.text("{")?;
-      for (i, (name, v)) in ctx.iter().enumerate() {
+      for (i, (name, v)) in ctx.iter_written().enumerate() {
         if i > 0 {
           sink.text(", ")?;
         }
@@ -160,25 +159,9 @@ fn write_scalar(value: &Value, sink: &mut impl Sink) -> Result<(), Full> {
     Value::Number(n) => sink.number(n),
     Value::String(s) => sink.quoted(s),
     Value::FunctionDefinition(..) | Value::BuiltInFunction(_) | Value::ExternalJavaFunction(..) | Value::ExternalPmmlFunction(..) => sink.quoted(&value.type_of().to_string()),
-    Value::DateTime(date_time) => sink.quoted(&zoned_date_time(date_time).unwrap_or_else(|| date_time.to_string())),
+    Value::DateTime(date_time) => sink.quoted(&date_time.json_text()),
     other => sink.quoted(&other.to_string()),
   }
-}
-
-/// `<date>T<time><±hh:mm>[<zone>]` for a date and time with an IANA zone (DMN 1.6 Table 48), or
-/// `None` for any other date and time (written in FEEL form, which already is ISO 8601). The
-/// offset is the zone's at that date and time, written by the one offset printer, with `:ss` when
-/// it has seconds (local mean time before the standard zones, `+00:09:21` in Paris before 1911).
-fn zoned_date_time(date_time: &FeelDateTime) -> Option<String> {
-  let zone = date_time.feel_time_zone()?;
-  let offset = date_time.feel_time_offset()?;
-  let text = date_time.to_string();
-  let mut out = String::from(text.split('@').next()?);
-  FeelOffset::write_seconds(&mut out, offset).ok()?;
-  out.push('[');
-  out.push_str(&zone);
-  out.push(']');
-  Some(out)
 }
 
 /// Where the text of a value goes, on one line or on several.
@@ -254,7 +237,7 @@ fn render(value: &Value, indent: usize, out: &mut impl Page) {
       let _ = out.text("{");
       out.newline();
       let len = ctx.len();
-      for (i, (name, v)) in ctx.iter().enumerate() {
+      for (i, (name, v)) in ctx.iter_written().enumerate() {
         let _ = out.text(&pad);
         let _ = out.quoted(name.as_str());
         let _ = out.text(": ");

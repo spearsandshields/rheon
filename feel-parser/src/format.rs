@@ -19,9 +19,8 @@
 //! returned: it must parse to the same tree as the input.
 
 use crate::AstNode;
-use crate::parser::{Diagnostic, Parser, Syntax, TokenClass};
+use crate::parser::{Diagnostic, Parser, StartRule, Syntax, TokenClass};
 use crate::scope::ParsingScope;
-use crate::token::TokenType;
 
 /// The spaces a nested part is indented by.
 pub const INDENT: usize = 2;
@@ -169,8 +168,11 @@ impl<'a> Formatter<'a> {
     let mut open = vec![0];
     let mut next = 0;
     for (index, token) in tokens.iter().enumerate() {
+      // a node that ended before this token: its last token is the one before
       while open.len() > 1 && ends[*open.last().unwrap_or(&0)] <= token.start {
-        open.pop();
+        if let Some(closed) = open.pop() {
+          nodes[closed].last = index - 1;
+        }
       }
       while next < syntax.nodes.len() && syntax.nodes[next].start <= token.start {
         let node = &syntax.nodes[next];
@@ -179,7 +181,9 @@ impl<'a> Formatter<'a> {
           continue;
         }
         while open.len() > 1 && ends[*open.last().unwrap_or(&0)] <= node.start {
-          open.pop();
+          if let Some(closed) = open.pop() {
+            nodes[closed].last = index - 1;
+          }
         }
         let created = nodes.len();
         nodes.push(Node {
@@ -192,10 +196,11 @@ impl<'a> Formatter<'a> {
         nodes[*open.last().unwrap_or(&0)].children.push(Child::Node(created));
         open.push(created);
       }
-      for &node in &open {
-        nodes[node].last = nodes[node].last.max(index);
-      }
       nodes[*open.last().unwrap_or(&0)].children.push(Child::Token(index));
+    }
+    // the nodes still open hold the last token
+    for node in open {
+      nodes[node].last = tokens.len().saturating_sub(1);
     }
     let mut formatter = Self {
       input,
@@ -422,14 +427,13 @@ impl<'a> Formatter<'a> {
   }
 }
 
-/// Formats a text: an expression, or unary tests with `unary_tests`. `width` is the most
+/// Formats a text of the start rule `rule`. `width` is the most
 /// characters of a line that the layout aims at; a part that can not be broken may run past it.
 ///
 /// `scope` makes the parsing scope of a parse: every parse has its own, since a parse adds the
 /// names of the text to its scope.
-pub(crate) fn format<'s>(scope: &dyn Fn() -> ParsingScope<'s>, input: &str, unary_tests: bool, width: usize) -> Formatted {
-  let start = || if unary_tests { TokenType::StartUnaryTests } else { TokenType::StartExpression };
-  let syntax = Parser::new(&scope(), start(), input).parse_tolerant();
+pub(crate) fn format<'s>(scope: &dyn Fn() -> ParsingScope<'s>, input: &str, rule: StartRule, width: usize) -> Formatted {
+  let syntax = Parser::new(&scope(), rule.token(), input).with_rule(rule).parse_tolerant();
   if !syntax.diagnostics.is_empty() {
     return Formatted::Errors(syntax.diagnostics);
   }
@@ -437,11 +441,22 @@ pub(crate) fn format<'s>(scope: &dyn Fn() -> ParsingScope<'s>, input: &str, unar
   if formatter.tokens.is_empty() {
     return Formatted::Text(String::new());
   }
+  // a text that is nested more deeply than an expression may be is left as it is, before the
+  // layout follows its nesting: a chain of operators is as deep as it is long
+  let parse = |text: &str| -> Option<AstNode> {
+    Parser::new(&scope(), rule.token(), text)
+      .with_rule(rule)
+      .parse()
+      .ok()
+      .filter(|node| node.depth() <= MAX_DEPTH)
+  };
+  let Some(before) = parse(input) else {
+    return Formatted::Unchanged;
+  };
   formatter.node(0, 0);
   let formatted = formatter.out;
   // the formatted text must be the same expression
-  let parse = |text: &str| -> Option<AstNode> { Parser::new(&scope(), start(), text).parse().ok().filter(|node| node.depth() <= MAX_DEPTH) };
-  match (parse(input), parse(&formatted)) {
+  match (Some(before), parse(&formatted)) {
     (Some(before), Some(after)) if before == after => Formatted::Text(formatted),
     _other => {
       #[cfg(test)]

@@ -43,5 +43,10 @@ fn _0005() {
 
 #[test]
 fn _0006() {
-  te_null(false, &scope!(), r#"get entries(entries: {key1: "value1", key2: "value2"})"#, r#"parameter 'm' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"get entries(entries: {key1: "value1", key2: "value2"})"#,
+    r#"expected the parameters of get entries(m): list<context>, found the parameter name 'entries'"#,
+  );
 }

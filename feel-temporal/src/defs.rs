@@ -2,9 +2,8 @@
 
 use crate::feel_date_time::FeelDateTime;
 use crate::feel_zone::FeelZone;
+use crate::parts::Parts;
 use chrono::{DateTime, Datelike, FixedOffset, Local, LocalResult, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Timelike, Utc};
-use regex::Regex;
-use std::sync::LazyLock;
 use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
 
 /// Sentinel meaning "no local offset override is set".
@@ -32,26 +31,46 @@ pub fn local_offset_override() -> Option<i32> {
   }
 }
 
-/// Returns the current local date and time, honouring the local offset override.
-pub fn local_now() -> DateTime<FixedOffset> {
-  if let Some(offset) = local_offset_override().and_then(FixedOffset::east_opt) {
-    Utc::now().with_timezone(&offset)
-  } else {
-    Local::now().fixed_offset()
-  }
+thread_local! {
+  /// The instant that `now()` and `today()` read on this thread instead of the system clock
+  /// ([set_clock_override]).
+  static CLOCK_OVERRIDE: std::cell::Cell<Option<DateTime<Utc>>> = const { std::cell::Cell::new(None) };
 }
 
-/// Regular expression pattern for parsing dates.
-const DATE_PATTERN: &str = r"(?P<sign>-)?(?P<year>[1-9][0-9]{3,8})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})";
-/// Regular expression pattern for parsing time.
-const TIME_PATTERN: &str = r"(?P<hours>[0-9]{2}):(?P<minutes>[0-9]{2}):(?P<seconds>[0-9]{2})(?P<fractional>\.[0-9]+)?";
-/// Regular expression pattern for parsing time zones given as UTC.
-const ZULU_PATTERN: &str = r"(?P<zulu>[zZ])";
-/// Regular expression pattern for parsing time zones given as zone name.
-const ZONE_PATTERN: &str = r"@(?P<zone>[a-zA-Z_/]+)";
-/// Regular expression pattern for parsing time zones given as offset: `±hh:mm`, the lexical
-/// representation of a timezone (XML Schema Part 2 §3.2.7.3: "(('+' | '-') hh ':' mm) | 'Z'").
-const OFFSET_PATTERN: &str = r"(?P<offSign>[+-])(?P<offHours>[0-9]{2}):(?P<offMinutes>[0-9]{2})";
+/// Pins (`Some(instant)`) or releases (`None`) the clock that `now()` and `today()` read on this
+/// thread: a host that evaluates a request with a fixed instant (repeatable tests, replayed
+/// processes; DMN 1.7 Beta 1, 10.3.4.11 encourages a fixed clock) sets it for the request and
+/// releases it after. It is per thread, so evaluations on other threads keep their own.
+pub fn set_clock_override(instant: Option<DateTime<Utc>>) {
+  CLOCK_OVERRIDE.with(|clock| clock.set(instant));
+}
+
+/// The instant of an ISO 8601 date and time with its offset or `Z` (RFC 3339 with `T` and `Z`:
+/// `2026-01-01T10:00:00Z`, `2026-01-01T12:00:00.5+02:00`), for [set_clock_override]; `None` for
+/// any other text, a local one included.
+pub fn parse_instant(text: &str) -> Option<DateTime<Utc>> {
+  // RFC 3339 also takes a space or a lower case `t` between the date and the time, and a
+  // lower case `z`; ISO 8601 writes `T` and `Z`
+  if text.bytes().any(|byte| matches!(byte, b' ' | b't' | b'z')) {
+    return None;
+  }
+  DateTime::parse_from_rfc3339(text).ok().map(|instant| instant.with_timezone(&Utc))
+}
+
+/// The current instant: the pinned one of this thread ([set_clock_override]), or the system's.
+fn utc_now() -> DateTime<Utc> {
+  CLOCK_OVERRIDE.with(std::cell::Cell::get).unwrap_or_else(Utc::now)
+}
+
+/// Returns the current local date and time, honouring the local offset override and the clock
+/// of this thread ([set_clock_override]).
+pub fn local_now() -> DateTime<FixedOffset> {
+  if let Some(offset) = local_offset_override().and_then(FixedOffset::east_opt) {
+    utc_now().with_timezone(&offset)
+  } else {
+    utc_now().with_timezone(&Local).fixed_offset()
+  }
+}
 
 pub const ETC_UTC: &str = "Etc/UTC";
 
@@ -69,17 +88,6 @@ pub type DayOfYear = u16;
 pub type WeekOfYear = u8;
 /// Type alias for month in year.
 pub type MonthOfYear = (String, u8);
-
-/// Regular expression pattern for parsing time zone.
-pub static TIME_ZONE_PATTERN: LazyLock<String> = LazyLock::new(|| format!("{ZULU_PATTERN}|{ZONE_PATTERN}|{OFFSET_PATTERN}"));
-/// Regular expression for parsing date.
-pub static RE_DATE: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{DATE_PATTERN}$")).unwrap());
-/// Regular expression for parsing time.
-pub static RE_TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{TIME_PATTERN}({})?$", TIME_ZONE_PATTERN.as_str())).unwrap());
-/// Regular expression for parsing a time zone designator alone; it is never empty.
-pub static RE_ZONE: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^(?:{})$", TIME_ZONE_PATTERN.as_str())).unwrap());
-/// Regular expression for parsing date and time.
-pub static RE_DATE_AND_TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{DATE_PATTERN}T{TIME_PATTERN}({})?$", TIME_ZONE_PATTERN.as_str())).unwrap());
 
 pub fn feel_time_offset(me: &FeelDateTime) -> Option<i32> {
   let me_date_tuple = me.date().as_tuple();
@@ -111,11 +119,6 @@ pub fn date_time_offset_dt(date: (i32, u32, u32), time: (u32, u32, u32, u32), of
     return Some(date_time);
   }
   None
-}
-
-pub fn date_time_offset_t(time: (u32, u32, u32, u32), offset: i32) -> Option<DateTime<FixedOffset>> {
-  let today = local_now();
-  date_time_offset_dt((today.year(), today.month(), today.day()), time, offset)
 }
 
 /// Returns the time offset (in seconds) between local time zone
@@ -172,7 +175,7 @@ pub fn get_zone_offset_t(zone_name: &str, time: (u32, u32, u32, u32)) -> Option<
 
 /// Returns time offset (in seconds) of the named time zone and UTC time zone.
 pub fn get_zone_offset(zone_name: &str) -> Option<i32> {
-  let now = Utc::now();
+  let now = utc_now();
   let time = now.time();
   let t = (time.hour(), time.minute(), time.second(), time.nanosecond());
   let d = (now.year(), now.month(), now.day());
@@ -242,7 +245,7 @@ pub(crate) fn parse_fraction_nanos(digits: &str) -> Option<(u32, Option<&str>)> 
 
 /// The digits of the `fractional` group (`.` and digits) of a time pattern match, without the
 /// `.`; empty when the group did not match.
-pub(crate) fn fraction_digits<'t>(captures: &regex::Captures<'t>) -> &'t str {
+pub(crate) fn fraction_digits<'t>(captures: &Parts<'t>) -> &'t str {
   captures.name("fractional").and_then(|fraction| fraction.as_str().get(1..)).unwrap_or_default()
 }
 

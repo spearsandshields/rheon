@@ -33,17 +33,17 @@ fn _0006() {
 
 #[test]
 fn _0007() {
-  te_null(
-    false,
-    &scope!(),
-    r#"week of year(date: date(999999999,9,17))"#,
-    "[core::week of year] invalid argument type, expected date, date and time, actual type is Null",
-  );
+  te_be_value(false, &scope!(), r#"week of year(date: date(999999999,9,17))"#, r#"37"#);
 }
 
 #[test]
 fn _0008() {
-  te_null(false, &scope!(), r#"week of year(d: date(2021,9,17))"#, "parameter 'date' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"week of year(d: date(2021,9,17))"#,
+    "expected the parameters of week of year(date): number, found the parameter name 'd'",
+  );
 }
 
 #[test]

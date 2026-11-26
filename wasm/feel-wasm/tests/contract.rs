@@ -708,7 +708,8 @@ fn nesting_and_recursion_limits_body() {
     assert_error(&req(json!({"op": "evaluate", "expression": e})), "evaluation", call_depth);
   }
   // values nest at most 500 levels: a value 501 levels deep stops the evaluation, also when a
-  // loop or a key list would nest it far deeper, and a value 500 levels deep is bound and returned
+  // loop would nest it far deeper or a key list would put a value too deep, and a value 500 levels
+  // deep is bound and returned
   let value_depth = "values are nested too deeply (more than 500 levels); evaluation stopped";
   // a list `5 * calls + base` levels deep, built by a recursion that adds 5 levels per call
   let list = |calls: u32, base: usize| {
@@ -722,7 +723,8 @@ fn nesting_and_recursion_limits_body() {
     list(100, 1),
     format!("{{a: {}}}", list(99, 5)),
     format!("for i in 1..2 return {}", list(99, 5)),
-    "context put({}, for i in 1..100000 return \"a\", 0)".to_string(),
+    // a key list builds no context, but puts into the contexts its path names (here 498 deep)
+    "(function(c) context put(c, for i in 1..499 return \"a\", [[]]))((for i in 1..499 return if i = 1 then {} else {a: partial[-1]})[-1])".to_string(),
     "{f: function(x, n) if n = 0 then x else f([x], n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r".to_string(),
   ] {
     assert_error(&req(json!({"op": "evaluate", "expression": e})), "evaluation", value_depth);
@@ -909,13 +911,16 @@ fn request_echoes_are_previews_and_every_message_is_capped() {
   check(
     json!({"op": "evaluate", "expression": "41 + 1", "dialect": x}),
     "request",
-    format!("invalid 'dialect' \"{}… (200 characters) (expected \"expression\" or \"unaryTests\")", "x".repeat(119)),
+    format!(
+      "invalid 'dialect' \"{}… (200 characters) (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")",
+      "x".repeat(119)
+    ),
   );
   check(
     json!({"op": "y".repeat(300)}),
     "request",
     format!(
-      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
+      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
       "y".repeat(120)
     ),
   );
@@ -985,7 +990,7 @@ fn request_error_messages() {
   assert_error(
     &req(json!({"op": "explode"})),
     "request",
-    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
+    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
   );
   // the expression
   for op in ["evaluate", "parse"] {
@@ -995,8 +1000,16 @@ fn request_error_messages() {
   }
   // the options name the offending JSON value
   for (option, value, expected) in [
-    ("dialect", json!("boxed"), "invalid 'dialect' \"boxed\" (expected \"expression\" or \"unaryTests\")"),
-    ("dialect", json!(1), "invalid 'dialect' 1 (expected \"expression\" or \"unaryTests\")"),
+    (
+      "dialect",
+      json!("boxed"),
+      "invalid 'dialect' \"boxed\" (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")",
+    ),
+    (
+      "dialect",
+      json!(1),
+      "invalid 'dialect' 1 (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")",
+    ),
     ("language", json!("x"), "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")"),
     ("language", json!(true), "invalid 'language' true (expected \"feel\" or \"b-feel\")"),
     ("errorMode", json!("x"), "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")"),
@@ -1083,8 +1096,9 @@ fn a_filter_records_only_the_evaluations_it_uses() {
 /// context and input; `info` reads nothing but `op`.
 #[test]
 fn request_error_order() {
-  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')";
-  let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\" or \"unaryTests\")";
+  let unknown_op =
+    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')";
+  let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")";
   let language = "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")";
   let error_mode = "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")";
   let missing_expression = "missing 'expression'";
@@ -1326,8 +1340,11 @@ fn temporal_ordering_across_offsets_and_midnight_wrap() {
     tz0(r#"sort([@"2026-10-17T10:00:00Z", @"2026-10-17T10:00:00+01:00"], function(a, b) a < b)"#),
     r#"["2026-10-17T10:00:00+01:00", "2026-10-17T10:00:00Z"]"#
   );
-  // a local and a zoned value stay incomparable, like their subtraction (dsntk semantics)
-  assert_eq!(tz0(r#"@"2026-10-17T10:00:00" < @"2026-10-17T11:00:00Z""#), "false");
+  // a local value takes the offset of the other (DMN 1.7 Beta 1, Table 55), whatever tzOffsetMinutes is
+  assert_eq!(tz0(r#"@"2026-10-17T10:00:00" < @"2026-10-17T11:00:00Z""#), "true");
+  assert_eq!(tz0(r#"@"2026-10-17T10:00:00" < @"2026-10-18T11:00:00Z""#), "true");
+  assert_eq!(tz0(r#"@"10:00:00" < @"11:00:00Z""#), "true");
+  assert_eq!(tz0(r#"@"10:00:00" = @"10:00:00+02:00""#), "true");
   assert_eq!(tz0(r#"@"2026-10-17T10:00:00" < @"2026-10-17T11:00:00""#), "true");
   // time + duration wraps around midnight, nanoseconds included
   assert_eq!(display(r#"time("23:59:59") + duration("PT1S")"#), r#""00:00:00""#);
@@ -1421,10 +1438,18 @@ fn ok(request: Json) -> Json {
 
 #[test]
 fn b_feel_language() {
-  // DMN 1.6 chapter 11: language "b-feel"; the FEEL error behind the default is a diagnostic
+  // DMN 1.6 chapter 11: language "b-feel"; the FEEL error behind the default is a warning, as
+  // B-FEEL defines the result as normal (11.1), so strict mode accepts it
   let response = ok(json!({"op": "evaluate", "expression": "\"The result is: \" + 1", "language": "b-feel"}));
   assert_eq!(response["result"]["display"], "\"The result is: 1\"", "{response}");
-  assert_eq!(response["diagnostics"]["count"], 1, "{response}");
+  assert_eq!(response["diagnostics"]["count"], 0, "{response}");
+  assert_eq!(
+    response["warnings"],
+    json!([{"code": "bfeel-default", "message": "expected string as a second argument in addition"}]),
+    "{response}"
+  );
+  let strict = ok(json!({"op": "evaluate", "expression": "\"a\" = 1", "language": "b-feel", "errorMode": "strict"}));
+  assert_eq!(strict["result"]["display"], "false", "{strict}");
   let response = ok(json!({"op": "evaluate", "expression": "\"a\" = 1", "language": "b-feel"}));
   assert_eq!(response["result"]["display"], "false", "{response}");
   let response = ok(json!({"op": "evaluate", "expression": "\"a\" = 1"}));
@@ -1514,7 +1539,9 @@ fn not_equal_reports_like_equal() {
   assert_eq!(strict["error"]["message"], format!("strict error mode: {message}"), "{strict}");
   let b_feel = ok(json!({"op": "evaluate", "expression": "\"a\" != 1", "language": "b-feel"}));
   assert_eq!(b_feel["result"]["display"], "true", "{b_feel}");
-  assert_eq!(b_feel["diagnostics"]["messages"], json!([message]), "{b_feel}");
+  // the error behind B-FEEL's answer is a warning (11.1)
+  assert_eq!(b_feel["diagnostics"]["messages"], json!([]), "{b_feel}");
+  assert_eq!(b_feel["warnings"], json!([{"code": "bfeel-default", "message": message}]), "{b_feel}");
 }
 
 #[test]
@@ -1547,7 +1574,7 @@ fn a_null_operand_of_an_arithmetic_operator_is_an_error() {
     assert_eq!(strict["error"]["message"], format!("strict error mode: {message}"), "{strict}");
   }
   // B-FEEL (§11.9-§11.11) converts the null operand and gives a value; the FEEL error behind it
-  // stays listed
+  // stays listed, as a warning (11.1)
   for (expression, display, message) in [
     ("1 + null", "1", "[addition] incompatible types: 1 + null"),
     ("null - 6", "-6", "[subtraction] incompatible types: null - 6"),
@@ -1557,7 +1584,8 @@ fn a_null_operand_of_an_arithmetic_operator_is_an_error() {
   ] {
     let b_feel = ok(json!({"op": "evaluate", "expression": expression, "language": "b-feel"}));
     assert_eq!(b_feel["result"]["display"], display, "{b_feel}");
-    assert_eq!(b_feel["diagnostics"]["messages"], json!([message]), "{b_feel}");
+    assert_eq!(b_feel["diagnostics"]["messages"], json!([]), "{b_feel}");
+    assert_eq!(b_feel["warnings"], json!([{"code": "bfeel-default", "message": message}]), "{b_feel}");
   }
 }
 
@@ -1652,6 +1680,70 @@ fn a_step_budget_is_a_positive_integer() {
 /// request answers the same when its text makes the module read it as a tree of JSON values
 /// first, which a top-level key written with an escape does: values, warnings and their order,
 /// errors and their texts.
+/// `serde_json` hands a number to its tree as an object with one private key. A JSON object of
+/// a request that has this key is an object like every other: wherever it stands, however the
+/// request around it is read, and whatever its other entries and its value are.
+#[test]
+fn an_object_with_the_private_number_key_of_serde_json_is_an_object() {
+  const KEY: &str = "$serde_json::private::Number";
+  let probe = r#"[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]"#;
+  // the display of the probe for the object `object` as the entry `v` of the context
+  let shown = |request: String| {
+    let response = raw(&request);
+    assert_eq!(response["ok"], true, "{request}: {response}");
+    response["result"]["display"].as_str().unwrap().to_string()
+  };
+  for (object, expected) in [
+    (format!(r#"{{"{KEY}":"42"}}"#), r#"[false, 1, "42"]"#),
+    (format!(r#"{{"{KEY}":"42","b":1}}"#), r#"[false, 2, "42"]"#),
+    (format!(r#"{{"b":1,"{KEY}":"42"}}"#), r#"[false, 2, "42"]"#),
+    (format!(r#"{{"{KEY}":true}}"#), "[false, 1, true]"),
+    (format!(r#"{{"{KEY}":42}}"#), "[false, 1, 42]"),
+    (format!(r#"{{"{KEY}":"x"}}"#), r#"[false, 1, "x"]"#),
+    (format!(r#"{{"{KEY}":{{"{KEY}":"1"}}}}"#), r#"[false, 1, {"$serde_json::private::Number": "1"}]"#),
+    (r#"{"$serde_json::private::\u004eumber":"42"}"#.to_string(), r#"[false, 1, "42"]"#),
+  ] {
+    for request in [
+      // read from the text
+      format!(r#"{{"op":"evaluate","expression":"{probe}","context":{{"v":{object}}}}}"#),
+      // the context through the tree: a key with white space at an end beside it
+      format!(r#"{{"op":"evaluate","expression":"{probe}","context":{{"v":{object}," w":1}}}}"#),
+      // the request through the tree: a top-level key with an escape
+      format!(r#"{{"op":"evaluate","expression":"{probe}","\u0063ontext":{{"v":{object}}}}}"#),
+      // an item of a list, and one beside an object that is long enough to be read on first use
+      format!(r#"{{"op":"evaluate","expression":"(for v in l return {probe})[1]","context":{{"l":[{object}]}}}}"#),
+      format!(
+        r#"{{"op":"evaluate","expression":"(for v in l[2].inner return {probe})[1]","context":{{"l":[{{"filler":"{}"}},{{"filler":"{}","inner":[{object}]}}]}}}}"#,
+        "x".repeat(150),
+        "y".repeat(150)
+      ),
+    ] {
+      assert_eq!(expected, shown(request.clone()), "{request}");
+    }
+    // the input of unary tests
+    let request = format!(r#"{{"op":"evaluate","dialect":"unaryTests","expression":"? instance of number","input":{object}}}"#);
+    assert_eq!("false", shown(request.clone()), "{request}");
+    // an entry of `evaluateEach`
+    let response = raw(&format!(r#"{{"op":"evaluateEach","expression":"{probe}","entries":[{{"context":{{"v":{object}}}}}]}}"#));
+    assert_eq!(expected, response["results"][0]["result"]["display"], "{object}: {response}");
+  }
+  // as a field of the request it is no number
+  assert_error(
+    &raw(&format!(r#"{{"op":"evaluate","expression":"1","maxSteps":{{"{KEY}":"5"}}}}"#)),
+    "request",
+    r#"invalid 'maxSteps' {"$serde_json::private::Number":"5"} (expected a positive integer)"#,
+  );
+  // and as a key of the request it is a field that the request does not know
+  assert_eq!("1", shown(format!(r#"{{"op":"evaluate","expression":"1","{KEY}":"42"}}"#)));
+  assert_eq!("1", shown(format!(r#"{{"op":"evaluate","expression":"1","{KEY}":"42","x":1}}"#)));
+  // JSON that is none stays an error of the text, at the place where it is none
+  assert_error(
+    &raw(&format!(r#"{{"op":"evaluate","expression":"a","context":{{"a":{{"{KEY}":"42","b":1}},]}}}}"#)),
+    "request",
+    "malformed request JSON: key must be a string at line 1 column 94",
+  );
+}
+
 #[test]
 fn context_and_input_read_from_the_text_answer_as_read_through_a_tree() {
   let long = "1234567890123456789012345678901234567890";
@@ -1719,13 +1811,6 @@ fn context_and_input_read_from_the_text_answer_as_read_through_a_tree() {
     }
   }
   assert!(read >= 15 && failed >= 10, "{read} answered, {failed} failed");
-  // an object that serde_json refuses is refused as before (the text of the error has a column,
-  // so the request cannot be compared with a longer spelling of itself)
-  assert_error(
-    &raw(r#"{"op":"evaluate","expression":"a","context":{"a":{"$serde_json::private::Number":true}}}"#),
-    "request",
-    "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 85",
-  );
   // one level deeper than the deepest JSON that is read
   let too_deep = raw(&format!(
     r#"{{"op":"evaluate","expression":"count(a)","context":{{"a":{}1{}}}}}"#,
@@ -1852,7 +1937,7 @@ fn evaluate_all_request_and_response() {
   assert_error(
     &req(json!({"op": "nothing"})),
     "request",
-    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
+    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
   );
   let empty = req(json!({"op": "evaluateAll", "evaluations": []}));
   assert_eq!(
@@ -2062,7 +2147,7 @@ fn outline_in_place_of_the_context() {
   assert_error(
     &req(json!({"op": "syntax", "expression": "1", "outline": {"names": 1}})),
     "context",
-    "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
+    "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}}, {\"items\": <outline>} or {\"function\": {\"parameters\": […], \"result\": <type>}}, with \"description\" and \"deprecated\" beside it when it has them, and \"values\" beside a type",
   );
 }
 
@@ -2367,7 +2452,7 @@ fn an_outline_can_have_the_types_of_its_names() {
   assert_error(
     &req(json!({"op": "complete", "expression": "", "outline": {"names": {"a": {"type": "number", "names": {}}}}})),
     "context",
-    "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
+    "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}}, {\"items\": <outline>} or {\"function\": {\"parameters\": […], \"result\": <type>}}, with \"description\" and \"deprecated\" beside it when it has them, and \"values\" beside a type",
   );
 }
 
@@ -2468,7 +2553,7 @@ fn complete_knows_the_built_in_functions() {
   let substring = item(&response, "substring");
   assert_eq!(substring["kind"], "function");
   assert_eq!(substring["detail"], "substring(string, start position, length?): string");
-  assert_eq!(substring["info"], "The characters from a position, as many as the length says or all that follow.");
+  assert_eq!(substring["documentation"], "The characters from a position, as many as the length says or all that follow.");
   assert_eq!(substring["type"], "string");
   assert!(response.get("call").is_none(), "{response}");
   // the first signature of several
@@ -2477,7 +2562,7 @@ fn complete_knows_the_built_in_functions() {
   let response = complete("1 + substring(");
   assert_eq!(response["call"]["function"], "substring");
   assert_eq!(response["call"]["argument"], 0);
-  assert_eq!(response["call"]["signatures"][0]["text"], "substring(string, start position, length?): string");
+  assert_eq!(response["call"]["signatures"][0]["label"], "substring(string, start position, length?): string");
   assert_eq!(
     response["call"]["signatures"][0]["parameters"][2],
     json!({"name": "length", "type": "number", "optional": true, "rest": false})
@@ -2486,7 +2571,7 @@ fn complete_knows_the_built_in_functions() {
   assert_eq!(labels, vec!["length", "start position", "string", "text"]);
   assert_eq!(
     item(&response, "start position"),
-    json!({"label": "start position", "kind": "parameter", "from": 14, "type": "number", "detail": null, "insert": "start position: "})
+    json!({"label": "start position", "kind": "parameter", "from": 14, "type": "number", "detail": null, "insertText": "start position: "})
   );
   // after a named parameter: the others, and the argument index
   let response = complete(r#"substring(string: text, sta"#);
@@ -2523,4 +2608,1894 @@ fn complete_knows_the_built_in_functions() {
   assert!(complete("sum(1) + ").get("call").is_none());
   assert!(complete("(1 + ").get("call").is_none());
   assert!(complete("text(").get("call").is_none());
+}
+
+/// A context is shown in the order its entries were written in: of a context literal, of the
+/// JSON of `context` and `input` however the request is read, and of a FEEL-format context.
+/// The entries of an object of the request that are written twice keep the place of the first.
+#[test]
+fn a_context_is_shown_in_the_order_it_was_written_in() {
+  let shown = |request: String| {
+    let response = raw(&request);
+    assert_eq!(response["ok"], true, "{request}: {response}");
+    let names: Vec<String> = response["result"]["typed"]["components"]
+      .as_array()
+      .map_or(vec![], |components| components.iter().map(|c| c["name"].as_str().unwrap().to_string()).collect());
+    (
+      response["result"]["display"].as_str().unwrap().to_string(),
+      response["result"]["feel"].as_str().unwrap().to_string(),
+      names,
+    )
+  };
+  let (display, feel, names) = shown(r#"{"op":"evaluate","expression":"{z: 1, a: b, b: 2}"}"#.to_string());
+  assert_eq!((r#"{"z": 1, "a": 2, "b": 2}"#, "{z: 1, a: 2, b: 2}"), (display.as_str(), feel.as_str()));
+  assert_eq!(vec!["z", "a", "b"], names);
+  let long = "1234567890123456789012345678901234567890";
+  for (object, expected) in [
+    (r#"{"z":1,"a":2,"m":3}"#.to_string(), r#"{"z": 1, "a": 2, "m": 3}"#),
+    (r#"{"a":1,"b":2}"#.to_string(), r#"{"a": 1, "b": 2}"#),
+    (r#"{"z":1,"a":2,"z":3}"#.to_string(), r#"{"z": 3, "a": 2}"#),
+    (
+      r#"{"z":{"y":1,"x":[{"q":1,"p":2},{"q":3,"p":4}]},"a":null}"#.to_string(),
+      r#"{"z": {"y": 1, "x": [{"q": 1, "p": 2}, {"q": 3, "p": 4}]}, "a": null}"#,
+    ),
+    // through the tree: a key with white space at an end, and a warning in an object out of order
+    (r#"{"z":1," a":2}"#.to_string(), r#"{"z": 1, "a": 2}"#),
+    (format!(r#"{{"z":{long},"a":2}}"#), r#"{"z": 1234567890123456789012345678901235000000, "a": 2}"#),
+    // twelve entries and more, which are built at once
+    (
+      r#"{"l":1,"k":2,"j":3,"i":4,"h":5,"g":6,"f":7,"e":8,"d":9,"c":10,"b":11,"a":12,"m":13}"#.to_string(),
+      r#"{"l": 1, "k": 2, "j": 3, "i": 4, "h": 5, "g": 6, "f": 7, "e": 8, "d": 9, "c": 10, "b": 11, "a": 12, "m": 13}"#,
+    ),
+  ] {
+    let flat = |text: String| {
+      text
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .replace("{ ", "{")
+        .replace(" }", "}")
+        .replace("[ ", "[")
+        .replace(" ]", "]")
+    };
+    for request in [
+      format!(r#"{{"op":"evaluate","expression":"v","context":{{"v":{object}}}}}"#),
+      format!(r#"{{"op":"evaluate","expression":"v","context":{{"v":{object}}}}}"#),
+      format!(r#"{{"op":"evaluate","expression":"l[1]","context":{{"l":[{object}]}}}}"#),
+      format!(
+        r#"{{"op":"evaluate","expression":"l[2].inner[1]","context":{{"l":[{{"filler":"{}"}},{{"filler":"{}","inner":[{object}]}}]}}}}"#,
+        "x".repeat(150),
+        "y".repeat(150)
+      ),
+    ] {
+      assert_eq!(expected, flat(shown(request.clone()).0), "{request}");
+    }
+  }
+  // records of one shape, out of the order of their names
+  let (display, ..) = shown(r#"{"op":"evaluate","expression":"rows","context":{"rows":[{"z":1,"a":2},{"z":3,"a":4},{"a":5,"z":6}]}}"#.to_string());
+  assert_eq!(
+    r#"[{"z": 1, "a": 2}, {"z": 3, "a": 4}, {"a": 5, "z": 6}]"#,
+    display
+      .split_whitespace()
+      .collect::<Vec<_>>()
+      .join(" ")
+      .replace("{ ", "{")
+      .replace(" }", "}")
+      .replace("[ ", "[")
+      .replace(" ]", "]")
+  );
+  // a FEEL-format context
+  let (display, ..) = shown(r#"{"op":"evaluate","expression":"v","context":"{v: {z: 1, a: 2}}","contextFormat":"feel"}"#.to_string());
+  assert_eq!(r#"{"z": 1, "a": 2}"#, display);
+}
+
+/// A field that a request does not have is not read: the answer says so in a warning, so that
+/// a misspelt `errorMode` or `maxSteps` does not go unseen. The request is answered as without it.
+#[test]
+fn a_field_that_a_request_does_not_have_is_named_in_a_warning() {
+  let unknown = |name: &str| {
+    format!(
+      "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, now, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '{name}', which is not read"
+    )
+  };
+  let response = req(json!({"op": "evaluate", "expression": "1 + \"a\"", "errorMod": "strict", "maxsteps": 5}));
+  assert_eq!(vec![unknown("errorMod"), unknown("maxsteps")], warnings(&response));
+  assert_eq!(response["result"]["display"], "null");
+  // every field of a request is known, whatever the operation reads of it
+  let response = req(json!({
+    "op": "evaluate", "dialect": "expression", "expression": "1", "context": {}, "contextFormat": "json", "input": 1, "tzOffsetMinutes": 0,
+    "language": "feel", "errorMode": "lenient", "maxSteps": 10, "evaluations": [], "entries": [], "id": 1, "cursor": 0, "outline": null, "tree": false, "types": false, "width": 80
+  }));
+  assert!(warnings(&response).is_empty(), "{response}");
+  // the request of evaluateAll among the warnings of the request, an entry in its own answer
+  let response = req(json!({"op": "evaluateAll", "contxt": {"a": 1}, "evaluations": [{"expression": "1", "errormode": "strict"}, {"expression": "2"}]}));
+  let of_all =
+    |name: &str| format!("expected a field of an evaluateAll request (op, context, contextFormat, tzOffsetMinutes, now, language, evaluations), found '{name}', which is not read");
+  assert_eq!(response["contextWarnings"], json!([{"code": "unknown-field", "message": of_all("contxt")}]), "{response}");
+  // an entry is read for the fields an entry has
+  let in_evaluations =
+    |name: &str| format!("expected a field of an entry of 'evaluations' (id, dialect, expression, input, errorMode, maxSteps), found '{name}', which is not read");
+  assert_eq!(
+    response["results"][0]["warnings"],
+    json!([{"code": "unknown-field", "message": in_evaluations("errormode")}]),
+    "{response}"
+  );
+  assert_eq!(response["results"][1]["warnings"], json!([]), "{response}");
+  // evaluateEach has no warnings of the request: each answer has them
+  let response = req(json!({"op": "evaluateEach", "expression": "a", "langauge": "feel", "entries": [{"context": {"a": 1}}, {"context": {"a": 2}, "Input": 3}]}));
+  let of_each = |name: &str| {
+    format!(
+      "expected a field of an evaluateEach request (op, dialect, expression, contextFormat, tzOffsetMinutes, now, language, errorMode, maxSteps, entries), found '{name}', which is not read"
+    )
+  };
+  assert_eq!(
+    response["results"][0]["warnings"],
+    json!([{"code": "unknown-field", "message": of_each("langauge")}]),
+    "{response}"
+  );
+  let in_entries = |name: &str| format!("expected a field of an entry of 'entries' (id, context, input), found '{name}', which is not read");
+  assert_eq!(
+    response["results"][1]["warnings"],
+    json!([{"code": "unknown-field", "message": of_each("langauge")}, {"code": "unknown-field", "message": in_entries("Input")}]),
+    "{response}"
+  );
+  // a long name is shown in part, as every text of a message is
+  let response = req(json!({"op": "evaluate", "expression": "1", "x".repeat(5000): 1}));
+  assert!(warnings(&response)[0].chars().count() <= 1000, "{response}");
+}
+
+/// A number literal with more digits than a number holds is rounded, and the evaluation says
+/// so, as it does for a number of the context; a literal that a number holds exactly says nothing.
+#[test]
+fn a_number_literal_of_more_than_34_digits_warns() {
+  let long = "1234567890123456789012345678901234567890";
+  let response = req(json!({"op": "evaluate", "expression": format!("{long} + 1")}));
+  assert_eq!(response["result"]["display"], "1234567890123456789012345678901235000000");
+  assert_eq!(
+    vec![format!(
+      "number literal '{long}' has more than 34 significant digits and was rounded to 1234567890123456789012345678901235000000"
+    )],
+    warnings(&response)
+  );
+  let response = req(json!({"op": "evaluate", "expression": "0.1234567890123456789012345678901234567"}));
+  assert_eq!(
+    vec!["number literal '0.1234567890123456789012345678901234567' has more than 34 significant digits and was rounded to 0.1234567890123456789012345678901235"],
+    warnings(&response)
+  );
+  let response = req(json!({"op": "evaluate", "expression": "1e-6200 + 0"}));
+  assert_eq!(
+    vec!["number literal '1e-6200' is too small for a 34-digit decimal (exponent below -6176) and became 0"],
+    warnings(&response)
+  );
+  // in a loop the literal warns as often as it is evaluated, a repeat once
+  let response = req(json!({"op": "evaluate", "expression": format!("for i in 1..3 return {long}")}));
+  assert_eq!(1, warnings(&response).len(), "{response}");
+  for exact in [
+    "1234567890123456789012345678901234",
+    "1.50",
+    "1e6144",
+    "0.0000000000000000000000000000000000001",
+    "12345678901234567890123456789012340000000",
+  ] {
+    let response = req(json!({"op": "evaluate", "expression": exact}));
+    assert!(warnings(&response).is_empty(), "{exact}: {response}");
+  }
+}
+
+#[test]
+fn b_feel_strict_accepts_the_answers_b_feel_defines() {
+  // the errors behind them are warnings (11.1): two-valued `in` over a list of tests, and some
+  // and every over a domain that is no iteration context
+  for (expression, display) in [
+    (r#""a" in (< 10, > 20)"#, "false"),
+    (r#""a" in ([1..5], 7)"#, "false"),
+    (r#""a" in not(< 10)"#, "false"),
+    ("some x in [1..3] satisfies x > 0", "false"),
+    ("every x in (< 3) satisfies x", "false"),
+  ] {
+    let strict = ok(json!({"op": "evaluate", "expression": expression, "language": "b-feel", "errorMode": "strict"}));
+    assert_eq!(strict["result"]["display"], display, "{expression}: {strict}");
+    assert_eq!(strict["diagnostics"]["count"], 0, "{expression}: {strict}");
+    assert_ne!(strict["warnings"], json!([]), "{expression}: {strict}");
+  }
+}
+
+#[test]
+fn now_pins_the_clock_of_a_request() {
+  // DMN 1.7 Beta 1, 10.3.4.11: a fixed clock for repeatable evaluations (owner Q-T3)
+  let display = |request: Json| ok(request)["result"]["display"].as_str().unwrap().to_string();
+  let pinned = |expression: &str, tz: i64| display(json!({"op": "evaluate", "expression": expression, "now": "2001-02-03T04:05:06Z", "tzOffsetMinutes": tz}));
+  assert_eq!(pinned("now()", 0), "\"2001-02-03T04:05:06\"");
+  assert_eq!(pinned("today()", 0), "\"2001-02-03\"");
+  // seen at the offset of the request
+  assert_eq!(pinned("now()", 120), "\"2001-02-03T06:05:06\"");
+  assert_eq!(pinned("today()", -300), "\"2001-02-02\"");
+  // an instant with another offset is the same instant
+  assert_eq!(
+    display(json!({"op": "evaluate", "expression": "now()", "now": "2001-02-03T06:05:06+02:00", "tzOffsetMinutes": 0})),
+    "\"2001-02-03T04:05:06\""
+  );
+  // evaluateAll takes it for all its evaluations
+  let all = ok(json!({"op": "evaluateAll", "now": "2001-02-03T04:05:06Z", "tzOffsetMinutes": 0, "evaluations": [{"expression": "today().year"}]}));
+  assert!(all.to_string().contains("2001"), "{all}");
+  // a text that is no instant is a request error
+  for now in [
+    json!("2001-02-03"),
+    json!("2001-02-03T04:05:06"),
+    json!("yesterday"),
+    json!(5),
+    // RFC 3339 takes these, ISO 8601 does not (review of DT-065)
+    json!("2001-02-03 04:05:06Z"),
+    json!("2001-02-03t04:05:06Z"),
+    json!("2001-02-03T04:05:06z"),
+  ] {
+    let response = req(json!({"op": "evaluate", "expression": "now()", "now": now}));
+    assert_eq!(error_kind(&response), "request", "{response}");
+  }
+  // the next request reads the system clock again
+  let year = display(json!({"op": "evaluate", "expression": "string(today().year)", "tzOffsetMinutes": 0}));
+  assert_ne!(year, "\"2001\"");
+}
+
+#[test]
+fn start_rules_of_s_feel_and_lists_of_expressions() {
+  // DT-002: simpleExpression and simpleExpressions (DMN 1.7 Beta 1, clause 9.2, rules 3 and 4),
+  // textualExpressions (grammar rule 3)
+  let context = json!({"Age": 20, "Score": 3});
+  let evaluated = |dialect: &str, expression: &str| {
+    ok(json!({"op": "evaluate", "dialect": dialect, "expression": expression, "context": context}))["result"]["display"]
+      .as_str()
+      .unwrap()
+      .to_string()
+  };
+  assert_eq!(evaluated("simpleExpression", "Age + 1 >= 18"), "true");
+  assert_eq!(evaluated("simpleExpression", "date(\"2020-01-01\") + duration(\"P1D\")"), "\"2020-01-02\"");
+  assert_eq!(evaluated("simpleExpressions", "Age, Score * 2"), "[20, 6]");
+  assert_eq!(evaluated("simpleExpressions", "Age"), "[20]");
+  assert_eq!(
+    evaluated("textualExpressions", "if Age > 18 then \"adult\" else \"minor\", for i in 1..2 return i"),
+    "[\"adult\", [1, 2]]"
+  );
+  // a construct S-FEEL has not is a syntax error that says where and what it is
+  let response = req(json!({"op": "evaluate", "dialect": "simpleExpression", "expression": "Age > 18 and Score > 2", "context": context}));
+  assert_eq!(error_kind(&response), "syntax", "{response}");
+  assert!(
+    response
+      .to_string()
+      .contains("Expected a simple expression (S-FEEL, DMN 9.2), found a conjunction `Age > 18 and Score > 2`."),
+    "{response}"
+  );
+  // the same text is FEEL
+  assert_eq!(evaluated("expression", "Age > 18 and Score > 2"), "true");
+  // the editor ops take the dialects
+  let syntax = ok(json!({"op": "syntax", "dialect": "simpleExpression", "expression": "if Age > 18 then 1 else 2"}));
+  assert!(syntax.to_string().contains("found an if expression"), "{syntax}");
+  let syntax = ok(json!({"op": "syntax", "dialect": "textualExpressions", "expression": "1, 2 +"}));
+  assert!(syntax.to_string().contains("Expected"), "{syntax}");
+  let formatted = ok(json!({"op": "format", "dialect": "simpleExpressions", "expression": "Age,Score+1"}));
+  assert_eq!(formatted["formatted"], "Age, Score + 1", "{formatted}");
+  // completion offers no keyword or function that S-FEEL has not
+  let completed = ok(json!({"op": "complete", "dialect": "simpleExpression", "expression": "", "context": context}));
+  let labels: Vec<&str> = completed["items"].as_array().unwrap().iter().map(|item| item["label"].as_str().unwrap()).collect();
+  assert!(labels.contains(&"Age") && labels.contains(&"true") && labels.contains(&"date"), "{labels:?}");
+  assert!(!labels.contains(&"if") && !labels.contains(&"abs") && !labels.contains(&"null"), "{labels:?}");
+  // in evaluateAll and evaluateEach as in evaluate
+  let all = ok(json!({"op": "evaluateAll", "context": context, "evaluations": [{"dialect": "simpleExpressions", "expression": "Age, 1"}]}));
+  assert_eq!(all["results"][0]["result"]["display"], "[20, 1]", "{all}");
+  let each = ok(json!({"op": "evaluateEach", "dialect": "simpleExpression", "expression": "Age * 2", "entries": [{"context": {"Age": 1}}, {"context": {"Age": 2}}]}));
+  assert_eq!(each["results"][1]["result"]["display"], "4", "{each}");
+}
+
+#[test]
+fn completion_types_function_literals_and_their_invocations() {
+  // DT-025, for editors: the type of a function literal and of its invocations
+  let items = |expression: &str| -> Vec<(String, Json)> {
+    let completed = ok(json!({"op": "complete", "expression": expression}));
+    completed["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|item| (item["label"].as_str().unwrap().to_string(), item["type"].clone()))
+      .collect()
+  };
+  let type_of = |expression: &str, label: &str| items(expression).into_iter().find(|(name, _)| name == label).map(|(_, feel_type)| feel_type);
+  assert_eq!(type_of("{inc: function(x) x + 1, r: inc(2), s: ", "inc"), Some(json!("function<Any>->number")));
+  assert_eq!(type_of("{inc: function(x) x + 1, r: inc(2), s: ", "r"), Some(json!("number")));
+  assert_eq!(type_of("{f: function(a: string) a + \"!\", s: ", "f"), Some(json!("function<string>->string")));
+  // a function of which nothing is known stays a function
+  assert_eq!(type_of("{g: function(x) x, s: ", "g"), Some(json!("function")));
+  // the members of an invocation of a literal written before it
+  assert_eq!(type_of("{p: function(a, b) {sum: a + b, prod: a ** b}, q: p(1, 2).", "sum"), Some(json!("number")));
+  assert_eq!(type_of("{mk: function(n) {name: n}, q: mk(\"x\").", "name"), Some(json!("string")));
+  // the entries before the literal in the order they are written (review of DT-025)
+  let completed = ok(json!({"op": "complete", "expression": "{k: {m: 1}, f: function() k, q: f().", "context": {"k": "s"}}));
+  assert!(completed["items"].as_array().unwrap().iter().any(|item| item["label"] == "m"), "{completed}");
+}
+
+#[test]
+fn evaluate_each_parses_again_for_a_context_of_another_nesting() {
+  // review of v0.9.0..feel/f1: the names of {b: {"b-c": 1}, c: 3} and {b: 10, "b-c": {}, c: 3}
+  // were the same to evaluateEach, so the second entry was answered with the parse `b - c`
+  let each = |expression: &str, contexts: Json| {
+    let entries: Vec<Json> = contexts.as_array().unwrap().iter().map(|context| json!({"context": context})).collect();
+    let response = ok(json!({"op": "evaluateEach", "expression": expression, "entries": entries}));
+    let displays: Vec<String> = response["results"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|result| result["result"]["display"].as_str().unwrap().to_string())
+      .collect();
+    displays
+  };
+  let contexts = json!([{"b": {"b-c": 1}, "c": 3}, {"b": 10, "b-c": {}, "c": 3}]);
+  assert_eq!(each("b-c", contexts.clone()), ["null", "{}"].map(String::from));
+  // every answer is what evaluate gives
+  for context in contexts.as_array().unwrap() {
+    let alone = ok(json!({"op": "evaluate", "expression": "b-c", "context": context}));
+    assert!(each("b-c", json!([context])).contains(&alone["result"]["display"].as_str().unwrap().to_string()));
+  }
+  // nestings that the old names also confused
+  let deeper = json!([{"a": {"b": {}}, "x y": 1}, {"a": {}, "b": {}, "x y": 1}]);
+  assert_eq!(each("x y", deeper), ["1", "1"].map(String::from));
+  // contexts of the same names still share one parse and give their own values
+  assert_eq!(each("b-c", json!([{"b": 5, "c": 2}, {"b": 7, "c": 1}])), ["3", "6"].map(String::from));
+}
+
+#[test]
+fn as_ends_a_name_that_is_not_in_scope() {
+  // review of v0.9.0..feel/f1: `as` (DMN 1.7 Beta 1, grammar rule 51) was read into a name the
+  // scope does not know; names are resolved by the scope, the longest name in scope first
+  // (10.3.1.2), so a name in scope keeps the word and an unknown name ends before it
+  let display = |expression: &str, context: Json| {
+    ok(json!({"op": "evaluate", "expression": expression, "context": context}))["result"]["display"]
+      .as_str()
+      .unwrap()
+      .to_string()
+  };
+  assert_eq!(display("[1, 2, 3][item as number > 1]", json!({})), "[2, 3]");
+  assert_eq!(display("{v: \"1\"}.v as number", json!({})), "null");
+  assert_eq!(display("{v: 1}.v as number", json!({})), "1");
+  assert_eq!(display("rows[1].amount as number", json!({"rows": [{"amount": 5}, {"other": 1}]})), "5");
+  assert_eq!(display("f().v as number", json!({})), "null");
+  // a name in scope that holds the word
+  assert_eq!(display("Cost as percent + 1", json!({"Cost as percent": 5})), "6");
+  assert_eq!(display("Cost as percent", json!({"Cost": 5})), "null");
+  // a name that starts with the word
+  assert_eq!(display("as of date", json!({"as of date": 7})), "7");
+  // the entries of a parameter are not known when the text is read: the name ends before `as`
+  // only when a type follows, so a name of FEEL 1.6 that holds the word keeps it
+  assert_eq!(display("{f: function(p) p.age as number}.f({age: 4})", json!({})), "4");
+  assert_eq!(display("{f: function(p) p.age as list<number>}.f({age: [4]})", json!({})), "[4]");
+  assert_eq!(display("{f: function(p) p.age as days and time duration}.f({age: @\"P1D\"})", json!({})), "\"P1D\"");
+  assert_eq!(display("{f: function(p) p.Cost as percent}.f({\"Cost as percent\": 3})", json!({})), "3");
+  assert_eq!(display("{f: function(p) p.Report as of today}.f({\"Report as of today\": 2})", json!({})), "2");
+  assert_eq!(display("{f: function(p) p.numbers as numbers}.f({\"numbers as numbers\": 1})", json!({})), "1");
+  // the conversion of a name in scope
+  assert_eq!(display("Cost as number", json!({"Cost": 5})), "5");
+  assert_eq!(display("Cost as string", json!({"Cost": 5})), "null");
+  // completion offers the operator and the abstract types
+  let labels = |expression: &str| -> Vec<String> {
+    let completed = ok(json!({"op": "complete", "expression": expression, "context": {"a": 1}}));
+    completed["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|item| item["label"].as_str().unwrap().to_string())
+      .collect()
+  };
+  assert!(labels("a ").contains(&"as".to_string()), "{:?}", labels("a "));
+  for expression in ["a as ", "a instance of "] {
+    let offered = labels(expression);
+    for name in ["comparable", "temporal", "duration", "context", "number"] {
+      assert!(offered.contains(&name.to_string()), "{expression:?}: {offered:?}");
+    }
+  }
+}
+
+#[test]
+fn a_field_of_the_request_in_an_entry_is_named_in_a_warning() {
+  // review of v0.9.0..feel/f1: an entry was checked against the fields of every request, so a
+  // field of the request written in an entry was ignored without a word
+  let each = ok(json!({"op": "evaluateEach", "expression": "for i in 1..100 return i", "entries": [{"context": {}, "maxSteps": 1, "errorMode": "strict"}]}));
+  let result = &each["results"][0];
+  assert_eq!(result["ok"], true, "{each}");
+  let warnings = result["warnings"].to_string();
+  for field in ["maxSteps", "errorMode"] {
+    assert!(
+      warnings.contains(&format!(
+        "expected a field of an entry of 'entries' (id, context, input), found '{field}', which is not read"
+      )),
+      "{warnings}"
+    );
+  }
+  let all = ok(json!({"op": "evaluateAll", "evaluations": [{"expression": "today()", "now": "2001-01-01T00:00:00Z", "language": "b-feel"}]}));
+  let warnings = all["results"][0]["warnings"].to_string();
+  for field in ["now", "language"] {
+    assert!(
+      warnings.contains(&format!(
+        "expected a field of an entry of 'evaluations' (id, dialect, expression, input, errorMode, maxSteps), found '{field}', which is not read"
+      )),
+      "{warnings}"
+    );
+  }
+  // the fields an entry reads draw none
+  let each = ok(json!({"op": "evaluateEach", "dialect": "unaryTests", "expression": "> 1", "entries": [{"id": 1, "context": {}, "input": 2}]}));
+  assert_eq!(each["results"][0]["warnings"], json!([]), "{each}");
+  let all = ok(json!({"op": "evaluateAll", "evaluations": [{"id": "a", "dialect": "unaryTests", "expression": "> 1", "input": 2, "errorMode": "strict", "maxSteps": 10}]}));
+  assert_eq!(all["results"][0]["warnings"], json!([]), "{all}");
+}
+
+#[test]
+fn second_review_of_the_batch() {
+  let display = |expression: &str| {
+    let response = req(json!({"op": "evaluate", "expression": expression}));
+    match response["ok"].as_bool() {
+      Some(true) => response["result"]["display"].as_str().unwrap().to_string(),
+      _ => format!("{} error", response["error"]["kind"].as_str().unwrap_or("?")),
+    }
+  };
+  // a type after `as` ends a name not in scope only when the name ends with it: a name of FEEL
+  // 1.6 that holds `as` and a type word keeps it
+  for (expression, expected) in [
+    ("{f: function(p) p.Count as number of items}.f({\"Count as number of items\": 7})", "7"),
+    ("{f: function(p) p.Born as date of record}.f({\"Born as date of record\": 7})", "7"),
+    ("{f: function(p) p.Start as time zone}.f({\"Start as time zone\": 7})", "7"),
+    ("{f: function(p) p.Paid as string value}.f({\"Paid as string value\": 7})", "7"),
+    // the type ends the name: at the end, before an operator or a keyword
+    ("{f: function(p) p.x as number + 1}.f({x: 1})", "2"),
+    ("{f: function(p) if p.x as number > 0 then 1 else 0}.f({x: 1})", "1"),
+    ("{f: function(p) p.x as date and time}.f({x: @\"2020-01-01T00:00:00\"})", "\"2020-01-01T00:00:00\""),
+    ("{f: function(p) [p.x as number, 2]}.f({x: 1})", "[1, 2]"),
+    // a parameter, a key and a named argument are names being given: they hold `as` and a type
+    ("{f: function(a, cost as string) cost as string}.f(1, 3)", "3"),
+    ("(function(age as number) age as number)(3)", "3"),
+    ("{f: function(cost as string: number) cost as string}.f(3)", "3"),
+    ("{f: function(cost as string) cost as string}.f(cost as string: 4)", "4"),
+    ("{cost as string: 1}.cost as string", "1"),
+    ("for cost as string in [1, 2] return cost as string", "[1, 2]"),
+  ] {
+    assert_eq!(display(expression), expected, "{expression}");
+  }
+  // completion offers the types after an unknown name and `as`, also while a type is typed
+  let labels = |expression: &str| -> Vec<String> {
+    let completed = ok(json!({"op": "complete", "expression": expression}));
+    completed["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|item| item["label"].as_str().unwrap().to_string())
+      .collect()
+  };
+  for expression in ["[1, 2][item as ", "{f: function(p) p.age as "] {
+    let offered = labels(expression);
+    assert!(
+      offered.contains(&"number".to_string()) && !offered.contains(&"as".to_string()),
+      "{expression:?}: {offered:?}"
+    );
+  }
+  assert!(labels("[1, 2][item as n").contains(&"number".to_string()), "{:?}", labels("[1, 2][item as n"));
+  // the fields of an evaluateAll or evaluateEach request are read as such a request has them
+  let all = ok(json!({"op": "evaluateAll", "errorMode": "strict", "maxSteps": 1, "dialect": "unaryTests", "evaluations": [{"expression": "1 + \"a\""}]}));
+  let warnings = all["contextWarnings"].to_string();
+  for field in ["errorMode", "maxSteps", "dialect"] {
+    assert!(
+      warnings.contains(&format!(
+        "evaluateAll request (op, context, contextFormat, tzOffsetMinutes, now, language, evaluations), found '{field}'"
+      )),
+      "{warnings}"
+    );
+  }
+  let each = ok(json!({"op": "evaluateEach", "expression": "1", "context": {}, "input": 1, "id": 2, "entries": [{}]}));
+  let warnings = each["results"][0]["warnings"].to_string();
+  for field in ["context", "input", "id"] {
+    assert!(warnings.contains(&format!("found '{field}', which is not read")), "{warnings}");
+  }
+  // the fields such requests have draw none
+  let each = ok(
+    json!({"op": "evaluateEach", "dialect": "expression", "expression": "1", "contextFormat": "json", "tzOffsetMinutes": 0, "now": "2001-01-01T00:00:00Z", "language": "feel", "errorMode": "lenient", "maxSteps": 10, "entries": [{}]}),
+  );
+  assert_eq!(each["results"][0]["warnings"], json!([]), "{each}");
+  let all = ok(
+    json!({"op": "evaluateAll", "context": {}, "contextFormat": "json", "tzOffsetMinutes": 0, "now": "2001-01-01T00:00:00Z", "language": "feel", "evaluations": [{"expression": "1"}]}),
+  );
+  assert_eq!(all["contextWarnings"], json!([]), "{all}");
+}
+
+#[test]
+fn third_review_of_the_batch() {
+  let display = |expression: &str| {
+    let response = req(json!({"op": "evaluate", "expression": expression}));
+    match response["ok"].as_bool() {
+      Some(true) => response["result"]["display"].as_str().unwrap().to_string(),
+      _ => format!("{} error", response["error"]["kind"].as_str().unwrap_or("?")),
+    }
+  };
+  for (expression, expected) in [
+    // `as` and a word that starts a generic type end a name only when a whole type follows
+    ("{f: function(p) p.Items as list < 3}.f({\"Items as list\": 2})", "true"),
+    ("{f: function(p) p.Score as range <= 5}.f({\"Score as range\": 2})", "true"),
+    ("{f: function(p) p.Score as context < 5}.f({\"Score as context\": 2})", "true"),
+    // `>=` and `<=` are comparisons, not the brackets of a type
+    // (`(p."Kn as range" < 2) >= 1`, null as in FEEL 1.6, no syntax error)
+    ("{f: function(p) p.Kn as range<2>=1}.f({\"Kn as range\": 1})", "null"),
+    ("{f: function(p) p.Kn as list<=1}.f({\"Kn as list\": 1})", "true"),
+    // whole generic types convert, also before an operator
+    ("{f: function(p) p.x as list<number>}.f({x: [1]})", "[1]"),
+    ("{f: function(p) count(p.x as list<number>) + 1}.f({x: [1]})", "2"),
+    ("{f: function(p) p.x as context<a: number>}.f({x: {a: 1}})", "{\"a\": 1}"),
+    ("{f: function(p) p.x as context<>}.f({x: {a: 1}})", "{\"a\": 1}"),
+    ("{f: function(p) (p.x as list<list<number>>)[1]}.f({x: [[1]]})", "[1]"),
+    // where a type is read, a name of a type holds `as` (an unknown type: null, as before)
+    ("(function(a: Amount as number) a)(1)", "null"),
+    ("1 instance of list<Amount as number>", "null"),
+    ("1 instance of Amount as number", "null"),
+  ] {
+    assert_eq!(display(expression), expected, "{expression}");
+  }
+  // `entries` read aside by the strict reader is named where it is not read
+  let response = raw(r#"{"op":"evaluateAll","entries":[1],"evaluations":[{"expression":"1"}]}"#);
+  assert!(response.to_string().contains("found 'entries', which is not read"), "{response}");
+  let response = raw(r#"{"op":"evaluateEach","expression":"a","entries":[{"context":{"a":2},"entries":[1]}]}"#);
+  assert!(
+    response["results"][0]["warnings"]
+      .to_string()
+      .contains("an entry of 'entries' (id, context, input), found 'entries'"),
+    "{response}"
+  );
+}
+
+/// Completion of a text whose types hold one type at many places, or hold each other entry
+/// after entry, answers in the time of the text and shows a type of a bounded size (review of
+/// the analysis).
+#[test]
+fn completion_shows_types_that_share_or_nest_much_within_bounds() {
+  with_big_stack(|| {
+    // a context whose two entries are the context before, 40 times, and a function that gives it
+    let mut entries = vec!["a0: {x: 1}".to_string()];
+    entries.extend((1..=40).map(|i| format!("a{i}: {{l: a{}, r: a{}}}", i - 1, i - 1)));
+    let doubled = format!("{{{}, f: function() a40}}.", entries.join(", "));
+    // functions that each give the function before
+    let chain: Vec<String> = (1..=3000).map(|i| format!("f{i}: function() f{}", i - 1)).collect();
+    let chained = format!("{{f0: function() 0, {}}}.", chain.join(", "));
+    // (of the 3,001 entries the first 200 by name are offered: `f1000` is among them)
+    for (text, name) in [(doubled, "f"), (chained, "f1000")] {
+      let started = std::time::Instant::now();
+      let response = req(json!({"op": "complete", "expression": text}));
+      assert!(started.elapsed() < std::time::Duration::from_secs(5), "{:?}", started.elapsed());
+      assert_eq!(response["ok"], true, "{response}");
+      let item = response["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["label"] == name)
+        .unwrap_or_else(|| panic!("no item {name}"));
+      let shown = item["type"].as_str().unwrap();
+      assert!(
+        shown.starts_with("function<>->") && shown.len() < 20_000,
+        "{} characters: {}",
+        shown.len(),
+        &shown[..80.min(shown.len())]
+      );
+    }
+  });
+}
+
+/// An outline can declare types that its names and each other refer to by name, and say more
+/// of a name than its type: a description, and that it is deprecated.
+#[test]
+fn an_outline_has_types_by_name_descriptions_and_deprecation() {
+  let outline = json!({
+    "types": {
+      "Loan": {"names": {
+        "amount": {"type": "number"},
+        "purpose": {"type": "string", "description": "Loan purpose"},
+        "customer": {"type": "Customer"}}},
+      "Customer": {"description": "The borrower", "names": {
+        "loans": {"type": "list<Loan>"},
+        "old score": {"type": "number", "deprecated": "use score"},
+        "score": {"type": "number"},
+        "Monthly Income": {"type": "number"}}}},
+    "names": {"loan": {"type": "Loan", "description": "The loan being assessed"}}
+  });
+  let items = |expression: &str| -> Vec<String> {
+    let response = req(json!({"op": "complete", "expression": expression, "outline": outline}));
+    assert_eq!(response["ok"], true, "{response}");
+    response["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| matches!(item["kind"].as_str(), Some("name" | "entry")))
+      .map(|item| {
+        let mut text = format!("{}: {}", item["label"].as_str().unwrap(), item["type"].as_str().unwrap_or("-"));
+        if let Some(info) = item["documentation"].as_str() {
+          text += &format!(" ({info})");
+        }
+        if !item["deprecated"].is_null() {
+          text += &format!(" deprecated {}", item["deprecated"]);
+        }
+        text
+      })
+      .collect()
+  };
+  // a name with a type by name shows the name of the type, and what the outline says of it
+  assert_eq!(items("lo"), ["loan: Loan (The loan being assessed)"]);
+  assert_eq!(items("loan."), ["amount: number", "customer: Customer", "purpose: string (Loan purpose)"]);
+  // the deprecated entry comes after the others, with its reason
+  assert_eq!(
+    items("loan.customer."),
+    ["loans: list<Loan>", "Monthly Income: number", "score: number", "old score: number deprecated \"use score\""]
+  );
+  // types that hold each other are followed as far as the text goes
+  let deep = format!("loan{}.", ".customer.loans[1]".repeat(50));
+  assert_eq!(items(&deep), ["amount: number", "customer: Customer", "purpose: string (Loan purpose)"]);
+  assert_eq!(items("for l in loan.customer.loans return l.customer.sc"), ["score: number"]);
+  // the members of a list are the lists of the members of its items
+  assert_eq!(items("loan.customer.loans.pur"), ["purpose: list<string> (Loan purpose)"]);
+  // an outline without the new fields is read as before
+  let plain = req(
+    json!({"op": "complete", "expression": "order.", "outline": {"names": {"order": {"names": {"total": {"type": "number"}, "lines": {"items": {"names": {"price": null}}}}}}}}),
+  );
+  let labels: Vec<_> = plain["items"]
+    .as_array()
+    .unwrap()
+    .iter()
+    .map(|item| format!("{}: {}", item["label"].as_str().unwrap(), item["type"].as_str().unwrap_or("-")))
+    .collect();
+  assert_eq!(labels, ["lines: list<context>", "total: number"]);
+  // what is no outline is a failure that names the place
+  for (outline, message) in [
+    (
+      json!({"names": {"a": {"type": "Nope"}}}),
+      "outline.a: expected a FEEL type (such as number, date, list<string> or range<date>), found \"Nope\"",
+    ),
+    (
+      json!({"types": {"A": {"type": "B"}, "B": {"type": "A"}}, "names": {}}),
+      "outline.types.A: expected a type that is more than the name of another, found types that are only each other",
+    ),
+    (
+      json!({"types": {"number": {"names": {}}}}),
+      "outline.types: expected a name that is no type of FEEL, found \"number\"",
+    ),
+    (
+      json!({"names": {"a": {"types": {}}}}),
+      "outline.a: an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}}, {\"items\": <outline>} or {\"function\": {\"parameters\": […], \"result\": <type>}}, with \"description\" and \"deprecated\" beside it when it has them, and \"values\" beside a type; found the field \"types\" with the value {}",
+    ),
+  ] {
+    for op in ["complete", "syntax", "format"] {
+      assert_error(&req(json!({"op": op, "expression": "a", "outline": outline})), "context", message);
+    }
+  }
+}
+
+/// An outline lists the values a name can have and says which names are functions: completion
+/// offers the values where the name is compared, and hints the parameters of the functions.
+#[test]
+fn an_outline_has_values_and_functions() {
+  let outline = json!({
+    "types": {"Loan": {"names": {
+      "purpose": {"type": "string", "values": [{"value": "REFI", "description": "Refinance"}, "PURCHASE"]},
+      "term": {"type": "number", "values": [12, 24]}}}},
+    "names": {
+      "loan": {"type": "Loan"},
+      "loans": {"type": "list<Loan>"},
+      "nz": {"function": {"parameters": [{"name": "value", "type": "number", "description": "may be null"}, {"name": "fallback", "type": "number"}], "result": "number"},
+             "description": "The value, or the fallback when it is null"}}
+  });
+  let complete = |expression: &str| {
+    let response = req(json!({"op": "complete", "expression": expression, "outline": outline}));
+    assert_eq!(response["ok"], true, "{response}");
+    response
+  };
+  let values = |expression: &str| -> Vec<String> {
+    complete(expression)["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| item["kind"] == "value")
+      .map(|item| {
+        format!(
+          "{}@{}{}",
+          item["label"].as_str().unwrap(),
+          item["from"],
+          item["documentation"].as_str().map(|text| format!(" ({text})")).unwrap_or_default()
+        )
+      })
+      .collect()
+  };
+  // inside a string that is compared with the entry: the values, to stand in the string
+  assert_eq!(values("loan.purpose = \""), ["PURCHASE@16", "REFI@16 (Refinance)"]);
+  assert_eq!(values("loan.purpose != \"re"), ["REFI@17 (Refinance)"]);
+  assert_eq!(values("for l in loans return l.purpose = \"P"), ["PURCHASE@35"]);
+  // after the operator: the values as they are written, before the names
+  assert_eq!(values("loan.purpose = "), ["\"PURCHASE\"@15", "\"REFI\"@15 (Refinance)"]);
+  assert_eq!(values("loan.term in "), ["12@13", "24@13"]);
+  assert_eq!(complete("loan.term = ")["items"][0]["kind"], "value");
+  // no values where the name has none, and none after an ordering
+  assert!(values("loan.term <= ").is_empty());
+  assert!(values("loans = \"").is_empty());
+  // in unary tests the values of the input, the name `?` of the outline
+  let cell = req(json!({"op": "complete", "dialect": "unaryTests", "expression": "\"A\", \"", "outline": {"names": {"?": {"type": "string", "values": ["A", "B"]}}}}));
+  let labels: Vec<_> = cell["items"].as_array().unwrap().iter().map(|item| item["label"].as_str().unwrap()).collect();
+  assert_eq!(labels, ["A", "B"]);
+  // a function of the outline: an item with its signature, and the hint of its invocation
+  let named = complete("n");
+  assert_eq!(
+    *named["items"].as_array().unwrap().iter().find(|item| item["label"] == "nz").unwrap(),
+    json!({"label": "nz", "kind": "function", "from": 0, "type": "function<number, number>->number", "detail": "nz(value, fallback): number", "documentation": "The value, or the fallback when it is null"})
+  );
+  let call = &complete("nz(loan.term, ")["call"];
+  assert_eq!(
+    *call,
+    json!({"function": "nz", "documentation": "The value, or the fallback when it is null", "argument": 1, "named": [], "activeSignature": 0, "signatures": [{
+      "label": "nz(value, fallback): number",
+      "parameters": [{"name": "value", "type": "number", "optional": false, "rest": false, "documentation": "may be null"}, {"name": "fallback", "type": "number", "optional": false, "rest": false}],
+      "result": "number", "named": true, "activeParameter": 1}]})
+  );
+  // by name: the parameters not given yet, and no parameter of the cursor
+  let by_name = complete("nz(value: 1, ");
+  assert_eq!(by_name["items"][0]["insertText"], "fallback: ");
+  assert!(by_name["call"]["signatures"][0]["activeParameter"].is_null());
+  // of a built-in function: the first signature that has a parameter for the argument
+  let built_in = &complete("substring(\"abc\", 1, ")["call"];
+  assert_eq!(built_in["activeSignature"], 0);
+  assert_eq!(built_in["signatures"][0]["activeParameter"], 2);
+  assert_eq!(
+    complete("min(1, 2, ")["call"]["signatures"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter_map(|signature| signature["activeParameter"].as_u64())
+      .collect::<Vec<_>>(),
+    [0]
+  );
+  // what is no value or no function is a failure that names the place
+  for (outline, message) in [
+    (
+      json!({"names": {"a": {"type": "date", "values": ["x"]}}}),
+      "outline.a.values: expected values of a string, number or boolean type, each a value of the type or {\"value\": <value>, \"description\": <text>}; found \"x\" for the type \"date\"",
+    ),
+    (
+      json!({"names": {"a": {"type": "string", "values": [1]}}}),
+      "outline.a.values: expected values of a string, number or boolean type, each a value of the type or {\"value\": <value>, \"description\": <text>}; found 1 for the type \"string\"",
+    ),
+    (
+      json!({"names": {"f": {"function": {"parameters": [{"type": "number"}]}}}}),
+      "outline.f.function: expected {\"parameters\": [{\"name\": <name>, \"type\": <type>, \"description\": <text>}, …], \"result\": <type>}, a name for every parameter, the rest when it is known; found the parameters [{\"type\":\"number\"}]",
+    ),
+  ] {
+    assert_error(&req(json!({"op": "complete", "expression": "a", "outline": outline})), "context", message);
+  }
+}
+
+/// `hover` says what the name at a place is: its kind, place and type, what an outline says
+/// of it, and the signatures of a function.
+#[test]
+fn hover_says_what_a_name_is() {
+  let outline = json!({
+    "types": {
+      "Loan": {"names": {"amount": {"type": "number"}, "purpose": {"type": "string", "description": "Loan purpose", "deprecated": "use kind"}, "customer": {"type": "Customer"}}},
+      "Customer": {"names": {"Monthly Income": {"type": "number"}}}},
+    "names": {"loan": {"type": "Loan", "description": "The loan"}, "loans": {"type": "list<Loan>"},
+              "nz": {"function": {"parameters": [{"name": "value", "type": "number"}], "result": "number"}, "description": "Never null"}}
+  });
+  let text = "for l in loans return nz(l.customer.Monthly Income) + count(loans) + loan.purpose +";
+  let hover = |word: &str, into: usize| {
+    let at = text.find(word).unwrap() + into;
+    let response = req(json!({"op": "hover", "expression": text, "at": at, "outline": outline}));
+    assert_eq!(response["ok"], true, "{response}");
+    response["hover"].clone()
+  };
+  assert_eq!(hover("loans return", 2), json!({"from": 9, "to": 14, "kind": "name", "type": "list<Loan>"}));
+  assert_eq!(hover("l in", 0), json!({"from": 4, "to": 5, "kind": "variable", "type": null}));
+  // an entry through a variable of the text, and a name of several words
+  assert_eq!(hover("customer", 3), json!({"from": 27, "to": 35, "kind": "entry", "type": "Customer"}));
+  assert_eq!(hover("Income", 1), json!({"from": 36, "to": 50, "kind": "entry", "type": "number"}));
+  assert_eq!(
+    hover("purpose", 0),
+    json!({"from": 74, "to": 81, "kind": "entry", "type": "string", "documentation": "Loan purpose", "deprecated": "use kind"})
+  );
+  assert_eq!(
+    hover("loan.purpose", 1),
+    json!({"from": 69, "to": 73, "kind": "name", "type": "Loan", "documentation": "The loan"})
+  );
+  // functions: of the outline and built in
+  let function = hover("nz", 1);
+  assert_eq!(
+    (function["kind"].as_str(), function["documentation"].as_str(), function["signatures"][0]["label"].as_str()),
+    (Some("function"), Some("Never null"), Some("nz(value): number"))
+  );
+  let built_in = hover("count", 0);
+  assert_eq!(
+    (built_in["kind"].as_str(), built_in["documentation"].as_str(), built_in["signatures"][0]["label"].as_str()),
+    (Some("function"), Some("The number of items."), Some("count(list): number"))
+  );
+  // where no name stands, and the end of a name
+  assert_eq!(hover("+ count", 0), Json::Null);
+  assert_eq!(hover(" return", 0)["kind"], "name");
+  // `at` is a place of the text
+  assert_error(
+    &req(json!({"op": "hover", "expression": "a"})),
+    "request",
+    "'at' must be a whole number that is not negative",
+  );
+  assert_error(
+    &req(json!({"op": "hover", "expression": "a", "at": -1})),
+    "request",
+    "'at' must be a whole number that is not negative",
+  );
+  // a place beyond the text is its end
+  assert_eq!(req(json!({"op": "hover", "expression": "a", "at": 99}))["hover"]["to"], 1);
+}
+
+/// Review of outline v2 (the second independent review).
+#[test]
+fn review_of_outline_v2() {
+  let complete = |expression: &str, outline: Json| {
+    let mut request = json!({"op": "complete", "expression": expression});
+    if !outline.is_null() {
+      request["outline"] = outline;
+    }
+    let response = req(request);
+    assert_eq!(response["ok"], true, "{expression}: {response}");
+    response
+  };
+  let values = |response: &Json| -> Vec<String> {
+    response["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| item["kind"] == "value")
+      .map(|item| item["label"].as_str().unwrap().to_string())
+      .collect()
+  };
+  // a path without its name before the operator: answered, with nothing to offer
+  for text in ["a.b + c. = \"", "a.b + c. = ", "x. != \"", ". = \""] {
+    assert!(values(&complete(text, Json::Null)).is_empty(), "{text}");
+  }
+  // the values of a type by name: beside the type of the name, and of the type itself
+  let by_name = json!({"types": {"Purpose": {"type": "string", "values": ["REFI", "PURCHASE"]}, "Loan": {"names": {"purpose": {"type": "Purpose"}}}},
+                       "names": {"p": {"type": "Purpose"}, "q": {"type": "Purpose", "values": ["OTHER"]}, "loan": {"type": "Loan"}}});
+  assert_eq!(values(&complete("p = \"", by_name.clone())), ["PURCHASE", "REFI"]);
+  assert_eq!(values(&complete("q = \"", by_name.clone())), ["OTHER"]);
+  assert_eq!(values(&complete("loan.purpose = \"", by_name.clone())), ["PURCHASE", "REFI"]);
+  // a name that the text binds is not the name of the outline
+  assert!(values(&complete("for p in [1] return p = ", by_name)).is_empty());
+  // a value is written as a string of FEEL holds it
+  let quoted = json!({"names": {"s": {"type": "string", "values": ["say \"hi\"", "a\nb"]}}});
+  assert_eq!(values(&complete("s = \"", quoted.clone())), ["a\\nb", "say \\\"hi\\\""]);
+  assert_eq!(values(&complete("s = ", quoted)), ["\"a\\nb\"", "\"say \\\"hi\\\"\""]);
+  // in unary tests the values of the input where a test starts, not in an argument
+  let input = json!({"names": {"?": {"type": "string", "values": ["A", "B"]}}});
+  let cell = |expression: &str| values(&req(json!({"op": "complete", "dialect": "unaryTests", "expression": expression, "outline": input})));
+  assert_eq!(cell(""), ["\"A\"", "\"B\""]);
+  assert_eq!(cell("\"A\", "), ["\"A\"", "\"B\""]);
+  assert_eq!(cell("not("), ["\"A\"", "\"B\""]);
+  assert!(cell("> max(1, ").is_empty());
+  assert!(cell("count(").is_empty());
+  // a function of the outline named as a built-in function is the function of the outline
+  let round = complete("rou", json!({"names": {"round": {"function": {"parameters": [{"name": "x"}], "result": "string"}}}}));
+  let item = round["items"].as_array().unwrap().iter().find(|item| item["label"] == "round").unwrap();
+  assert_eq!(
+    *item,
+    json!({"label": "round", "kind": "function", "from": 0, "type": "function<Any>->string", "detail": "round(x): string"})
+  );
+  // the types are checked whatever the outline of the request is
+  let failed = req(json!({"op": "complete", "expression": "a", "outline": {"type": "number", "types": {"T": {"function": 5}}}}));
+  assert_eq!(failed["ok"], false, "{failed}");
+  // hover at the end of a name that a symbol follows
+  let hover = |expression: &str, at: usize| req(json!({"op": "hover", "expression": expression, "at": at, "context": {"a": {"b": 1}}}))["hover"].clone();
+  assert_eq!(hover("a.b", 1)["kind"], "name");
+  assert_eq!(hover("a.b", 3)["kind"], "entry");
+  assert_eq!(hover("count(a)", 5)["kind"], "function");
+}
+
+/// A function that is an entry of a context of the outline (`lib.nz`): completion hints its
+/// invocation as it does for a name of the scope, hover shows its signature, and a name after
+/// a dot is never taken for the function of the scope or the built-in function of that name.
+#[test]
+fn a_function_that_is_an_entry_is_hinted() {
+  let function = json!({"function": {"parameters": [{"name": "value", "type": "number"}, {"name": "fallback", "type": "number"}], "result": "number"}, "description": "The value, or the fallback"});
+  let outline = json!({
+    "types": {"Lib": {"names": {"nz": function, "inner": {"names": {"nz": function}}}}},
+    "names": {
+      "lib": {"type": "Lib"},
+      "libs": {"type": "list<Lib>"},
+      "x": {"names": {"floor": {"type": "number"}, "plain": {"type": "number"}}},
+      "plain": function}
+  });
+  let complete = |expression: &str| {
+    let response = req(json!({"op": "complete", "expression": expression, "outline": outline}));
+    assert_eq!(response["ok"], true, "{response}");
+    response
+  };
+  let expected = json!({"function": "nz", "documentation": "The value, or the fallback", "argument": 1, "named": [], "activeSignature": 0, "signatures": [{
+    "label": "nz(value, fallback): number",
+    "parameters": [{"name": "value", "type": "number", "optional": false, "rest": false}, {"name": "fallback", "type": "number", "optional": false, "rest": false}],
+    "result": "number", "named": true, "activeParameter": 1}]});
+  for text in [
+    "lib.nz(1, ",
+    "lib . nz (1, ",
+    "1 + lib.inner.nz(1, ",
+    "libs[1].nz(1, ",
+    "for l in libs return l.nz(1, ",
+    "lib.nz(lib.nz(1, 2), ",
+  ] {
+    assert_eq!(complete(text)["call"], expected, "{text}");
+  }
+  // the names of its parameters are offered
+  let offered = |text: &str| -> Vec<String> {
+    complete(text)["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| item["kind"] == "parameter")
+      .map(|item| item["insertText"].as_str().unwrap().to_string())
+      .collect()
+  };
+  assert_eq!(offered("lib.nz("), ["fallback: ", "value: "]);
+  assert_eq!(offered("x.plain("), [""; 0]);
+  assert_eq!(complete("lib.nz(value: 1, ")["items"][0]["insertText"], "fallback: ");
+  // an entry that is no function, also one named as a built-in function or as a function of the scope
+  for text in ["x.floor(1, ", "x.plain(1, ", "x.missing(1, ", "lib.floor(1, ", "(1).floor("] {
+    assert!(complete(text)["call"].is_null(), "{text}");
+  }
+  // without a dot they are what they were
+  assert_eq!(complete("floor(1, ")["call"]["function"], "floor");
+  assert_eq!(complete("plain(1, ")["call"]["function"], "plain");
+  // hover on the entry: a function with its signature
+  let hover = req(json!({"op": "hover", "expression": "lib.nz(1, 2)", "at": 5, "outline": outline}));
+  assert_eq!(hover["hover"]["kind"], "function", "{hover}");
+  assert_eq!(hover["hover"]["documentation"], "The value, or the fallback");
+  assert_eq!(hover["hover"]["signatures"][0]["label"], "nz(value, fallback): number");
+  assert!(hover["hover"]["signatures"][0]["activeParameter"].is_null());
+}
+
+/// `op: "paths"`: what an expression reads of the names in scope. A path is a name and the
+/// entries below it, `[]` for the items of a list; `whole` where the value is read as a value.
+#[test]
+fn paths_are_what_an_expression_reads() {
+  let context = json!({
+    "loan": {"amount": 1, "purpose": "x", "customer": {"name": "n", "age": 3}},
+    "loans": [{"amount": 1, "payment": 2, "status": "a", "customer": {"name": "n"}}],
+    "rate": 2, "Net - Price": 5, "start": "2020-01-01"
+  });
+  // the paths as text, sorted, `*` for a path that is read whole
+  let shown = |response: &Json| -> Vec<String> {
+    assert_eq!(response["ok"], true, "{response}");
+    assert_eq!(response["complete"], true);
+    response["paths"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|path| format!("{}{}", path["text"].as_str().unwrap(), if path["whole"] == true { "*" } else { "" }))
+      .collect::<std::collections::BTreeSet<_>>()
+      .into_iter()
+      .collect()
+  };
+  let typed = |expression: &str| shown(&req(json!({"op": "paths", "expression": expression, "context": context})));
+  let untyped = |expression: &str| shown(&req(json!({"op": "paths", "expression": expression})));
+  // an operand is read whole, a path reads the entry
+  assert_eq!(typed("loan.amount * rate"), ["loan", "loan.amount*", "rate*"]);
+  assert_eq!(typed("loan"), ["loan*"]);
+  assert_eq!(typed("count(loans)"), ["loans*"]);
+  // a filter and a loop read the items; the names of the predicate are entries of the item
+  assert_eq!(
+    typed("sum(loans[status = \"a\"].payment) / loan.amount"),
+    ["loan", "loan.amount*", "loans", "loans[].payment*", "loans[].status*"]
+  );
+  assert_eq!(typed("for l in loans return l.customer.name"), ["loans", "loans[].customer", "loans[].customer.name*"]);
+  assert_eq!(typed("loans[1].customer"), ["loans", "loans[].customer*"]);
+  assert_eq!(typed("some l in loans satisfies l.amount > rate"), ["loans", "loans[].amount*", "rate*"]);
+  // a path on a list is the entries of its items
+  assert_eq!(typed("loans.amount"), ["loans", "loans[].amount*"]);
+  // what the text makes passes its values on: a context literal, a function, `if`, a list
+  assert_eq!(typed("{a: loan, b: a.customer.age, c: b + 1}.c"), ["loan", "loan.customer", "loan.customer.age*"]);
+  assert_eq!(typed("{f: function(l) l.customer.name, r: f(loan)}.r"), ["loan", "loan.customer", "loan.customer.name*"]);
+  assert_eq!(
+    typed("(if rate > 1 then loan else loans[1]).amount"),
+    ["loan", "loan.amount*", "loans", "loans[].amount*", "rate*"]
+  );
+  assert_eq!(typed("[loan, rate][1].amount"), ["loan", "loan.amount*", "rate*"]);
+  // the built-in functions that pass a list on, and `get value` with a key that is written
+  assert_eq!(typed("reverse(loans)[1].status"), ["loans", "loans[].status*"]);
+  assert_eq!(typed("get value(loan, \"purpose\")"), ["loan", "loan.purpose*"]);
+  // another function reads its arguments whole
+  assert_eq!(typed("sort(loans, function(a, b) a.amount < b.amount)[1].status"), ["loans*"]);
+  assert_eq!(typed("get value(loan, loan.purpose)"), ["loan*", "loan.purpose*"]);
+  // a key in another form than FEEL reads a name is the key as the context writes it
+  let response = req(json!({"op": "paths", "expression": "Net-Price + 1", "context": context}));
+  assert_eq!(
+    response["paths"],
+    json!([{"path": ["Net - Price"], "text": "Net - Price", "whole": true, "places": [[0, 9]]}])
+  );
+  // the places of a path, in UTF-16 units; the segments, `[]` for the items
+  let response = req(json!({"op": "paths", "expression": "\"😀\" + loans[status = \"a\"].payment", "context": context}));
+  assert_eq!(
+    response["paths"],
+    json!([
+      {"path": ["loans"], "text": "loans", "whole": false, "places": [[7, 12]]},
+      {"path": ["loans", [], "payment"], "text": "loans[].payment", "whole": true, "places": [[7, 34]]},
+      {"path": ["loans", [], "status"], "text": "loans[].status", "whole": true, "places": [[13, 19]]}
+    ])
+  );
+  // a name that nothing gives is unknown with names in scope, and a path without
+  let response = req(json!({"op": "paths", "expression": "rate + missing + sum(1) + missing", "context": context}));
+  assert_eq!(shown(&response), ["rate*"]);
+  assert_eq!(response["unknown"], json!([{"name": "missing", "places": [[7, 14], [26, 33]]}]));
+  assert_eq!(untyped("rate + missing + sum(1)"), ["missing*", "rate*"]);
+  assert_eq!(req(json!({"op": "paths", "expression": "rate"}))["unknown"], json!([]));
+  // without names in scope: an entry of a name as it is written, `[]` where the text takes
+  // items, and a name of a predicate both as an entry of the item and as a name
+  assert_eq!(untyped("loans.amount"), ["loans", "loans.amount*"]);
+  assert_eq!(untyped("loans[status = \"a\"].payment"), ["loans", "loans[].payment*", "loans[].status*", "status*"]);
+  // an outline says the types as a context does
+  let outline =
+    json!({"types": {"Loan": {"names": {"amount": {"type": "number"}, "status": {"type": "string"}}}}, "names": {"loans": {"type": "list<Loan>"}, "loan": {"type": "Loan"}}});
+  let outlined = |expression: &str| shown(&req(json!({"op": "paths", "expression": expression, "outline": outline})));
+  assert_eq!(outlined("loans.amount"), ["loans", "loans[].amount*"]);
+  assert_eq!(outlined("loans[status = \"a\"]"), ["loans", "loans[]*", "loans[].status*"]);
+  // a list of a context has the type of its first item; another item can have the entry
+  let unlike = json!({"loans": [{"payment": 1}, {"payment": 2, "status": "a"}]});
+  assert_eq!(
+    shown(&req(json!({"op": "paths", "expression": "loans[status = \"a\"].payment", "context": unlike}))),
+    ["loans", "loans[].payment*", "loans[].status*"]
+  );
+  // a function that a context of the scope holds is not in the text: it can read every name
+  // of that context
+  let held = req(json!({"op": "paths", "expression": "f() + 1", "contextFormat": "feel", "context": "{k: 5, m: {n: 1}, f: function() k}"}));
+  assert_eq!(shown(&held), ["f*", "k*", "m*"]);
+  let not_read = req(json!({"op": "paths", "expression": "k + 1", "contextFormat": "feel", "context": "{k: 5, m: {n: 1}, f: function() k}"}));
+  assert_eq!(shown(&not_read), ["k*"]);
+  // unary tests read the tested value
+  assert_eq!(
+    shown(&req(json!({"op": "paths", "dialect": "unaryTests", "expression": "> rate, 5", "context": context}))),
+    ["?*", "rate*"]
+  );
+  // a text with errors is the failure of `evaluate`, with its diagnostics
+  let failed = req(json!({"op": "paths", "expression": "loan +"}));
+  assert_eq!(failed["ok"], false);
+  assert_eq!(failed["error"]["kind"], "syntax");
+  assert_eq!(failed["error"], req(json!({"op": "evaluate", "expression": "loan +"}))["error"]);
+  // the answer does not depend on the values, only on their shape
+  let other = json!({"loan": {"amount": 9, "purpose": "y", "customer": {"name": "m", "age": 1}}, "loans": [{"amount": 5, "payment": 6, "status": "b", "customer": {"name": "k"}}], "rate": 7, "Net - Price": 1, "start": "x"});
+  for expression in ["loan.amount * rate", "sum(loans[status = \"a\"].payment)", "loans[rate]"] {
+    let mut answers = [&context, &other].map(|context| req(json!({"op": "paths", "expression": expression, "context": context})));
+    answers.iter_mut().for_each(|answer| {
+      answer.as_object_mut().unwrap().remove("elapsedMicros");
+    });
+    assert_eq!(answers[0], answers[1], "{expression}");
+  }
+}
+
+/// Every failure and every warning has a code, for a program: a short word of the list in
+/// docs/CONTRACT.md, stable while the messages can change. The kind of a failure is what it
+/// was; the code says which failure of that kind.
+#[test]
+fn failures_and_warnings_have_codes() {
+  let code = |request: Json| -> (String, String) {
+    let response = req(request);
+    assert_eq!(response["ok"], false, "{response}");
+    (
+      response["error"]["kind"].as_str().unwrap().to_string(),
+      response["error"]["code"].as_str().unwrap().to_string(),
+    )
+  };
+  let is = |kind: &str, code: &str| (kind.to_string(), code.to_string());
+  // the request
+  assert_eq!(code(json!({"expression": "1"})), is("request", "missing-field"));
+  assert_eq!(code(json!({"op": "evaluate"})), is("request", "missing-field"));
+  assert_eq!(code(json!({"op": "nope", "expression": "1"})), is("request", "unknown-op"));
+  assert_eq!(code(json!({"op": 1})), is("request", "invalid-field"));
+  assert_eq!(code(json!({"op": "evaluate", "expression": "1", "language": "x"})), is("request", "invalid-field"));
+  assert_eq!(code(json!({"op": "evaluate", "expression": "1", "maxSteps": 0})), is("request", "invalid-field"));
+  assert_eq!(code(json!({"op": "hover", "expression": "a"})), is("request", "invalid-field"));
+  assert_eq!(
+    code(json!({"op": "complete", "expression": "a", "context": {}, "outline": {}})),
+    is("request", "conflicting-fields")
+  );
+  let malformed: Json = serde_json::from_str(&feel_wasm::call("{")).unwrap();
+  assert_eq!(
+    (malformed["error"]["kind"].as_str(), malformed["error"]["code"].as_str()),
+    (Some("request"), Some("malformed-json"))
+  );
+  let not_utf8: Json = serde_json::from_str(&feel_wasm::call_bytes(&[0xff, 0xfe])).unwrap();
+  assert_eq!(
+    (not_utf8["error"]["kind"].as_str(), not_utf8["error"]["code"].as_str()),
+    (Some("request"), Some("not-utf8"))
+  );
+  // the expression
+  assert_eq!(code(json!({"op": "evaluate", "expression": "1 +"})), is("syntax", "syntax-error"));
+  assert_eq!(code(json!({"op": "paths", "expression": "1 +"})), is("syntax", "syntax-error"));
+  assert_eq!(
+    code(json!({"op": "evaluate", "expression": format!("{}1{}", "(".repeat(2000), ")".repeat(2000))})).0,
+    "syntax"
+  );
+  // the names in scope
+  assert_eq!(code(json!({"op": "evaluate", "expression": "1", "context": []})), is("context", "invalid-context"));
+  assert_eq!(
+    code(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "1"})),
+    is("context", "invalid-context")
+  );
+  assert_eq!(
+    code(json!({"op": "complete", "expression": "a", "outline": {"names": {"a": {"type": "nope"}}}})),
+    is("context", "invalid-outline")
+  );
+  // the evaluation
+  assert_eq!(
+    code(json!({"op": "evaluate", "expression": "for i in 1..1000 return i", "maxSteps": 10})),
+    is("evaluation", "limit-steps")
+  );
+  assert_eq!(
+    code(json!({"op": "evaluate", "expression": "{f: function(n) f(n + 1), r: f(1)}.r"})),
+    is("evaluation", "limit-calls")
+  );
+  assert_eq!(
+    code(json!({"op": "evaluate", "expression": "1 + \"a\"", "errorMode": "strict"})),
+    is("evaluation", "strict-error")
+  );
+  // an entry of evaluateAll that fails has its code too
+  let all = req(json!({"op": "evaluateAll", "evaluations": [{"expression": "1 +"}, {"expression": "1"}]}));
+  assert_eq!(all["results"][0]["error"]["code"], "syntax-error", "{all}");
+  // the warnings
+  let warned = |request: Json| -> Vec<String> {
+    let response = ok(request);
+    response["warnings"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|warning| warning["code"].as_str().unwrap().to_string())
+      .collect()
+  };
+  assert_eq!(warned(json!({"op": "evaluate", "expression": "1", "errormode": "strict"})), ["unknown-field"]);
+  assert_eq!(
+    warned(json!({"op": "evaluate", "expression": "a", "context": {"a": 1.00000000000000000000000000000000000001}})),
+    [""; 0]
+  );
+  assert_eq!(
+    warned(json!({"op": "evaluate", "expression": "12345678901234567890123456789012345678"})),
+    ["number-rounded"]
+  );
+  assert_eq!(warned(json!({"op": "evaluate", "expression": "@\"10:00:00.1234567891\""})), ["fraction-truncated"]);
+  assert_eq!(warned(json!({"op": "evaluate", "expression": "@\"2020-01-01Z\""})), ["date-zone-dropped"]);
+  assert_eq!(warned(json!({"op": "evaluate", "expression": "@\"P1Y\" * 0.3"})), ["months-truncated"]);
+  assert_eq!(warned(json!({"op": "evaluate", "expression": "\"a\" = 1", "language": "b-feel"})), ["bfeel-default"]);
+  assert_eq!(warned(json!({"op": "evaluate", "dialect": "unaryTests", "expression": "> 1"})), ["no-input"]);
+}
+
+/// `syntax` with `"check": true`: beside the errors of the text, what is certainly wrong with
+/// a text that parses. Each diagnostic has a severity; `checked` says whether the text was
+/// checked.
+#[test]
+fn a_check_finds_what_is_certainly_wrong() {
+  let outline = json!({
+    "types": {"Loan": {"names": {
+      "amount": {"type": "number"},
+      "purpose": {"type": "string", "values": ["REFI", "PURCHASE"]},
+      "old score": {"type": "number", "deprecated": "use score"},
+      "term": {"type": "number", "values": [12, 24]},
+      "customer": {"names": {"name": {"type": "string"}}}}}},
+    "names": {"loan": {"type": "Loan"}, "loans": {"type": "list<Loan>"}, "legacy": {"type": "number", "deprecated": true}}
+  });
+  // the findings as `code severity @text: message`
+  let found = |request: Json| -> Vec<String> {
+    let expression = request["expression"].as_str().unwrap().to_string();
+    let response = ok(request);
+    assert_eq!(response["checked"], true, "{response}");
+    let units: Vec<u16> = expression.encode_utf16().collect();
+    response["diagnostics"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|d| {
+        let at = String::from_utf16(&units[d["from"].as_u64().unwrap() as usize..d["to"].as_u64().unwrap() as usize]).unwrap();
+        format!("{} {} @{at}", d["code"].as_str().unwrap(), d["severity"].as_str().unwrap())
+      })
+      .collect()
+  };
+  let outlined = |expression: &str| found(json!({"op": "syntax", "check": true, "expression": expression, "outline": outline}));
+  // nothing to say of a text that is right
+  assert_eq!(outlined("loan.amount * 2 + count(loans[purpose = \"REFI\"])"), [""; 0]);
+  assert_eq!(outlined("for l in loans return l.customer.name"), [""; 0]);
+  assert_eq!(outlined("{a: 1, b: a + 1}.b"), [""; 0]);
+  // a name that nothing gives, each time it is read; a variable, a parameter, an entry and a built-in function are names
+  assert_eq!(outlined("loan.amount + rate + rate"), ["unknown-name warning @rate", "unknown-name warning @rate"]);
+  assert_eq!(outlined("for x in [1] return x + y"), ["unknown-name warning @y"]);
+  assert_eq!(outlined("sum([1]) + (function(a) a)(1) + {k: 1}.k"), [""; 0]);
+  // an entry that a context is known not to have: of the scope, or of the text
+  assert_eq!(outlined("loan.amout"), ["unknown-entry warning @loan.amout"]);
+  assert_eq!(outlined("loan.customer.nam"), ["unknown-entry warning @loan.customer.nam"]);
+  assert_eq!(outlined("{a: 1}.b"), ["unknown-entry warning @{a: 1}.b"]);
+  // not said of a value whose entries are not known, nor of the property of a value
+  assert_eq!(outlined("(if loan.amount > 1 then loan else {x: 1}).x"), [""; 0]);
+  assert_eq!(
+    outlined("(if loan.amount > 1 then loan else null).x"),
+    ["unknown-entry warning @(if loan.amount > 1 then loan else null).x"]
+  );
+  assert_eq!(outlined("date(\"2020-01-01\").year + loan.purpose.x"), [""; 0]);
+  // a deprecated name or entry is a hint
+  assert_eq!(outlined("loan.old score + legacy"), ["deprecated hint @loan.old score", "deprecated hint @legacy"]);
+  // a literal that is none of the values listed
+  assert_eq!(outlined("loan.purpose = \"REFO\""), ["not-a-value warning @\"REFO\""]);
+  assert_eq!(outlined("\"x\" != loan.purpose"), ["not-a-value warning @\"x\""]);
+  assert_eq!(outlined("loan.purpose in (\"REFI\", \"other\")"), ["not-a-value warning @\"other\""]);
+  assert_eq!(outlined("loan.term = 12.0 or loan.term = 13"), ["not-a-value warning @13"]);
+  assert_eq!(outlined("loan.purpose = \"REFI\" and loan.amount = 5"), [""; 0]);
+  // the messages say what was expected and what was found
+  let response = ok(json!({"op": "syntax", "check": true, "expression": "loan.purpose = \"REFO\" and loan.old score > rate", "outline": outline}));
+  assert_eq!(
+    response["diagnostics"],
+    json!([
+      {"code": "not-a-value", "severity": "warning", "from": 15, "to": 21,
+       "message": "Expected one of the values of `loan.purpose` (\"REFI\", \"PURCHASE\"), found \"REFO\"."},
+      {"code": "deprecated", "severity": "hint", "from": 26, "to": 40, "message": "`loan.old score` is deprecated: use score."},
+      {"code": "unknown-name", "severity": "warning", "from": 43, "to": 47,
+       "message": "Expected a name in scope (an entry of the context, a variable of the text or a built-in function), found `rate`, which is none: it is null."}
+    ])
+  );
+  // with a context: its names are the names there are, and its entries
+  let context = json!({"loan": {"amount": 1}, "n": [1]});
+  let with = |expression: &str| found(json!({"op": "syntax", "check": true, "expression": expression, "context": context}));
+  assert_eq!(with("loan.amount + n[1]"), [""; 0]);
+  assert_eq!(with("loan.amout + m"), ["unknown-entry warning @loan.amout", "unknown-name warning @m"]);
+  // without names in scope no name is unknown; a context of the text still has its entries
+  assert_eq!(
+    found(json!({"op": "syntax", "check": true, "expression": "a.b + {c: 1}.d"})),
+    ["unknown-entry warning @{c: 1}.d"]
+  );
+  // unary tests: the tested value is a name; a test that is none of its values
+  let cell = json!({"names": {"?": {"type": "string", "values": ["A", "B"]}}});
+  assert_eq!(
+    found(json!({"op": "syntax", "check": true, "dialect": "unaryTests", "expression": "\"A\", \"C\", ? != \"B\"", "outline": cell})),
+    ["not-a-value warning @\"C\""]
+  );
+  // a text with errors is not checked: its errors have the severity error
+  let broken = ok(json!({"op": "syntax", "check": true, "expression": "loan.amout +", "outline": outline}));
+  assert_eq!(broken["checked"], false);
+  assert_eq!(broken["diagnostics"].as_array().unwrap().len(), 1);
+  assert_eq!(broken["diagnostics"][0]["severity"], "error");
+  // without `check` the answer is what it was: no severity, no `checked`
+  let plain = ok(json!({"op": "syntax", "expression": "loan.amout +", "outline": outline}));
+  assert!(plain.get("checked").is_none() && plain["diagnostics"][0].get("severity").is_none(), "{plain}");
+  let unchecked = ok(json!({"op": "syntax", "expression": "loan.amout + rate", "outline": outline}));
+  assert_eq!(unchecked["diagnostics"], json!([]));
+  // a value of `check` that is none
+  let failed = req(json!({"op": "syntax", "check": 1, "expression": "a"}));
+  assert_eq!(failed["error"]["code"], "invalid-field");
+}
+
+/// The check says `always-null` of an operator exactly when the evaluation gives null for
+/// operands of those types: for every operator and every pair of a number, a string and a
+/// boolean, as literals and as values of the scope.
+#[test]
+fn a_check_says_always_null_exactly_when_the_evaluation_is_null() {
+  let context = json!({"n": 2, "s": "a", "b": true, "loan": {"amount": 3, "purpose": "x"}});
+  let operands = [
+    ("number", ["1", "n", "loan.amount", "-2"]),
+    ("string", ["\"a\"", "s", "loan.purpose", "\"\""]),
+    ("boolean", ["true", "b", "false", "b"]),
+  ];
+  let (mut said, mut silent) = (0, 0);
+  for operator in ["+", "-", "*", "/", "**", "<", "<=", ">", ">=", "=", "!="] {
+    for (_, lefts) in &operands {
+      for (_, rights) in &operands {
+        for (left, right) in lefts.iter().zip(rights.iter().rev()) {
+          let expression = format!("{left} {operator} {right}");
+          let checked = ok(json!({"op": "syntax", "check": true, "expression": expression, "context": context}));
+          assert_eq!(checked["checked"], true, "{expression}");
+          let codes: Vec<&str> = checked["diagnostics"].as_array().unwrap().iter().map(|d| d["code"].as_str().unwrap()).collect();
+          let evaluated = ok(json!({"op": "evaluate", "expression": expression, "context": context}));
+          let null = evaluated["result"]["isNull"] == true;
+          assert_eq!(codes == ["always-null"], null, "{expression}: {codes:?}, evaluated {}", evaluated["result"]["display"]);
+          assert!(codes.is_empty() || codes == ["always-null"], "{expression}: {codes:?}");
+          if null { said += 1 } else { silent += 1 }
+        }
+      }
+    }
+  }
+  assert!(said > 100 && silent > 50, "{said} said, {silent} not");
+  // the diagnostic is at the operation, and names the types
+  let checked = ok(json!({"op": "syntax", "check": true, "expression": "1 + (s * 2)", "context": context}));
+  assert_eq!(
+    checked["diagnostics"],
+    json!([{"code": "always-null", "severity": "warning", "from": 5, "to": 10,
+            "message": "Expected operands that `*` has a value for, found a string and a number: `s * 2` is null."}])
+  );
+  // not said where a type is not certain: a variable, an item of a list of the context, a computed value
+  let unsure = json!({"list": [1, "a"], "s": "a"});
+  for expression in [
+    "for x in [1] return x + \"a\"",
+    "list[1] + \"a\"",
+    "(if s = \"a\" then 1 else \"b\") + 1",
+    "string(1) + 1",
+    "{k: 1}.k + \"a\"",
+  ] {
+    let checked = ok(json!({"op": "syntax", "check": true, "expression": expression, "context": unsure}));
+    assert_eq!(checked["diagnostics"], json!([]), "{expression}");
+  }
+}
+
+/// `op: "explain"`: the answer of `evaluate`, and a trace: the value of the root of the text and
+/// of its parts one level down; `expand` names nodes, by their places, whose parts are wanted.
+#[test]
+fn explain_answers_the_evaluation_and_the_values_of_the_nodes_asked_for() {
+  let context = json!({"revenue": 500, "opex": 200, "principal": 100, "interest": 50});
+  let text = "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr";
+  // the records as `kind from..to name = display`
+  let shown = |response: &Json| -> Vec<String> {
+    assert_eq!(response["ok"], true, "{response}");
+    response["trace"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|record| {
+        let name = record["name"].as_str().map(|name| format!(" {name}")).unwrap_or_default();
+        let value = record["value"]["display"]
+          .as_str()
+          .map_or_else(|| format!("{} of {}", record["value"]["type"], record["value"]["count"]), str::to_string);
+        format!("{} {}..{}{name} = {value}", record["kind"].as_str().unwrap(), record["from"], record["to"])
+      })
+      .collect()
+  };
+  let explain = |more: Json| {
+    let mut request = json!({"op": "explain", "expression": text, "context": context});
+    for (field, value) in more.as_object().unwrap() {
+      request[field] = value.clone();
+    }
+    req(request)
+  };
+  // by default: the root and its parts
+  let shallow = explain(json!({}));
+  assert_eq!(shown(&shallow), ["Path 0..72 = 2", "Context 0..67 = {\"noi\": 300, \"debt\": 150, \"dscr\": 2}"]);
+  assert_eq!(shallow["traceTruncated"], false);
+  // what `evaluate` answers, beside the trace
+  let evaluated = ok(json!({"op": "evaluate", "expression": text, "context": context}));
+  for field in ["result", "warnings", "diagnostics"] {
+    assert_eq!(shallow[field], evaluated[field], "{field}");
+  }
+  assert_eq!(shallow["trace"][0]["value"], evaluated["result"]);
+  // the parts of the context literal: its entries, each with its name
+  let entries = explain(json!({"expand": [[0, 67]]}));
+  assert_eq!(
+    shown(&entries),
+    [
+      "Path 0..72 = 2",
+      "Context 0..67 = {\"noi\": 300, \"debt\": 150, \"dscr\": 2}",
+      "Entry 1..20 noi = 300",
+      "Entry 22..48 debt = 150",
+      "Entry 50..66 dscr = 2"
+    ]
+  );
+  // the parts of an entry: of its value; several nodes at once
+  let deeper = explain(json!({"expand": [[50, 66], [1, 20]]}));
+  assert_eq!(
+    shown(&deeper),
+    [
+      "Path 0..72 = 2",
+      "Context 0..67 = {\"noi\": 300, \"debt\": 150, \"dscr\": 2}",
+      "Entry 1..20 noi = 300",
+      "Name 6..13 = 500",
+      "Name 16..20 = 200",
+      "Entry 50..66 dscr = 2",
+      "Name 56..59 = 300",
+      "Name 62..66 = 150"
+    ]
+  );
+  // the places are those of the nodes of `syntax`
+  let syntax = ok(json!({"op": "syntax", "expression": text, "context": context, "tree": true}));
+  let nodes: Vec<(u64, u64)> = syntax["nodes"]
+    .as_array()
+    .unwrap()
+    .iter()
+    .map(|node| (node[1].as_u64().unwrap(), node[2].as_u64().unwrap()))
+    .collect();
+  for record in entries["trace"].as_array().unwrap() {
+    assert!(nodes.contains(&(record["from"].as_u64().unwrap(), record["to"].as_u64().unwrap())), "{record}");
+  }
+  // a limit of records: the trace is cut and says so, the evaluation is whole
+  let cut = explain(json!({"expand": [[0, 67]], "maxRecords": 2}));
+  assert_eq!(
+    (cut["trace"].as_array().unwrap().len(), &cut["traceTruncated"], &cut["result"]),
+    (2, &json!(true), &evaluated["result"])
+  );
+  // a value that is long to write is summarised: its type and how many it holds
+  let long = req(json!({"op": "explain", "expression": "count(for i in 1..2000 return i)"}));
+  assert_eq!(shown(&long), ["Invocation 0..32 = 2000", "For 6..31 = \"list\" of 2000"]);
+  assert_eq!(long["trace"][1]["value"], json!({"count": 2000, "isNull": false, "summarized": true, "type": "list"}));
+  // a null says why, as the result of `evaluate` does
+  let null = req(json!({"op": "explain", "expression": "1 + \"a\""}));
+  assert_eq!(null["trace"][0]["value"]["nullReason"], null["result"]["nullReason"]);
+  assert_eq!(null["trace"][0]["value"]["isNull"], true);
+  // a place that is the place of no node, and values of the fields that are none
+  for (more, code) in [
+    (json!({"expand": [[1, 2]]}), "invalid-field"),
+    (json!({"expand": [[5]]}), "invalid-field"),
+    (json!({"expand": "all"}), "invalid-field"),
+    (json!({"maxRecords": 0}), "invalid-field"),
+    (json!({"maxRecords": 10001}), "invalid-field"),
+  ] {
+    let failed = explain(more.clone());
+    assert_eq!((failed["ok"].as_bool(), failed["error"]["code"].as_str()), (Some(false), Some(code)), "{more}");
+  }
+  // a failure of the evaluation is the failure of `evaluate`
+  let failed = req(json!({"op": "explain", "expression": "1 +"}));
+  assert_eq!(failed["error"], req(json!({"op": "evaluate", "expression": "1 +"}))["error"]);
+}
+
+/// `explain` of loops and filters: a loop is one record that says how many iterations it had;
+/// expanded, its body has a record for each of its first iterations, or for those asked for;
+/// a node inside an iteration is asked for with the iteration.
+#[test]
+fn explain_steps_into_one_iteration_of_a_loop() {
+  let context = json!({"loans": [{"amount": 100, "rate": 2, "status": "a"}, {"amount": 50, "rate": 4, "status": "b"}, {"amount": 10, "rate": 1, "status": "a"}], "limit": 40});
+  let text = "sum(for l in loans[status = \"a\"] return l.amount * l.rate) > limit";
+  // the records as `kind from..to = display` with what else they say
+  let shown = |response: &Json| -> Vec<String> {
+    assert_eq!(response["ok"], true, "{response}");
+    response["trace"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|record| {
+        let value = record["value"]["display"].as_str().unwrap_or("?").split_whitespace().collect::<Vec<_>>().join(" ");
+        let mut line = format!("{} {}..{} = {value}", record["kind"].as_str().unwrap(), record["from"], record["to"]);
+        if let Some(iterations) = record.get("iterations") {
+          line.push_str(&format!(" ({iterations} iterations)"));
+        }
+        if let Some(within) = record.get("within") {
+          let steps: Vec<String> = within
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|step| format!("{}..{}#{}", step["at"][0], step["at"][1], step["iteration"]))
+            .collect();
+          line.push_str(&format!(" in {}", steps.join(" ")));
+        }
+        line
+      })
+      .collect()
+  };
+  let explain = |expand: Json| req(json!({"op": "explain", "expression": text, "context": context, "expand": expand}));
+  // the loop as one record, with its iterations
+  assert_eq!(
+    shown(&explain(json!([[0, 58]]))),
+    [
+      "Comparison 0..66 = true",
+      "Invocation 0..58 = 210",
+      "For 4..57 = [200, 10] (2 iterations)",
+      "Name 61..66 = 40"
+    ]
+  );
+  // expanded: its domain, and its body for each iteration
+  let iterations = explain(json!([[4, 57]]));
+  assert_eq!(
+    shown(&iterations)[3..6],
+    [
+      "Filter 13..32 = [ {\"amount\": 100, \"rate\": 2, \"status\": \"a\"}, {\"amount\": 10, \"rate\": 1, \"status\": \"a\"} ] (3 iterations)",
+      "Multiplication 40..57 = 200 in 4..57#0",
+      "Multiplication 40..57 = 10 in 4..57#1"
+    ]
+  );
+  assert_eq!(iterations["trace"][4]["iteration"], 0);
+  // a node inside an iteration, asked for with what its record says it is in
+  let within = iterations["trace"][5]["within"].clone();
+  assert_eq!(within, json!([{"at": [4, 57], "iteration": 1}]));
+  let inside = explain(json!([{"at": [40, 57], "within": within}]));
+  assert_eq!(
+    shown(&inside)[2..],
+    [
+      "Multiplication 40..57 = 10 in 4..57#1",
+      "Path 40..48 = 10 in 4..57#1",
+      "Path 51..57 = 1 in 4..57#1",
+      "Name 61..66 = 40"
+    ]
+  );
+  // the predicate of a filter, for each item; iterations asked for by their indexes
+  assert_eq!(
+    shown(&explain(json!([[13, 32]])))[4..7],
+    [
+      "Comparison 19..31 = true in 13..32#0",
+      "Comparison 19..31 = false in 13..32#1",
+      "Comparison 19..31 = true in 13..32#2"
+    ]
+  );
+  assert_eq!(
+    shown(&explain(json!([{"at": [13, 32], "iterations": [1, 2]}])))[4..6],
+    ["Comparison 19..31 = false in 13..32#1", "Name 61..66 = 40"]
+  );
+  // some and every, and a loop in a loop: the iterations of both
+  let nested = req(json!({"op": "explain", "expression": "for a in [1, 2] return (for b in [10, 20] return a * b)",
+    "expand": [{"at": [24, 54], "within": [{"at": [0, 55], "iteration": 1}]}, {"at": [49, 54], "within": [{"at": [0, 55], "iteration": 1}, {"at": [24, 54], "iteration": 0}]}]}));
+  assert_eq!(
+    shown(&nested)[2..],
+    [
+      "For 24..54 = [10, 20] (2 iterations) in 0..55#0",
+      "For 24..54 = [20, 40] (2 iterations) in 0..55#1",
+      "List 33..41 = [10, 20] in 0..55#1",
+      "Multiplication 49..54 = 20 in 0..55#1 24..54#0",
+      "Multiplication 49..54 = 40 in 0..55#1 24..54#1",
+      "Name 49..50 = 2 in 0..55#1 24..54#0",
+      "Name 53..54 = 10 in 0..55#1 24..54#0"
+    ]
+  );
+  let some = req(json!({"op": "explain", "expression": "some x in [1, 5, 9] satisfies x > 4", "expand": [[0, 35]]}));
+  assert_eq!(
+    shown(&some),
+    [
+      "Quantified 0..35 = true (2 iterations)",
+      "List 10..19 = [1, 5, 9]",
+      "Comparison 30..35 = false in 0..35#0",
+      "Comparison 30..35 = true in 0..35#1"
+    ]
+  );
+  // many iterations: the first twenty by default, the trace cut at its limit
+  let many = req(json!({"op": "explain", "expression": "for i in 1..1000 return i * 2", "expand": [[0, 29]]}));
+  assert_eq!(many["trace"][0]["iterations"], 1000);
+  assert_eq!(many["trace"].as_array().unwrap().iter().filter(|record| record.get("iteration").is_some()).count(), 20);
+  let cut = req(json!({"op": "explain", "expression": "for i in 1..1000 return i * 2", "expand": [{"at": [0, 29], "iterations": [0, 1000]}], "maxRecords": 50}));
+  assert_eq!((cut["trace"].as_array().unwrap().len(), &cut["traceTruncated"]), (50, &json!(true)));
+  // a node inside a loop without its iteration, and iterations of what is no loop
+  for expand in [
+    json!([[40, 57]]),
+    json!([{"at": [40, 57], "within": [{"at": [13, 32], "iteration": 0}]}]),
+    json!([{"at": [0, 58], "iterations": [0, 1]}]),
+  ] {
+    let failed = explain(expand.clone());
+    assert_eq!(failed["error"]["code"], "invalid-field", "{expand}: {failed}");
+  }
+  assert_eq!(
+    explain(json!([[40, 57]]))["error"]["message"],
+    "'expand' has the node at [40, 57], which is evaluated once for each item of the loop around it: expected \"within\": [{\"at\": [4, 57], \"iteration\": n}], found 0 of them"
+  );
+}
+
+#[test]
+fn explain_steps_into_the_body_that_an_invocation_runs() {
+  // the records as `kind from..to = display` with where they are evaluated
+  let shown = |response: &Json| -> Vec<String> {
+    assert_eq!(response["ok"], true, "{response}");
+    response["trace"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|record| {
+        let value = record["value"]["display"].as_str().unwrap_or("?").split_whitespace().collect::<Vec<_>>().join(" ");
+        let mut line = format!("{} {}..{} = {value}", record["kind"].as_str().unwrap(), record["from"], record["to"]);
+        if let Some(within) = record.get("within") {
+          let steps: Vec<String> = within
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|step| match step.get("iteration") {
+              Some(iteration) => format!("{}..{}#{iteration}", step["at"][0], step["at"][1]),
+              None => format!("{}..{}()", step["at"][0], step["at"][1]),
+            })
+            .collect();
+          line.push_str(&format!(" in {}", steps.join(" ")));
+        }
+        line
+      })
+      .collect()
+  };
+  let explain = |text: &str, expand: Json| req(json!({"op": "explain", "expression": text, "expand": expand}));
+  // a function that invokes itself: each invocation is a step, and the body it runs a part of it
+  let text = "{fact: function(n) if n <= 1 then 1 else n * fact(n - 1), r: fact(3) + 1}.r";
+  let first = explain(text, json!([[61, 68]]));
+  assert_eq!(shown(&first)[2..], ["If 19..56 = 6 in 61..68()", "Invocation 61..68 = 6", "Number 66..67 = 3"]);
+  // a node of the body, asked for with what the record of the body says it is in
+  let within = first["trace"][2]["within"].clone();
+  assert_eq!(within, json!([{"at": [61, 68], "call": true}]));
+  assert_eq!(
+    shown(&explain(text, json!([{"at": [19, 56], "within": within}, {"at": [41, 56], "within": within}])))[2..],
+    [
+      "If 19..56 = 6 in 61..68()",
+      "Comparison 22..28 = false in 61..68()",
+      "Multiplication 41..56 = 6 in 61..68()",
+      "Name 41..42 = 3 in 61..68()",
+      "Invocation 45..56 = 2 in 61..68()"
+    ]
+  );
+  // the invocation in the body, in the body it runs, and so on down
+  let second = explain(text, json!([{"at": [45, 56], "within": within}]));
+  assert_eq!(
+    shown(&second)[2..],
+    ["If 19..56 = 2 in 61..68() 45..56()", "Invocation 45..56 = 2 in 61..68()", "Addition 50..55 = 2 in 61..68()"]
+  );
+  let twice = json!([{"at": [61, 68], "call": true}, {"at": [45, 56], "call": true}, {"at": [45, 56], "call": true}]);
+  assert_eq!(
+    shown(&explain(text, json!([{"at": [19, 56], "within": twice}])))[2..],
+    [
+      "If 19..56 = 1 in 61..68() 45..56() 45..56()",
+      "Comparison 22..28 = true in 61..68() 45..56() 45..56()",
+      "Number 34..35 = 1 in 61..68() 45..56() 45..56()"
+    ]
+  );
+  // an invocation in a loop of a body: the steps are the invocation, the iteration, the invocation
+  let text = "{f: function(xs) for x in xs return g(x), g: function(a) a * 2, r: f([1, 2])}.r";
+  assert_eq!(
+    shown(&explain(text, json!([{"at": [17, 40], "within": [{"at": [67, 76], "call": true}]}])))[2..],
+    [
+      "For 17..40 = [2, 4] in 67..76()",
+      "Name 26..28 = [1, 2] in 67..76()",
+      "Invocation 36..40 = 2 in 67..76() 17..40#0",
+      "Invocation 36..40 = 4 in 67..76() 17..40#1"
+    ]
+  );
+  let inner = json!([{"at": [67, 76], "call": true}, {"at": [17, 40], "iteration": 1}]);
+  assert_eq!(
+    shown(&explain(text, json!([{"at": [36, 40], "within": inner}])))[2..],
+    [
+      "Invocation 36..40 = 4 in 67..76() 17..40#1",
+      "Name 38..39 = 2 in 67..76() 17..40#1",
+      "Multiplication 57..62 = 4 in 67..76() 17..40#1 36..40()"
+    ]
+  );
+  // a node of a body without the invocation that runs it, or with steps that do not lead to it
+  let refused = |expand: Json| {
+    let response = explain(text, expand);
+    assert_eq!(response["error"]["code"], "invalid-field", "{response}");
+    response["error"]["message"].as_str().unwrap().to_string()
+  };
+  assert_eq!(
+    refused(json!([[36, 40]])),
+    "'expand' has the node at [36, 40], which is in the body of a function, and evaluated once for each item of the loop around it there: expected \"within\" to end with [{\"at\": [the place of the invocation that runs the body], \"call\": true}, {\"at\": [17, 40], \"iteration\": n}], found 0 of them"
+  );
+  assert_eq!(
+    refused(json!([{"at": [57, 62], "within": [{"at": [17, 40], "iteration": 1}, {"at": [36, 40], "call": true}]}])),
+    "'expand' has the node at [57, 62], whose \"within\" has the invocation at [36, 40], which is in the body of a function, and evaluated once for each item of the loop around it there: expected the steps before it to end with [{\"at\": [the place of the invocation that runs the body], \"call\": true}, {\"at\": [17, 40], \"iteration\": n}], found 1 of them"
+  );
+  assert_eq!(
+    refused(json!([{"at": [57, 62], "within": [{"at": [1, 2], "call": true}]}])),
+    "'expand' has the node at [57, 62], whose \"within\" has {\"at\": [1, 2], \"call\": true}: expected the place of an invocation, found the place of none"
+  );
+  // a function that a function gives: the invocation of each runs its body
+  let text = "{make: function(k) function(x) x + k, r: make(2)(3)}.r";
+  assert_eq!(
+    shown(&explain(text, json!([[41, 51]])))[2..],
+    [
+      "Addition 31..36 = 5 in 41..51()",
+      "Invocation 41..51 = 5",
+      "Invocation 41..48 = \"function<Any>->Any\"",
+      "Number 49..50 = 3"
+    ]
+  );
+  // no body is run: by an invocation whose arguments are not the parameters, and by a built-in
+  // function (the function it is given is invoked by it, not by an invocation of the text)
+  assert_eq!(
+    shown(&explain("{f: function(a) a, r: f(1, 2)}.r", json!([[22, 29]])))[2..],
+    ["Invocation 22..29 = null", "Number 24..25 = 1", "Number 27..28 = 2"]
+  );
+  assert_eq!(
+    shown(&explain("sort([3, 1, 2], function(a, b) a < b)", json!([[0, 37]])))[1..],
+    ["List 5..14 = [3, 1, 2]", "Function 16..36 = \"function<Any, Any>->Any\""]
+  );
+}
+
+#[test]
+fn explain_says_where_a_null_is_from() {
+  // the null records as `from..to <- where`
+  let nulls = |response: &Json| -> Vec<String> {
+    assert_eq!(response["ok"], true, "{response}");
+    let steps = |within: &Json| -> String {
+      within.as_array().map_or(String::new(), |steps| {
+        steps
+          .iter()
+          .map(|step| match step.get("iteration") {
+            Some(iteration) => format!(" {}..{}#{iteration}", step["at"][0], step["at"][1]),
+            None => format!(" {}..{}()", step["at"][0], step["at"][1]),
+          })
+          .collect()
+      })
+    };
+    response["trace"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|record| record["value"]["isNull"] == true)
+      .map(|record| {
+        let from = match (record.get("nullFrom"), record.get("nullOrigin")) {
+          (Some(from), None) => format!("from {}..{}{}", from["at"][0], from["at"][1], steps(&from["within"])),
+          (None, Some(Json::Bool(true))) => "here".to_string(),
+          (None, None) => "?".to_string(),
+          other => panic!("{other:?}"),
+        };
+        format!("{}..{}{} <- {from}", record["from"], record["to"], steps(&record["within"]))
+      })
+      .collect()
+  };
+  let _ = nulls;
+  // the way of a null from the root: each record's `nullFrom` is expanded, to the record that
+  // says the null is its own
+  let chain = |text: &str, context: Json| -> Vec<String> {
+    let mut expand: Vec<Json> = vec![];
+    let mut target: Option<Json> = None;
+    let mut way = vec![];
+    for _ in 0..20 {
+      let response = req(json!({"op": "explain", "expression": text, "context": context, "expand": expand}));
+      assert_eq!(response["ok"], true, "{response}");
+      let trace = response["trace"].as_array().unwrap();
+      let record = match &target {
+        None => &trace[0],
+        Some(target) => trace
+          .iter()
+          .find(|record| json!([record["from"], record["to"]]) == target["at"] && record.get("within") == target.get("within"))
+          .unwrap_or_else(|| panic!("no record of {target} in {response}")),
+      };
+      assert_eq!(record["value"]["isNull"], true, "{record}");
+      let text: String = text
+        .encode_utf16()
+        .skip(record["from"].as_u64().unwrap() as usize)
+        .take((record["to"].as_u64().unwrap() - record["from"].as_u64().unwrap()) as usize)
+        .map(|unit| char::from_u32(unit as u32).unwrap())
+        .collect();
+      let steps = record.get("within").map_or(String::new(), |within| format!(" in {within}"));
+      match (record.get("nullFrom"), record.get("nullOrigin")) {
+        (Some(from), None) => {
+          way.push(format!("{text}{steps}"));
+          expand.push(from.clone());
+          target = Some(from.clone());
+        }
+        (None, Some(Json::Bool(true))) => {
+          way.push(format!("{text}{steps}: here"));
+          return way;
+        }
+        (None, None) => {
+          way.push(format!("{text}{steps}: ?"));
+          return way;
+        }
+        other => panic!("{other:?}"),
+      }
+    }
+    way
+  };
+  let context = json!({"loan": {"amount": 100}, "rate": {}});
+  // through operators to the entry that the context does not have
+  assert_eq!(
+    chain("loan.amount * rate.base + 1", context.clone()),
+    ["loan.amount * rate.base + 1", "loan.amount * rate.base", "rate.base: here"]
+  );
+  // the branch taken, whatever the condition is
+  assert_eq!(
+    chain("if loan.amount > 1 then rate.base else 2", context.clone()),
+    ["if loan.amount > 1 then rate.base else 2", "rate.base: here"]
+  );
+  // the steps of a calculation: a name leads to the entry that gives it its value
+  assert_eq!(
+    chain("{base: rate.base, scaled: base * 2, result: scaled + loan.amount}.result", context.clone()),
+    [
+      "{base: rate.base, scaled: base * 2, result: scaled + loan.amount}.result",
+      "result: scaled + loan.amount",
+      "scaled",
+      "scaled: base * 2",
+      "base",
+      "base: rate.base: here"
+    ]
+  );
+  // into the body that an invocation runs, and into the iteration of a loop
+  assert_eq!(
+    chain("{f: function(x) x.y + 1, r: f(rate)}.r", context.clone()),
+    [
+      "{f: function(x) x.y + 1, r: f(rate)}.r",
+      "r: f(rate)",
+      "x.y + 1 in [{\"at\":[28,35],\"call\":true}]",
+      "x.y in [{\"at\":[28,35],\"call\":true}]: here"
+    ]
+  );
+  assert_eq!(
+    chain("every x in [1, null, 3] satisfies x > 0", json!({})),
+    [
+      "every x in [1, null, 3] satisfies x > 0",
+      "x > 0 in [{\"at\":[0,39],\"iteration\":1}]",
+      "x in [{\"at\":[0,39],\"iteration\":1}]: here"
+    ]
+  );
+  // where the way ends: a function that gives null for values that are not null, a null written
+  assert_eq!(chain("date(\"x\") + missing", json!({})), ["date(\"x\") + missing", "date(\"x\"): here"]);
+  assert_eq!(chain("null", json!({})), ["null: here"]);
+  // and where it is not followed: an item of a list, a name that a loop or a filter can give, a
+  // name read in the body of a function from around it
+  assert_eq!(
+    chain("{a: null, r: for x in [1, 2] return {b: a, c: x + b}.c}.r[2]", json!({})),
+    ["{a: null, r: for x in [1, 2] return {b: a, c: x + b}.c}.r[2]: here"]
+  );
+  assert_eq!(
+    chain("{k: null, f: function(a) a + k, r: f(1)}.r", json!({}))[2..],
+    ["a + k in [{\"at\":[35,39],\"call\":true}]", "k in [{\"at\":[35,39],\"call\":true}]: here"]
+  );
+  // a node that is not expanded does not say: its parts have no records
+  let closed = req(json!({"op": "explain", "expression": "loan.amount * rate.base + 1", "context": context}));
+  assert_eq!(closed["trace"][0]["nullFrom"], json!({"at": [0, 23]}));
+  assert!(closed["trace"][1].get("nullFrom").is_none() && closed["trace"][1].get("nullOrigin").is_none(), "{closed}");
+  // a null in an iteration that has no record: not said to be the node's own
+  let later = req(json!({"op": "explain", "expression": "(every x in [1, 2, null] satisfies x > 0) or false", "expand": [{"at": [1, 40], "iterations": [0, 2]}]}));
+  assert_eq!(later["trace"][1]["iterations"], 3, "{later}");
+  assert!(later["trace"][1].get("nullFrom").is_none() && later["trace"][1].get("nullOrigin").is_none(), "{later}");
+}
+
+#[test]
+fn explain_says_why_a_null_is_a_nodes_own_and_what_a_node_reads() {
+  // the code of the first record whose null is its own, with every place of `expand`
+  let code = |text: &str, context: Json, expand: Json| -> String {
+    let response = req(json!({"op": "explain", "expression": text, "context": context, "expand": expand}));
+    assert_eq!(response["ok"], true, "{response}");
+    let own: Vec<String> = response["trace"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|record| record.get("nullOrigin").is_some())
+      .map(|record| format!("{}..{} {}", record["from"], record["to"], record["nullCode"].as_str().unwrap()))
+      .collect();
+    own.join(", ")
+  };
+  let context = json!({"loan": {"amount": 100, "fee": null}, "rate": {}, "empty": null});
+  let cases = [
+    // a name or an entry that nothing has, and one that is given null
+    ("rate.base", json!([]), "0..9 missing-entry"),
+    ("nothing + 1", json!([]), "0..7 missing-entry"),
+    ("\"abc\".size", json!([]), "0..10 missing-entry"),
+    ("loan.fee", json!([]), "0..8 null-input"),
+    ("empty + 1", json!([]), "0..5 null-input"),
+    // an operator and a function whose operands are not null
+    ("1 + \"a\"", json!([]), "0..7 operator"),
+    ("[1, 2][5]", json!([]), "0..9 operator"),
+    ("date(\"x\")", json!([]), "0..9 function"),
+    ("null", json!([]), "0..4 other"),
+    // a variable of a loop and a parameter are given their values
+    (
+      "for x in [null] return x + 1",
+      json!([[0, 28], {"at": [23, 28], "within": [{"at": [0, 28], "iteration": 0}]}]),
+      "23..24 null-input",
+    ),
+    (
+      "{f: function(a) a + 1, r: f(null)}.r",
+      json!([[23, 33], [26, 33], {"at": [16, 21], "within": [{"at": [26, 33], "call": true}]}]),
+      "16..17 null-input, 28..32 other",
+    ),
+    // a name in the predicate of a filter: an item can have it, which the text does not say
+    (
+      "[{a: 1}][b > 1]",
+      json!([[0, 15], {"at": [9, 14], "within": [{"at": [0, 15], "iteration": 0}]}]),
+      "9..10 other",
+    ),
+  ];
+  for (text, expand, expected) in cases {
+    assert_eq!(code(text, context.clone(), expand), expected, "{text}");
+  }
+  // with `reads`, the names that the text of each node reads, as the node has them
+  let text = "{noi: revenue - opex, dscr: noi / debt.total, all: for l in loans return l.amount * rate}.dscr";
+  let reads = req(json!({"op": "explain", "expression": text, "reads": true, "expand": [[0, 89], [51, 88]]}));
+  let read: Vec<String> = reads["trace"]
+    .as_array()
+    .unwrap()
+    .iter()
+    .map(|record| format!("{} {}..{} {}", record["kind"].as_str().unwrap(), record["from"], record["to"], record["reads"]))
+    .collect();
+  assert_eq!(
+    read,
+    [
+      "Path 0..94 [\"revenue\",\"opex\",\"debt\",\"debt.total\",\"loans\",\"loans[].amount\",\"rate\"]",
+      "Context 0..89 [\"revenue\",\"opex\",\"debt\",\"debt.total\",\"loans\",\"loans[].amount\",\"rate\"]",
+      "Entry 1..20 [\"revenue\",\"opex\"]",
+      "Entry 22..44 [\"noi\",\"debt\",\"debt.total\"]",
+      "Entry 46..88 [\"loans\",\"loans[].amount\",\"rate\"]",
+      "For 51..88 [\"loans\",\"loans[].amount\",\"rate\"]",
+      "Name 60..65 [\"loans\"]",
+      "Multiplication 73..88 [\"l\",\"l.amount\",\"rate\"]"
+    ]
+  );
+  // without it no record has the field
+  let plain = req(json!({"op": "explain", "expression": text}));
+  assert!(plain["trace"].as_array().unwrap().iter().all(|record| record.get("reads").is_none()));
+  assert_eq!(req(json!({"op": "explain", "expression": "1", "reads": 1}))["error"]["code"], "invalid-field");
+}
+
+/// DMN 1.6 grammar rules 33 and 64 do not say what an escape outside rule 64 is; the official
+/// tests (0067, 1109, 1111) need it kept as written, so `"\s"` is a backslash and an `s`
+/// (docs/LIMITATIONS.md, unknown string escapes).
+#[test]
+fn an_unknown_string_escape_is_kept_and_a_known_one_is_its_character() {
+  let length = |text: &str| req(json!({"op": "evaluate", "expression": format!("string length({text})")}))["result"]["display"].clone();
+  assert_eq!(length(r#""\s""#), "2");
+  assert_eq!(length(r#""\q""#), "2");
+  assert_eq!(length(r#""\n""#), "1");
+  assert_eq!(length(r#""\t\\""#), "2");
 }

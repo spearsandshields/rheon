@@ -50,7 +50,12 @@ fn _0008() {
 
 #[test]
 fn _0009() {
-  te_null(false, &scope!(), "not(n: true)", r#"parameter 'negand' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    "not(n: true)",
+    r#"expected the parameters of not(negand): boolean, found the parameter name 'n'"#,
+  );
 }
 
 #[test]

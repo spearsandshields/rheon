@@ -176,7 +176,7 @@ fn _0018() {
     &MODEL_NAME,
     "decision014",
     &ctx,
-    r#"null(parameter 'grouping separator' not found)"#,
+    r#"null(expected the parameters of one of number(from): number, number(from, grouping separator, decimal separator): number, found the parameter name 'decimal sep')"#,
   );
 }
 

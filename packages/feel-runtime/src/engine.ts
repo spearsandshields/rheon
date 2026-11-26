@@ -16,10 +16,14 @@
  * - Restart failures: a worker that fails to start is retried with backoff; after
  *   `RESTART_BACKOFF_MS.length` consecutive failures the engine gives up (`unavailable`).
  */
-import { buildCompleteJson, buildEvaluateAllJson, buildEvaluateEachJson, buildEvaluateJson, buildFormatJson, buildOutlineJson, buildParseJson, buildSyntaxJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
+import { buildCompleteJson, buildExplainJson, buildHoverJson, buildPathsJson, buildEvaluateAllJson, buildEvaluateEachJson, buildEvaluateJson, buildFormatJson, buildOutlineJson, buildParseJson, buildSyntaxJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
 import type { FromWorker, ToWorker } from './protocol.js';
 import type {
   CompleteResponse,
+  HoverResponse,
+  PathsResponse,
+  ExplainRequest,
+  ExplainResponse,
   Dialect,
   EditorOptions,
   ErrorKind,
@@ -104,8 +108,9 @@ async function compileFrom(opts: FeelEngineOptions): Promise<WebAssembly.Module>
   return WebAssembly.compile(await response.arrayBuffer());
 }
 
+/** A failure that this runtime makes; its code is its kind, and for a request that could not be built `invalid-field`. */
 function failure(kind: ErrorKind, message: string) {
-  return { ok: false as const, error: { kind, message } };
+  return { ok: false as const, error: { kind, code: kind === 'request' ? 'invalid-field' : kind, message } };
 }
 
 const CANCELLED = () => failure('cancelled', 'request was cancelled');
@@ -176,6 +181,15 @@ export class FeelEngine {
   }
 
   /**
+   * Evaluates an expression as `evaluate` does and says how its value came about: the values of
+   * the root of the text and of its parts, and of the parts of the nodes that `expand` names.
+   * Each call evaluates again; a record's `within` and `nullFrom` are passed back in `expand`.
+   */
+  explain(req: ExplainRequest, opts: RequestOptions = {}): Promise<ExplainResponse> {
+    return this.built(() => buildExplainJson(req), opts.signal);
+  }
+
+  /**
    * Evaluates several expressions over one context, which is sent and read once. One request:
    * the timeout and the `signal` are for all of it, and a timeout or a crash has no results.
    */
@@ -234,13 +248,23 @@ export class FeelEngine {
    * For an editor: every token of the text with its class and every syntax error, with places
    * as UTF-16 offsets; with `tree` also the nodes. It answers for every text.
    */
-  syntax(expression: string, opts: EditorOptions & { tree?: boolean } & RequestOptions = {}): Promise<SyntaxResponse> {
+  syntax(expression: string, opts: EditorOptions & { tree?: boolean; check?: boolean } & RequestOptions = {}): Promise<SyntaxResponse> {
     return this.built(() => buildSyntaxJson(expression, opts), opts.signal);
   }
 
   /** For an editor: what can stand at `cursor` (a UTF-16 offset in `expression`). */
   complete(expression: string, cursor: number, opts: EditorOptions & RequestOptions = {}): Promise<CompleteResponse> {
     return this.built(() => buildCompleteJson(expression, cursor, opts), opts.signal);
+  }
+
+  /** What the expression reads of the names in scope, without evaluating it: the parts of their values, exact or wider. */
+  paths(expression: string, opts: EditorOptions & RequestOptions = {}): Promise<PathsResponse> {
+    return this.built(() => buildPathsJson(expression, opts), opts.signal);
+  }
+
+  /** For an editor: what the name at `at` (a UTF-16 offset in `expression`) is; `hover` is null where no name stands. */
+  hover(expression: string, at: number, opts: EditorOptions & RequestOptions = {}): Promise<HoverResponse> {
+    return this.built(() => buildHoverJson(expression, at, opts), opts.signal);
   }
 
   /**

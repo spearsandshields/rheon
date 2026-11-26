@@ -92,7 +92,7 @@ fn _0018() {
     false,
     &scope!(),
     r#"finishes([date("2022-11-03")..date("2022-12-10")],[date("2022-12-01")..date("2022-12-10")])"#,
-    true,
+    false,
   );
 }
 
@@ -118,16 +118,14 @@ fn _0021() {
 
 #[test]
 fn _0022() {
-  te_bool(
-    false,
-    &scope!(),
-    r#"finishes([time("11:23:420")..time("12:18:03")],[time("12:00:00")..time("12:18:03")])"#,
-    true,
-  );
+  // the start is the null of an invalid time literal: the formula has no answer (Table 79)
+  let node = rheon_feel_parser::parse_expression(&scope!(), r#"finishes([time("11:23:420")..time("12:18:03")],[time("12:00:00")..time("12:18:03")])"#).unwrap();
+  assert!(crate::tests::eval(&scope!(), &node).is_null());
 }
 
 #[test]
 fn _0023() {
+  // the start is the null of an invalid time literal, compared as null; the ends differ (Table 79)
   te_bool(
     false,
     &scope!(),
@@ -162,7 +160,7 @@ fn _0026() {
     false,
     &scope!(),
     r#"finishes([date and time("2022-12-01T11:00:00")..date and time("2022-12-01T12:18:03")],[date and time("2022-12-01T12:00:00")..date and time("2022-12-01T12:18:03")])"#,
-    true,
+    false,
   );
 }
 
@@ -202,7 +200,7 @@ fn _0030() {
     false,
     &scope!(),
     r#"finishes([duration("P1DT0H1M1S")..duration("P2DT1H1M1S")],[duration("P1DT1H1M1S")..duration("P2DT1H1M1S")])"#,
-    true,
+    false,
   );
 }
 
@@ -247,7 +245,7 @@ fn _0036() {
     false,
     &scope!(),
     r#"finishes([1..20],20)"#,
-    "[core::finishes] invalid argument type, expected range of scalars, actual type is number",
+    "[core::finishes] invalid argument type, expected range<number>, actual type is number",
   );
 }
 
@@ -258,7 +256,7 @@ fn _0037() {
 
 #[test]
 fn _0038() {
-  te_bool(false, &scope!(), r#"finishes(range1: [1..20],range2: [5..20])"#, true);
+  te_bool(false, &scope!(), r#"finishes(range1: [1..20],range2: [5..20])"#, false);
 }
 
 #[test]
@@ -273,22 +271,42 @@ fn _0040() {
 
 #[test]
 fn _0041() {
-  te_null(false, &scope!(), r#"finishes(p: 20, range: [1..20])"#, "[named::finishes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finishes(p: 20, range: [1..20])"#,
+    "expected the parameters of one of finishes(point, range): boolean, finishes(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0042() {
-  te_null(false, &scope!(), r#"finishes(point: 20, r: [1..20])"#, "[named::finishes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finishes(point: 20, r: [1..20])"#,
+    "expected the parameters of one of finishes(point, range): boolean, finishes(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
 fn _0043() {
-  te_null(false, &scope!(), r#"finishes(p: 20, r: [1..20])"#, "[named::finishes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finishes(p: 20, r: [1..20])"#,
+    "expected the parameters of one of finishes(point, range): boolean, finishes(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0044() {
-  te_null(false, &scope!(), r#"finishes(range1: [1..20], r2: [1..20])"#, "[named::finishes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finishes(range1: [1..20], r2: [1..20])"#,
+    "expected the parameters of one of finishes(point, range): boolean, finishes(range1, range2): boolean, found the parameter name 'r2'",
+  );
 }
 
 #[test]
@@ -298,12 +316,22 @@ fn _0045() {
 
 #[test]
 fn _0046() {
-  te_null(false, &scope!(), r#"finishes(r1: [1..20], range2: [1..20])"#, "[named::finishes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finishes(r1: [1..20], range2: [1..20])"#,
+    "expected the parameters of one of finishes(point, range): boolean, finishes(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
 fn _0047() {
-  te_null(false, &scope!(), r#"finishes(r1: [1..20], r2: [1..20])"#, "[named::finishes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finishes(r1: [1..20], r2: [1..20])"#,
+    "expected the parameters of one of finishes(point, range): boolean, finishes(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
@@ -312,6 +340,6 @@ fn _0048() {
     false,
     &scope!(),
     r#"finishes("alfa", [1..20])"#,
-    "[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is string",
+    "[core::finishes] invalid argument type, expected range<string>, actual type is range<number>",
   );
 }

@@ -16,14 +16,18 @@ use crate::Dialect;
 use crate::filters::ITEM;
 use crate::kernels::{self, Arithmetic};
 use rheon_feel::Name;
+use rheon_feel::diagnostics::WarningCode;
 use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel_parser::AstNode;
 use std::sync::Arc;
 
+/// What a request asks a program to record ([crate::Tracing]).
+pub(crate) type Targets<'t> = crate::Tracing<'t>;
+
 /// The program of the resolved expression `resolved` in `dialect`: the code of the root
 /// expression, then that of the body of each function definition in it.
-pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Program>, Malformed<'_>> {
+pub(crate) fn lower<'a>(resolved: Resolved<'a>, dialect: Dialect, targets: Option<&Targets<'_>>) -> Result<Arc<Program>, Malformed<'a>> {
   // the binders first, then the temporaries
   let binders = resolved.root.binders;
   let mut lower = Lower {
@@ -37,6 +41,7 @@ pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Prog
     proto: NONE,
     cells: vec![],
     cell_names: vec![],
+    targets,
   };
   let result = lower.value(resolved.root(), None)?;
   lower.builder.emit(Op::Return { src: result });
@@ -79,6 +84,7 @@ pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Prog
       region: function.region,
       closure: std::mem::take(&mut function.closure),
       captures: std::mem::take(&mut function.captures),
+      nearer: std::mem::take(&mut function.nearer),
     };
     builder.proto(index as u32, proto);
   }
@@ -108,6 +114,9 @@ struct Lower<'r, 'a> {
   cells: Vec<(u32, u32)>,
   /// The name of each cell of the proto being lowered.
   cell_names: Vec<u32>,
+  /// The nodes whose values a request asks for, each with its number: a recording instruction
+  /// follows the value of such a node. None for a program that records nothing.
+  targets: Option<&'r Targets<'r>>,
 }
 
 /// A proto of the program: the function of the resolution, and once its body is lowered, where
@@ -129,9 +138,25 @@ impl<'a> Lower<'_, 'a> {
     slot
   }
 
+  /// The operand of the value of `node` ([Lower::lowered]), and for a node whose value a request
+  /// asks for, the instruction that records it: the value is read there, not taken.
+  fn value(&mut self, node: u32, dst: Option<Slot>) -> Result<Opnd, Malformed<'a>> {
+    let opnd = self.lowered(node, dst)?;
+    if let Some(targets) = self.targets
+      && let Some(target) = (targets.node)(self.resolved.nodes[node as usize].ast)
+    {
+      let src = match opnd.decode() {
+        super::program::Operand::Take(slot) => Opnd::slot(slot),
+        _ => opnd,
+      };
+      self.builder.emit(Op::Record { src, target });
+    }
+    Ok(opnd)
+  }
+
   /// The operand of the value of `node`: a constant, or a temporary that the instructions emitted
   /// here compute (`dst` when given).
-  fn value(&mut self, node: u32, dst: Option<Slot>) -> Result<Opnd, Malformed<'a>> {
+  fn lowered(&mut self, node: u32, dst: Option<Slot>) -> Result<Opnd, Malformed<'a>> {
     let ast = self.resolved.nodes[node as usize].ast;
     if let Some(constant) = self.constant(ast) {
       return Ok(constant);
@@ -188,8 +213,9 @@ impl<'a> Lower<'_, 'a> {
           _ => Compare::Ge,
         };
         let (a, b) = self.operands(node)?;
+        let marked = self.diag_mark();
         self.builder.emit(Op::Compare { op, dst, a, b });
-        self.boolean_default(dst, op == Compare::Ne);
+        self.boolean_default(dst, op == Compare::Ne, marked);
       }
       AstNode::Between(..) => {
         let args = self.temporary();
@@ -199,8 +225,9 @@ impl<'a> Lower<'_, 'a> {
         for (slot, &kid) in (args..).zip(resolved.kids(node)) {
           self.into(kid, slot)?;
         }
+        let marked = self.diag_mark();
         self.builder.emit(Op::Between { dst, args });
-        self.boolean_default(dst, false);
+        self.boolean_default(dst, false, marked);
       }
       AstNode::And(..) | AstNode::Or(..) => {
         // the right operand only when the left one does not decide (DMN 1.6, Table 51)
@@ -218,7 +245,8 @@ impl<'a> Lower<'_, 'a> {
           _ => Op::OrRight { dst, b },
         });
         self.builder.patch(left);
-        self.boolean_default(dst, false);
+        // and and or record no error of their own
+        self.boolean_default(dst, false, false);
       }
       AstNode::If(..) => {
         let kids = self.resolved.kids(node);
@@ -261,18 +289,27 @@ impl<'a> Lower<'_, 'a> {
         }
         self.builder.emit(Op::ListEnd { kind, dst });
       }
-      AstNode::In(..) | AstNode::Range(..) | AstNode::InstanceOf(..) | AstNode::ContextTypeEntry(..) | AstNode::FunctionType(..) => {
+      AstNode::AbstractType(..) => {
+        // the mark takes off the error of a name that nothing holds
+        self.builder.emit(Op::ReadMark);
+        let (a, b) = self.operands(node)?;
+        self.builder.emit(Op::TypeName { dst, a, b });
+      }
+      AstNode::In(..) | AstNode::Range(..) | AstNode::InstanceOf(..) | AstNode::As(..) | AstNode::ContextTypeEntry(..) | AstNode::FunctionType(..) => {
         let (a, b) = self.operands(node)?;
         let kernel = match ast {
           AstNode::In(..) => self.membership(),
           AstNode::Range(..) => Kernel2::Range,
           AstNode::InstanceOf(..) => Kernel2::InstanceOf,
+          AstNode::As(..) => Kernel2::As,
           AstNode::ContextTypeEntry(..) => Kernel2::ContextTypeEntry,
           _ => Kernel2::FunctionType,
         };
+        let membership = matches!(kernel, Kernel2::In | Kernel2::InTwoValued);
+        let marked = membership && self.diag_mark();
         self.builder.emit(Op::Kernel2 { kernel, dst, a, b });
-        if matches!(kernel, Kernel2::In | Kernel2::InTwoValued) {
-          self.boolean_default(dst, false);
+        if membership {
+          self.boolean_default(dst, false, marked);
         }
       }
       AstNode::Out(..) => {
@@ -427,11 +464,18 @@ impl<'a> Lower<'_, 'a> {
     self.proto = proto as u32;
     self.cell_names.clear();
     let entry = self.builder.here();
+    // in a program that records: the records of the body are of the invocation that enters it
+    if self.targets.is_some() {
+      self.builder.emit(Op::TraceBody { left: false });
+    }
     let result = if function.body == NONE {
       self.builder.konst(Value::Null(None))
     } else {
       self.value(function.body, None)?
     };
+    if self.targets.is_some() {
+      self.builder.emit(Op::TraceBody { left: true });
+    }
     self.builder.emit(Op::Return { src: result });
     let mut cells: Vec<(u32, u32)> = self.cell_names.iter().copied().zip(0..).collect();
     cells.sort_unstable();
@@ -498,7 +542,23 @@ impl<'a> Lower<'_, 'a> {
           names,
           region,
         });
-        self.builder.emit(Op::Call { dst, call });
+        // an invocation that a request follows: the body it enters is the one of its records
+        let site = self.targets.and_then(|targets| (targets.call)(resolved.nodes[node as usize].ast));
+        if let Some(site) = site {
+          let function = match function.decode() {
+            super::program::Operand::Take(slot) => Opnd::slot(slot),
+            _ => function,
+          };
+          self.builder.emit(Op::TraceCall { site, function, done: false });
+          self.builder.emit(Op::Call { dst, call });
+          self.builder.emit(Op::TraceCall {
+            site,
+            function: Opnd::slot(dst),
+            done: true,
+          });
+        } else {
+          self.builder.emit(Op::Call { dst, call });
+        }
       }
       Err(text) => self.fail(dst, text),
     }
@@ -575,15 +635,33 @@ impl<'a> Lower<'_, 'a> {
     let kids = resolved.kids(node);
     let mark = self.next;
     let list = self.value(kids[0], None)?;
-    let info = self.builder.filter(FilterInfo { dst, body: 0, close: 0, after: 0 });
+    let test = plain_test(resolved.nodes[kids[1] as usize].ast);
+    let info = self.builder.filter(FilterInfo {
+      dst,
+      body: 0,
+      close: 0,
+      after: 0,
+      test,
+    });
+    // a filter that a request follows: where it is, for the records of its predicate
+    let repeat = self.targets.and_then(|targets| (targets.repeat)(rnode.ast));
+    if let Some(repeat) = repeat {
+      self.builder.emit(Op::TraceLoop { repeat, closed: false });
+    }
     self.builder.emit(Op::FilterOpen { record, info, list });
     self.next = mark;
     let body = self.builder.here();
+    if let Some(repeat) = repeat {
+      self.builder.emit(Op::TraceStep { repeat, record, filter: true });
+    }
     let c = self.value(kids[1], None)?;
     self.builder.emit(Op::FilterStep { record, c });
     self.next = mark;
     let close = self.builder.emit(Op::FilterClose { record });
     let after = self.builder.here();
+    if let Some(repeat) = repeat {
+      self.builder.emit(Op::TraceLoop { repeat, closed: true });
+    }
     let info = self.builder.filter_mut(info);
     info.body = body;
     info.close = close;
@@ -633,30 +711,46 @@ impl<'a> Lower<'_, 'a> {
     let mark = self.next;
     let kids = resolved.kids(node);
     let mut parts = kids.iter().copied();
-    let (domain, a, b) = self.domain(kind, variables[0].1.len(), &mut parts)?;
+    let (domain, a, b) = self.domain(variables[0].1.len(), &mut parts)?;
     let info = self.builder.iteration(LoopInfo {
       kind,
+      defaulted: self.dialect == Dialect::BFeel && kind != LoopKind::For,
       step: 0,
       exit: 0,
       levels: Box::new([]),
     });
+    // a loop that a request follows: where it is, for the records of its body
+    let repeat = self.targets.and_then(|targets| (targets.repeat)(rnode.ast));
+    if let Some(repeat) = repeat {
+      self.builder.emit(Op::TraceLoop { repeat, closed: false });
+    }
     self.builder.emit(Op::LoopOpen { record, info });
     self.builder.emit(Op::LevelPush { record, domain, a, b });
     self.next = mark;
     let step = self.builder.emit(Op::Step { record });
     for (level, (_, domain_parts)) in variables.iter().enumerate().skip(1) {
       levels[level - 1].1 = self.builder.here();
-      let (domain, a, b) = self.domain(kind, domain_parts.len(), &mut parts)?;
+      let (domain, a, b) = self.domain(domain_parts.len(), &mut parts)?;
       self.builder.emit(Op::LevelPush { record, domain, a, b });
       self.next = mark;
     }
     let last = levels.len() - 1;
     levels[last].1 = self.builder.here();
     let body = parts.next().ok_or(Malformed { at: rnode.ast })?;
+    if let Some(repeat) = repeat {
+      self.builder.emit(Op::TraceStep { repeat, record, filter: false });
+    }
     let src = self.value(body, None)?;
     self.builder.emit(Op::Visit { record, src });
     self.next = mark;
     let exit = self.builder.emit(Op::LoopClose { record, dst });
+    if let Some(repeat) = repeat {
+      self.builder.emit(Op::TraceLoop { repeat, closed: true });
+    }
+    // some and every are boolean expressions: B-FEEL answers false where FEEL answers null (11.2)
+    if kind != LoopKind::For {
+      self.boolean_default(dst, false, false);
+    }
     let info = self.builder.iteration_mut(info);
     info.step = step;
     info.exit = exit;
@@ -665,9 +759,8 @@ impl<'a> Lower<'_, 'a> {
   }
 
   /// The domain of a variable whose domain has `count` parts, the next of `parts`: an interval
-  /// from its two parts, a range literal of a `for` from its start and end, or the items of a
-  /// value.
-  fn domain(&mut self, kind: LoopKind, count: usize, parts: &mut impl Iterator<Item = u32>) -> Result<(Domain, Opnd, Opnd), Malformed<'a>> {
+  /// from its two parts, or the items of a value (a range is none, [crate::Sequence::of_context]).
+  fn domain(&mut self, count: usize, parts: &mut impl Iterator<Item = u32>) -> Result<(Domain, Opnd, Opnd), Malformed<'a>> {
     let resolved = self.resolved;
     let first = parts.next().ok_or(Malformed {
       at: resolved.nodes[resolved.root() as usize].ast,
@@ -679,14 +772,6 @@ impl<'a> Lower<'_, 'a> {
       let a = self.value(first, None)?;
       let b = self.value(second, None)?;
       return Ok((Domain::Interval, a, b));
-    }
-    if kind == LoopKind::For
-      && let AstNode::Range(..) = resolved.nodes[first as usize].ast
-    {
-      let kids = resolved.kids(first);
-      let a = self.value(kids[0], None)?;
-      let b = self.value(kids[1], None)?;
-      return Ok((Domain::Range, a, b));
     }
     let a = self.value(first, None)?;
     Ok((Domain::Of, a, a))
@@ -741,11 +826,23 @@ impl<'a> Lower<'_, 'a> {
     if self.dialect == Dialect::BFeel { Kernel2::InTwoValued } else { Kernel2::In }
   }
 
-  /// B-FEEL: a boolean operator never gives null, but `ne` (DMN 1.6 chapter 11).
-  fn boolean_default(&mut self, dst: Slot, ne: bool) {
+  /// B-FEEL: a boolean operator never gives null, but `ne` (DMN 1.6 chapter 11). With `marked`,
+  /// the operation before was marked ([Lower::diag_mark]): its errors become warnings, as B-FEEL
+  /// defines its answer.
+  fn boolean_default(&mut self, dst: Slot, ne: bool, marked: bool) {
     if self.dialect == Dialect::BFeel {
-      self.builder.emit(Op::BoolDefault { dst, ne });
+      self.builder.emit(Op::BoolDefault { dst, ne, marked });
     }
+  }
+
+  /// B-FEEL: marks the diagnostics before an operation that records the error behind the null a
+  /// [Lower::boolean_default] replaces (11.1: that error is no error in B-FEEL).
+  fn diag_mark(&mut self) -> bool {
+    let marked = self.dialect == Dialect::BFeel;
+    if marked {
+      self.builder.emit(Op::DiagMark);
+    }
+    marked
   }
 
   /// `dst` is null with the error `text`, recorded at every evaluation.
@@ -843,9 +940,9 @@ impl<'a> Lower<'_, 'a> {
       ),
       AstNode::Numeric(..) | AstNode::At(_) => {
         let (value, warning) = literal(ast)?.ok()?;
-        if let Some(warning) = warning {
+        if let Some((code, warning)) = warning {
           let msg = self.builder.message(warning);
-          self.builder.emit(Op::Warn { msg });
+          self.builder.emit(Op::Warn { msg, code: code as u8 });
         }
         value
       }
@@ -889,6 +986,34 @@ fn fixed_single(ast: &AstNode) -> Option<Value> {
   })
 }
 
+/// True for a predicate of a filter that is a comparison, a conjunction or a disjunction of
+/// names, paths, literals and arithmetic: its value is a boolean or null, never the index of an
+/// item, and its evaluation visits no item of a list, calls nothing and so takes no step.
+fn plain_test(ast: &AstNode) -> bool {
+  /// What a plain test may hold below it.
+  fn plain(ast: &AstNode) -> bool {
+    match ast {
+      AstNode::Name(_) | AstNode::QualifiedName(_) | AstNode::Numeric(..) | AstNode::String(_) | AstNode::Boolean(_) | AstNode::Null | AstNode::At(_) => true,
+      AstNode::Neg(inner) => plain(inner),
+      AstNode::Path(left, right) => plain(left) && matches!(right.as_ref(), AstNode::Name(_)),
+      AstNode::Add(left, right) | AstNode::Sub(left, right) | AstNode::Mul(left, right) | AstNode::Div(left, right) => plain(left) && plain(right),
+      test => plain_test(test),
+    }
+  }
+  match ast {
+    AstNode::Eq(left, right)
+    | AstNode::Nq(left, right)
+    | AstNode::Lt(left, right)
+    | AstNode::Le(left, right)
+    | AstNode::Gt(left, right)
+    | AstNode::Ge(left, right)
+    | AstNode::And(left, right)
+    | AstNode::Or(left, right) => plain(left) && plain(right),
+    AstNode::Between(value, low, high) => plain(value) && plain(low) && plain(high),
+    _ => false,
+  }
+}
+
 /// The value of a literal that is not nested and whose evaluation records nothing.
 fn fixed_scalar(ast: &AstNode) -> Option<Value> {
   match ast {
@@ -908,11 +1033,16 @@ fn fixed_scalar(ast: &AstNode) -> Option<Value> {
   }
 }
 
+/// The value of a literal, and the warning its evaluation records: its code and its message.
+type Literal = (Value, Option<(WarningCode, String)>);
+
 /// The value of a number or an `@` literal, with the warning its evaluation records, or the error
 /// of a literal that has no value; `None` for another node.
-fn literal(ast: &AstNode) -> Option<Result<(Value, Option<String>), String>> {
+fn literal(ast: &AstNode) -> Option<Result<Literal, String>> {
   match ast {
-    AstNode::Numeric(before, after, sign, exponent) => Some(kernels::number_literal(before, after, *sign, exponent).map(|number| (Value::Number(number), None))),
+    AstNode::Numeric(before, after, sign, exponent) => {
+      Some(kernels::number_literal(before, after, *sign, exponent).map(|(number, warning)| (Value::Number(number), warning.map(|warning| (WarningCode::NumberRounded, warning)))))
+    }
     AstNode::At(text) => Some(kernels::at_literal(text)),
     _ => None,
   }
@@ -975,6 +1105,7 @@ fn asks(test: &AstNode) -> Option<bool> {
       | AstNode::Between(..)
       | AstNode::In(..)
       | AstNode::InstanceOf(..)
+      | AstNode::As(..)
       | AstNode::FunctionInvocation(..)
   ))
 }
@@ -1015,6 +1146,51 @@ mod tests {
     // a name, an operation, and a literal whose evaluation records a warning
     for text in ["x in (< 10, x)", "x in [1..x]", "x in [1..2+3]", "x in < -x", r#"x in (< @"PT0.0000000001S")"#] {
       assert!(fixed(text).is_none(), "{text}");
+    }
+  }
+
+  /// [plain_test] of the predicate of the filter `text`.
+  fn test_only(text: &str) -> bool {
+    let scope = FeelScope::default();
+    for name in ["x", "rows", "f"] {
+      scope.set_value(&name.into(), Value::Null(None));
+    }
+    match &rheon_feel_parser::parse_expression(&scope, text).unwrap() {
+      AstNode::Filter(_, predicate) => plain_test(predicate),
+      other => panic!("no filter: {other:?}"),
+    }
+  }
+
+  #[test]
+  fn a_predicate_that_only_tests_is_not_evaluated_around_the_filter() {
+    for text in [
+      "rows[item > 1]",
+      "rows[x = \"a\" and item.x <= 2 * x + 1]",
+      "rows[item != null or x < -1]",
+      "rows[x between 1 and item.x]",
+      "rows[item >= @\"2026-01-01\"]",
+    ] {
+      assert!(test_only(text), "{text}");
+    }
+  }
+
+  #[test]
+  fn a_predicate_that_may_be_an_index_or_take_a_step_is_evaluated_around_the_filter() {
+    // an index, a name that may hold one, a call, a filter and an iteration inside, a power
+    for text in [
+      "rows[1]",
+      "rows[x]",
+      "rows[-1]",
+      "rows[x + 1]",
+      "rows[f(item) > 1]",
+      "rows[rows[1] = item]",
+      "rows[item > count(rows)]",
+      "rows[(some y in rows satisfies y = item) = true]",
+      "rows[item ** 2 > 4]",
+      "rows[if item > 1 then true else false]",
+      "rows[item in (1, 2)]",
+    ] {
+      assert!(!test_only(text), "{text}");
     }
   }
 }

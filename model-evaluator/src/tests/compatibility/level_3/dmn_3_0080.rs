@@ -55,7 +55,7 @@ fn _0007() {
 #[test]
 fn _0008() {
   let invocable = "decision_008";
-  let expected = "null(parameter 'key' not found)";
+  let expected = "null(expected the parameters of get value(m, key): Any, found the parameter name 'k')";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 

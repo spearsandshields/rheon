@@ -73,12 +73,22 @@ fn _0014() {
 
 #[test]
 fn _0015() {
-  te_null(false, &scope!(), "decimal(n: 1, s: 2)", r#"parameter 'scale' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    "decimal(n: 1, s: 2)",
+    r#"expected the parameters of decimal(n, scale): number, found the parameter name 's'"#,
+  );
 }
 
 #[test]
 fn _0016() {
-  te_null(false, &scope!(), "decimal(number: 1, scale: 2)", r#"parameter 'n' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    "decimal(number: 1, scale: 2)",
+    r#"expected the parameters of decimal(n, scale): number, found the parameter name 'number'"#,
+  );
 }
 
 #[test]

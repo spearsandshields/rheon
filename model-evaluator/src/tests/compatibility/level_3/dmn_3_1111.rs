@@ -244,56 +244,56 @@ fn _0033() {
 #[test]
 fn _0034() {
   let invocable = "K2-MatchesFunc-7";
-  let expected = r#"null(<FeelRegexError> invalid regex pattern: '\p{ IsBasicLatin}+')"#;
+  let expected = r#"null(<FeelRegexError> invalid regex pattern '\p{ IsBasicLatin}+': expected a general category of XML Schema (L, Lu, Nd, ...) at character 4)"#;
   eq(invocable, &CTX, expected);
 }
 
 #[test]
 fn _0035() {
   let invocable = "K2-MatchesFunc-8";
-  let expected = r#"null(<FeelRegexError> invalid regex pattern: '(.)\3')"#;
+  let expected = r#"null(<FeelRegexError> invalid regex pattern '(.)\3': expected a back-reference to a group closed before it at character 5)"#;
   eq(invocable, &CTX, expected);
 }
 
 #[test]
 fn _0036() {
   let invocable = "K2-MatchesFunc-9";
-  let expected = r#"null(<FeelRegexError> invalid regex pattern: '(.)\2')"#;
+  let expected = r#"null(<FeelRegexError> invalid regex pattern '(.)\2': expected a back-reference to a group closed before it at character 5)"#;
   eq(invocable, &CTX, expected);
 }
 
 #[test]
 fn _0037() {
   let invocable = "K2-MatchesFunc-10";
-  let expected = r#"null(<FeelRegexError> invalid regex pattern: '\3')"#;
+  let expected = r#"null(<FeelRegexError> invalid regex pattern '\3': expected a back-reference to a group closed before it at character 2)"#;
   eq(invocable, &CTX, expected);
 }
 
 #[test]
 fn _0038() {
   let invocable = "K2-MatchesFunc-11";
-  let expected = r#"null(<FeelRegexError> invalid regex pattern: '(asd)[\1]')"#;
+  let expected = r#"null(<FeelRegexError> invalid regex pattern '(asd)[\1]': expected an escape of XML Schema, not one of the engine at character 8)"#;
   eq(invocable, &CTX, expected);
 }
 
 #[test]
 fn _0039() {
   let invocable = "K2-MatchesFunc-12";
-  let expected = r#"null(<FeelRegexError> invalid regex pattern: '(asd)[asd\1]')"#;
+  let expected = r#"null(<FeelRegexError> invalid regex pattern '(asd)[asd\1]': expected an escape of XML Schema, not one of the engine at character 11)"#;
   eq(invocable, &CTX, expected);
 }
 
 #[test]
 fn _0040() {
   let invocable = "K2-MatchesFunc-13";
-  let expected = r#"null(<FeelRegexError> invalid regex pattern: '(asd)[asd\0]')"#;
+  let expected = r#"null(<FeelRegexError> invalid regex pattern '(asd)[asd\0]': expected an escape of XML Schema, not one of the engine at character 11)"#;
   eq(invocable, &CTX, expected);
 }
 
 #[test]
 fn _0041() {
   let invocable = "K2-MatchesFunc-14";
-  let expected = r#"null(<FeelRegexError> invalid regex pattern: '1[asd\0]')"#;
+  let expected = r#"null(<FeelRegexError> invalid regex pattern '1[asd\0]': expected an escape of XML Schema, not one of the engine at character 7)"#;
   eq(invocable, &CTX, expected);
 }
 

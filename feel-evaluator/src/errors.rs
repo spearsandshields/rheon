@@ -23,14 +23,10 @@ pub fn err_invalid_interval_end(expected: &str, end_type: impl Display) -> Dsntk
   FeelEvaluatorError(format!("invalid type of interval end, expected {expected}, actual: {end_type}")).into()
 }
 
-pub fn err_invalid_range_start(value: impl Display) -> DsntkError {
-  FeelEvaluatorError(format!("invalid range start: {value}")).into()
+pub fn err_range_iteration_context(range: impl Display) -> DsntkError {
+  FeelEvaluatorError(format!("iteration context expected a list or an interval a..b, found the range {range}")).into()
 }
 
-pub fn err_invalid_range_end(value: impl Display) -> DsntkError {
-  FeelEvaluatorError(format!("invalid range end: {value}")).into()
-}
-
-pub fn err_invalid_range() -> DsntkError {
-  FeelEvaluatorError("range start must be less or equal then range end".to_string()).into()
+pub fn err_interval_not_integers(start: impl Display, end: impl Display) -> DsntkError {
+  FeelEvaluatorError(format!("interval a..b expected two integers or two dates, found {start} and {end}")).into()
 }

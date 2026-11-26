@@ -33,30 +33,30 @@ fn _0005() {
 
 #[test]
 fn _0006() {
-  te_null(false, &scope!(), r#"substring after(s: "foobar", match: "ob")"#, r#"parameter 'string' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"substring after(s: "foobar", match: "ob")"#,
+    r#"expected the parameters of substring after(string, match): string, found the parameter name 's'"#,
+  );
 }
 
 #[test]
 fn _0007() {
-  te_null(false, &scope!(), r#"substring after(string: "foobar", m: "ob")"#, r#"parameter 'match' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"substring after(string: "foobar", m: "ob")"#,
+    r#"expected the parameters of substring after(string, match): string, found the parameter name 'm'"#,
+  );
 }
 
 #[test]
 fn _0008() {
-  te_null(
-    false,
-    &scope!(),
-    r#"substring after(["foobar"], "ob")"#,
-    r#"substring after: expected string, actual input type is: list<string>"#,
-  );
+  te_string(false, &scope!(), r#"substring after(["foobar"], "ob")"#, "ar");
 }
 
 #[test]
 fn _0009() {
-  te_null(
-    false,
-    &scope!(),
-    r#"substring after("foobar", ["ob"])"#,
-    r#"substring after: expected string, actual match type is: list<string>"#,
-  );
+  te_string(false, &scope!(), r#"substring after("foobar", ["ob"])"#, "ar");
 }

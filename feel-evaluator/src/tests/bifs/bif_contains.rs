@@ -33,12 +33,22 @@ fn _0006() {
 
 #[test]
 fn _0007() {
-  te_null(false, &scope!(), r#"contains(string: "foobar", m: "ob")"#, r#"parameter 'match' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"contains(string: "foobar", m: "ob")"#,
+    r#"expected the parameters of contains(string, match): boolean, found the parameter name 'm'"#,
+  );
 }
 
 #[test]
 fn _0008() {
-  te_null(false, &scope!(), r#"contains(s: "foobar", match: "ob")"#, r#"parameter 'string' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"contains(s: "foobar", match: "ob")"#,
+    r#"expected the parameters of contains(string, match): boolean, found the parameter name 's'"#,
+  );
 }
 
 #[test]
