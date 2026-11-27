@@ -21,8 +21,8 @@ export const EXAMPLES: Example[] = [
     blurb: 'A loan without a rate: follow the null to its origin',
     dialect: 'expression',
     expression: `{
-  total: sum(for l in loans return l.amount * l.rate),
-  ok: applicant.age >= 18 and total < 500
+  affordable: every l in loans satisfies l.amount * l.rate < 200,
+  ok: applicant.age >= 18 and affordable
 }.ok`,
     context: `{
   "applicant": { "age": 34, "income": 5200 },
