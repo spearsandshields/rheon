@@ -1,6 +1,11 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
+  import { jsonLanguage } from '@codemirror/lang-json';
   import CodeEditor from './CodeEditor.svelte';
   import TabBar from './TabBar.svelte';
+  import { readKeys } from './reads';
+  import type { EditorMark } from './marks';
+  import type { ReadPath } from '../engine';
 
   type Tab = 'context' | 'types';
 
@@ -13,10 +18,20 @@
     onoutline: (value: string) => void;
     /** What is wrong with the Types text (its JSON, or the outline it holds), if anything. */
     outlineError: string | null;
+    /** What the expression reads of the context; null when the context or the expression is not valid. */
+    reads: ReadPath[] | null;
     onsubmit: () => void;
   }
 
-  let { context, oncontext, contextError, outline, onoutline, outlineError, onsubmit }: Props = $props();
+  let { context, oncontext, contextError, outline, onoutline, outlineError, reads, onsubmit }: Props = $props();
+
+  // The keys the expression reads, found in the JSON tree of the text as it is when the answer
+  // arrives; the editor moves them with later edits until the next answer.
+  const readMarks = $derived.by((): EditorMark[] => {
+    if (!reads?.length) return [];
+    const text = untrack(() => context);
+    return readKeys(reads, jsonLanguage.parser.parse(text).topNode, text).map((key) => ({ ...key, class: 'cm-read' }));
+  });
   let tab = $state<Tab>('context');
 
   const TABS: { id: Tab; label: string }[] = [
@@ -28,9 +43,20 @@
 <section class="pane" aria-label="Context and types">
   <header class="phead">
     <TabBar tabs={TABS} selected={tab} onselect={(t) => (tab = t)} id="ctx" label="Context and types" />
+    <span class="spacer"></span>
+    {#if tab === 'context' && readMarks.length}<span class="legend" data-testid="reads-legend"><i aria-hidden="true"></i>read by the expression</span>{/if}
   </header>
   <div class="pbody well" id="ctx-panel-context" role="tabpanel" aria-labelledby="ctx-tab-context" hidden={tab !== 'context'} data-testid="context-editor">
-    <CodeEditor value={context} language="json" label="Context JSON" describedby={contextError ? 'context-error' : undefined} placeholder={'{ "x": 1 }'} onchange={oncontext} {onsubmit} />
+    <CodeEditor
+      value={context}
+      language="json"
+      label="Context JSON"
+      describedby={contextError ? 'context-error' : undefined}
+      placeholder={'{ "x": 1 }'}
+      onchange={oncontext}
+      {onsubmit}
+      marks={readMarks}
+    />
   </div>
   <div class="pbody well" id="ctx-panel-types" role="tabpanel" aria-labelledby="ctx-tab-types" hidden={tab !== 'types'} data-testid="types-editor">
     {#if !outline.trim()}
@@ -60,6 +86,21 @@
   }
   .pbody > :global(.editor) {
     flex: 1;
+  }
+  .legend {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding-right: 4px;
+    color: var(--tx3);
+    font-size: var(--fs-small);
+    white-space: nowrap;
+  }
+  .legend i {
+    width: 16px;
+    height: 12px;
+    border-radius: 3px;
+    background: var(--read);
   }
   .about {
     padding: 12px 16px 0 46px;

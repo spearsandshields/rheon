@@ -22,6 +22,7 @@ export type {
   ExplainResponse,
   ExpandEntry,
   TraceRecord,
+  ReadPath,
 } from '@rheon/feel-runtime';
 export { rawJson };
 
@@ -49,6 +50,8 @@ export interface PlaygroundEngine {
   format: FeelEngine['format'];
   /** The names of a context without its values. */
   outline: FeelEngine['outline'];
+  /** What an expression reads of the names in scope, without evaluating it. */
+  paths: FeelEngine['paths'];
   info(): Promise<EngineInfo>;
   dispose(): void;
   readonly timeoutMs: number;
@@ -72,6 +75,7 @@ export async function createEngine(): Promise<PlaygroundEngine> {
     complete: (expression, cursor, opts) => engine.complete(expression, cursor, opts),
     hover: (expression, at, opts) => engine.hover(expression, at, opts),
     outline: (opts) => engine.outline(opts),
+    paths: (expression, opts) => engine.paths(expression, opts),
     format: (expression, opts) => engine.format(expression, opts),
     async info() {
       const r = await engine.info();

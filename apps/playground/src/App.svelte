@@ -14,7 +14,7 @@
   import { nullOrigin, rows } from './lib/why';
   import { WhyState } from './lib/whyState.svelte';
   import type { EditorMark } from './lib/marks';
-  import { createEngine, rawJson, type Dialect, type EngineInfo, type EvaluateResponse, type ExplainResponse, type PlaygroundEngine } from './engine';
+  import { createEngine, rawJson, type Dialect, type EngineInfo, type EvaluateResponse, type ExplainResponse, type PlaygroundEngine, type ReadPath } from './engine';
 
   const DEBOUNCE_MS = 250;
   /** The most records an explanation holds: enough for a few loops opened at once. */
@@ -41,6 +41,8 @@
   /** The text that `response` is the answer for. */
   let answered = $state('');
   const why = new WhyState();
+  /** What the expression reads of the context (`paths`); null when the context or the expression is not valid. */
+  let reads = $state<ReadPath[] | null>(null);
   let roundTripMs = $state<number | null>(null);
   let pending = $state(0);
   let syntax = $state<SyntaxInfo | null>(null);
@@ -139,12 +141,17 @@
     evalAbort = null;
     if (!engine || blocked || unavailable) {
       response = null;
+      reads = null;
       return;
     }
     const abort = (evalAbort = new AbortController());
     pending++;
     const t0 = performance.now();
     const text = expression;
+    // what the text reads of the context: asked first, it does not evaluate and answers at once
+    void engine.paths(text, { dialect, context: rawJson(context), contextFormat: 'json', signal: abort.signal }).then((res) => {
+      if (!abort.signal.aborted && !(!res.ok && res.error.kind === 'cancelled')) reads = res.ok ? res.paths : null;
+    });
     try {
       // An expression is explained: the answer of evaluate, with how its value came about.
       const ask = () =>
@@ -283,6 +290,7 @@
           {outline}
           onoutline={(v) => (outline = v)}
           {outlineError}
+          {reads}
           onsubmit={evaluateNow}
         />
       </div>
