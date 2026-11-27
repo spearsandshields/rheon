@@ -10,17 +10,19 @@
   import StatusStrip from './lib/StatusStrip.svelte';
   import { EXAMPLES, type Example } from './lib/examples';
   import { decodeState, encodeState, checkJson, contextObject, MAX_HASH_LENGTH, type ShareState } from './lib/share';
-  import { createEngine, rawJson, type Dialect, type EngineInfo, type EvaluateResponse, type PlaygroundEngine } from './engine';
+  import { mergeOutline } from './lib/outline';
+  import { createEngine, rawJson, type Dialect, type EngineInfo, type EvaluateResponse, type Outline, type PlaygroundEngine } from './engine';
 
   const DEBOUNCE_MS = 250;
   const THEME_KEY = 'dsntk-playground-theme';
   const first = EXAMPLES[0];
-  const DEFAULTS: ShareState = { dialect: first.dialect, expression: first.expression, context: first.context, input: '42', showTyped: false };
+  const DEFAULTS: ShareState = { dialect: first.dialect, expression: first.expression, context: first.context, input: '42', outline: first.outline ?? '', showTyped: false };
 
   let dialect = $state<Dialect>(DEFAULTS.dialect);
   let expression = $state(DEFAULTS.expression);
   let context = $state(DEFAULTS.context);
   let input = $state(DEFAULTS.input);
+  let outline = $state(DEFAULTS.outline);
   let showTyped = $state(DEFAULTS.showTyped);
   /** false until the URL has been read (it may hold a compressed state) */
   let loaded = $state(false);
@@ -56,8 +58,30 @@
                 : 'Type a FEEL expression to evaluate it.'
               : null,
   );
-  // The context as the FEEL editor's scope: an object only when the text is a JSON object.
-  const scope = $derived(contextObject(context));
+  // The names the FEEL editor knows: those of the context, or with a Types text the outline that
+  // the engine last accepted for it, laid over the context's (lib/outline.ts). While the Types text
+  // is being edited the last accepted outline stays, so the marks do not flicker.
+  const outlineJsonError = $derived(outline.trim() ? checkJson(outline, true) : null);
+  let editorOutline = $state<Outline | null>(null);
+  let outlineCheck = $state<{ text: string; message: string } | null>(null);
+  const outlineError = $derived(outlineJsonError ?? (outlineCheck?.text === outline ? outlineCheck.message : null));
+  const scope = $derived(outline.trim() && editorOutline ? { outline: editorOutline } : { context: contextObject(context) });
+
+  let outlineTimer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => {
+    const [text, ctx, e, d, ctxValid] = [outline, context, engine, dialect, !contextError];
+    clearTimeout(outlineTimer);
+    if (!text.trim()) editorOutline = outlineCheck = null;
+    if (!e || !text.trim() || outlineJsonError) return;
+    outlineTimer = setTimeout(async () => {
+      const fromContext = ctxValid ? await e.outline({ context: rawJson(ctx), contextFormat: 'json', types: true }) : null;
+      const merged = mergeOutline(fromContext?.ok ? fromContext.outline : null, JSON.parse(text) as Outline);
+      const res = await e.syntax('', { dialect: d, outline: merged });
+      if (text !== outline || ctx !== context) return;
+      if (res.ok) [editorOutline, outlineCheck] = [merged, null];
+      else if (res.error.kind === 'context') [editorOutline, outlineCheck] = [null, { text, message: res.error.message }];
+    }, DEBOUNCE_MS);
+  });
 
   onMount(() => {
     try {
@@ -112,7 +136,7 @@
   }
 
   function snapshot(): ShareState {
-    return { dialect, expression, context, input, showTyped };
+    return { dialect, expression, context, input, outline, showTyped };
   }
 
   function apply(s: ShareState) {
@@ -120,13 +144,14 @@
     expression = s.expression;
     context = s.context;
     input = s.input;
+    outline = s.outline;
     showTyped = s.showTyped;
   }
 
   async function pickExample(ex: Example) {
     // a history entry per example pick, so Back returns to what was there before
     history.pushState(null, '', await encodeState(snapshot()));
-    apply({ ...snapshot(), dialect: ex.dialect, expression: ex.expression, context: ex.context, input: ex.input ?? input });
+    apply({ ...snapshot(), dialect: ex.dialect, expression: ex.expression, context: ex.context, input: ex.input ?? input, outline: ex.outline ?? '' });
     linkNotice = null;
   }
 
@@ -260,7 +285,15 @@
         <div class="slot o-input"><InputPane {input} oninput={(v) => (input = v)} error={inputError} /></div>
       {/if}
       <div class="slot o-context">
-        <ContextPane {context} onchange={(v) => (context = v)} error={contextError} onsubmit={evaluateNow} />
+        <ContextPane
+          {context}
+          oncontext={(v) => (context = v)}
+          {contextError}
+          {outline}
+          onoutline={(v) => (outline = v)}
+          {outlineError}
+          onsubmit={evaluateNow}
+        />
       </div>
     </div>
     <div class="col">

@@ -28,12 +28,12 @@
   import { EditorState, Compartment, type Extension } from '@codemirror/state';
   import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
   import { bracketMatching, indentOnInput, syntaxHighlighting, HighlightStyle } from '@codemirror/language';
-    import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from '@codemirror/autocomplete';
+  import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from '@codemirror/autocomplete';
   import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
   import { json } from '@codemirror/lang-json';
   import { tags as t } from '@lezer/highlight';
   import { feelEditor, formatDocument, setFeelScope, syntaxOf, type FeelSource } from '@rheon/feel-codemirror';
-  import type { Dialect } from '../engine';
+  import type { Dialect, Outline } from '../engine';
 
   interface Props {
     value: string;
@@ -41,8 +41,8 @@
     dialect?: Dialect;
     /** FEEL mode: the engine that colours the text, marks its errors and completes it. */
     engine?: FeelSource | null;
-    /** FEEL mode: the context whose names are in scope. */
-    scope?: Record<string, unknown>;
+    /** FEEL mode: the names in scope, as the context or as an outline of it. */
+    scope?: { context: Record<string, unknown> } | { outline: Outline };
     label: string;
     placeholder?: string;
     onchange: (value: string) => void;
@@ -55,7 +55,7 @@
     title?: string;
   }
 
-  let { value, language, dialect = 'expression', engine = null, scope = {}, label, placeholder = '', onchange, onsubmit, onsyntax, describedby, title }: Props = $props();
+  let { value, language, dialect = 'expression', engine = null, scope = { context: {} }, label, placeholder = '', onchange, onsubmit, onsyntax, describedby, title }: Props = $props();
 
   let host: HTMLDivElement;
   let view: EditorView | undefined;
@@ -104,11 +104,26 @@
     '.cm-lintRange-error': { backgroundImage: 'none', textDecoration: 'underline wavy var(--err) 1.2px', textUnderlineOffset: '4px' },
     '.cm-lintRange-warning, .cm-lintRange-hint, .cm-lintRange-info': { backgroundImage: 'none', textDecoration: 'underline wavy var(--mk-line) 1.2px', textUnderlineOffset: '4px' },
     // tooltips: what shows over a name, the hint of a call, the messages of a mark, the completion
-    '.cm-tooltip': { backgroundColor: 'var(--chrome)', color: 'var(--tx)', border: '1px solid var(--raised)', borderRadius: '6px', boxShadow: 'var(--shadow)', fontFamily: 'var(--sans)', fontWeight: '400', fontSize: 'var(--fs)', overflow: 'hidden' },
+    '.cm-tooltip': { backgroundColor: 'var(--chrome)', color: 'var(--tx)', border: '1px solid var(--raised)', borderRadius: '6px', boxShadow: 'var(--shadow)', fontFamily: 'var(--sans)', fontWeight: '400', fontSize: 'var(--fs)' },
     '.cm-tooltip .cm-tooltip-arrow:before, .cm-tooltip .cm-tooltip-arrow:after': { borderTopColor: 'transparent', borderBottomColor: 'transparent' },
     '.cm-diagnostic': { padding: '6px 10px', borderLeft: '2px solid var(--err)', marginLeft: '0' },
     '.cm-diagnostic-warning, .cm-diagnostic-hint, .cm-diagnostic-info': { borderLeftColor: 'var(--mk-line)' },
     '.cm-diagnosticSource': { display: 'none' },
+    '.cm-tooltip.cm-tooltip-autocomplete > ul': { fontFamily: 'var(--mono)', fontWeight: '500', fontSize: 'var(--fs-code-small)', padding: '3px', maxHeight: '16em', minWidth: '16em' },
+    '.cm-tooltip.cm-tooltip-autocomplete > ul > li': { display: 'flex', alignItems: 'baseline', gap: '16px', padding: '2px 10px', lineHeight: '24px', borderRadius: '4px', color: 'var(--tx)' },
+    '.cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected]': { backgroundColor: 'var(--raised)', color: 'var(--tx)' },
+    '.cm-completionLabel': { flex: '1 1 auto' },
+    '.cm-completionMatchedText': { textDecoration: 'none', color: 'var(--fn)' },
+    '.cm-completionDetail': { marginLeft: 'auto', fontStyle: 'normal', fontWeight: '400', color: 'var(--tx3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '22em' },
+    '.cm-tooltip.cm-completionInfo': { padding: '8px 12px', maxWidth: '22em', color: 'var(--tx2)', lineHeight: '1.45' },
+    '.cm-feel-hover, .cm-feel-signature': { padding: '7px 11px', fontFamily: 'var(--mono)', fontWeight: '500', fontSize: 'var(--fs-code-small)', lineHeight: '1.6', maxWidth: '36em' },
+    '.cm-feel-hover-documentation, .cm-feel-signature-summary': { fontFamily: 'var(--sans)', fontWeight: '400', fontSize: 'var(--fs)', color: 'var(--tx2)', opacity: '1', marginTop: '2px' },
+    '.cm-feel-hover-deprecated': { fontFamily: 'var(--sans)', fontWeight: '400', fontSize: 'var(--fs)', fontStyle: 'normal', color: 'var(--mk)', opacity: '1', marginTop: '2px' },
+    '.cm-feel-signature-active': { color: 'var(--fn)', textDecoration: 'underline', textUnderlineOffset: '3px' },
+    '.cm-feel-signature-given': { opacity: '1', color: 'var(--tx3)' },
+    // a mark's message already says that a name is deprecated
+    '.cm-tooltip-hover:has(.cm-tooltip-lint) .cm-feel-hover-deprecated': { display: 'none' },
+    '.cm-tooltip-section:not(:first-child)': { borderTop: '1px solid var(--raised)' },
   });
 
   /** The engine's parse of the document: its nodes with their depth, and its errors. */
@@ -156,7 +171,11 @@
     if (language === 'json') return [json(), autocompletion()];
     // the engine reads the text: without it (still loading) the text is plain
     if (!engine) return [];
-    return feelEditor({ engine, dialect, context: scope, tree: true, onSyntax: () => view && onsyntax?.(analyse(view.state)) });
+    return [
+      feelEditor({ engine, dialect, ...scope, tree: true, check: true, onSyntax: () => view && onsyntax?.(analyse(view.state)) }),
+      // beside the engine's completion: no icons, the type and the documentation say what an item is
+      autocompletion({ icons: false }),
+    ];
   }
 
   onMount(() => {
@@ -216,9 +235,9 @@
     }
   });
 
-  // Dialect / context changed → the editor asks the engine again.
+  // Dialect / names in scope changed → the editor asks the engine again.
   $effect(() => {
-    const next = { dialect, context: scope };
+    const next = { dialect, ...scope };
     if (view && language === 'feel' && withEngine) view.dispatch({ effects: setFeelScope(next) });
   });
 </script>

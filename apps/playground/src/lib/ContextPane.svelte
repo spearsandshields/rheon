@@ -1,28 +1,71 @@
 <script lang="ts">
   import CodeEditor from './CodeEditor.svelte';
+  import TabBar from './TabBar.svelte';
+
+  type Tab = 'context' | 'types';
 
   interface Props {
     context: string;
-    onchange: (value: string) => void;
+    oncontext: (value: string) => void;
     /** What is wrong with the context JSON, if anything. */
-    error: string | null;
+    contextError: string | null;
+    outline: string;
+    onoutline: (value: string) => void;
+    /** What is wrong with the Types text (its JSON, or the outline it holds), if anything. */
+    outlineError: string | null;
     onsubmit: () => void;
   }
 
-  let { context, onchange, error, onsubmit }: Props = $props();
+  let { context, oncontext, contextError, outline, onoutline, outlineError, onsubmit }: Props = $props();
+  let tab = $state<Tab>('context');
+
+  const TABS: { id: Tab; label: string }[] = [
+    { id: 'context', label: 'Context' },
+    { id: 'types', label: 'Types' },
+  ];
 </script>
 
-<section class="pane" aria-labelledby="context-title">
+<section class="pane" aria-label="Context and types">
   <header class="phead">
-    <h2 class="plabel" id="context-title">Context</h2>
+    <TabBar tabs={TABS} selected={tab} onselect={(t) => (tab = t)} id="ctx" label="Context and types" />
   </header>
-  <div class="pbody well" data-testid="context-editor">
-    <CodeEditor value={context} language="json" label="Context JSON" describedby={error ? 'context-error' : undefined} placeholder={'{ "x": 1 }'} {onchange} {onsubmit} />
+  <div class="pbody well" id="ctx-panel-context" role="tabpanel" aria-labelledby="ctx-tab-context" hidden={tab !== 'context'} data-testid="context-editor">
+    <CodeEditor value={context} language="json" label="Context JSON" describedby={contextError ? 'context-error' : undefined} placeholder={'{ "x": 1 }'} onchange={oncontext} {onsubmit} />
   </div>
-  {#if error}<p class="error" id="context-error" data-testid="context-error">{error}</p>{/if}
+  <div class="pbody well" id="ctx-panel-types" role="tabpanel" aria-labelledby="ctx-tab-types" hidden={tab !== 'types'} data-testid="types-editor">
+    {#if !outline.trim()}
+      <p class="about" id="types-about">Optional. Describe the names of the context for completion, hover and checks: their types, descriptions and allowed values. The evaluation reads the context only.</p>
+    {/if}
+    <CodeEditor
+      value={outline}
+      language="json"
+      label="Types JSON"
+      describedby={outlineError ? 'types-error' : outline.trim() ? undefined : 'types-about'}
+      placeholder={'{ "names": { "rate": { "type": "number", "description": "Yearly rate" } } }'}
+      onchange={onoutline}
+      {onsubmit}
+    />
+  </div>
+  {#if tab === 'context' && contextError}<p class="error" id="context-error" data-testid="context-error">{contextError}</p>{/if}
+  {#if tab === 'types' && outlineError}<p class="error" id="types-error" data-testid="types-error">{outlineError}</p>{/if}
 </section>
 
 <style>
+  .pbody[hidden] {
+    display: none;
+  }
+  .pbody {
+    display: flex;
+    flex-direction: column;
+  }
+  .pbody > :global(.editor) {
+    flex: 1;
+  }
+  .about {
+    padding: 12px 16px 0 46px;
+    color: var(--tx2);
+    max-width: 62ch;
+  }
   .error {
     flex: none;
     padding: 8px 14px;

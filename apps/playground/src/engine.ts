@@ -18,6 +18,7 @@ export type {
   ParseResponse,
   FeelResult,
   ErrorKind,
+  Outline,
 } from '@rheon/feel-runtime';
 export { rawJson };
 
@@ -36,10 +37,13 @@ export interface EngineInfo {
 export interface PlaygroundEngine {
   evaluate: FeelEngine['evaluate'];
   parse(dialect: Dialect, expression: string, opts?: ParseOptions & RequestOptions): Promise<ParseResponse>;
-  /** The editor operations: the tokens and errors of a text, and what can stand at a cursor. */
+  /** The editor operations: the tokens and errors of a text, what can stand at a cursor, what a name is. */
   syntax: FeelEngine['syntax'];
   complete: FeelEngine['complete'];
+  hover: FeelEngine['hover'];
   format: FeelEngine['format'];
+  /** The names of a context without its values. */
+  outline: FeelEngine['outline'];
   info(): Promise<EngineInfo>;
   dispose(): void;
   readonly timeoutMs: number;
@@ -60,6 +64,8 @@ export async function createEngine(): Promise<PlaygroundEngine> {
     parse: (dialect, expression, opts) => engine.parse(dialect, expression, opts),
     syntax: (expression, opts) => engine.syntax(expression, opts),
     complete: (expression, cursor, opts) => engine.complete(expression, cursor, opts),
+    hover: (expression, at, opts) => engine.hover(expression, at, opts),
+    outline: (opts) => engine.outline(opts),
     format: (expression, opts) => engine.format(expression, opts),
     async info() {
       const r = await engine.info();

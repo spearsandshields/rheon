@@ -6,6 +6,8 @@ export interface ShareState {
   expression: string;
   context: string;
   input: string;
+  /** The Types text: an outline of the names for the editor, as JSON. */
+  outline: string;
   showTyped: boolean;
 }
 
@@ -14,14 +16,15 @@ const COMPRESS_ABOVE = 1500;
 /** Hashes longer than this (after compression) are not kept in the URL: too long to share. */
 export const MAX_HASH_LENGTH = 32 * 1024;
 
-// Readable, stable keys: #d=expression&e=...&c=...&i=...&typed=0. Links of earlier pages may also
-// have `tree`, which said whether the syntax tree was open; the inspector is always shown now.
+// Readable, stable keys: #d=expression&e=...&c=...&i=...&o=...&typed=0. Links of earlier pages may
+// also have `tree`, which said whether the syntax tree was open; the inspector is always shown now.
 function plainHash(s: ShareState): string {
   const p = new URLSearchParams();
   p.set('d', s.dialect);
   p.set('e', s.expression);
   if (s.context.trim() && s.context.trim() !== '{}') p.set('c', s.context);
   if (s.dialect === 'unaryTests') p.set('i', s.input);
+  if (s.outline.trim()) p.set('o', s.outline);
   p.set('typed', s.showTyped ? '1' : '0');
   return '#' + p.toString();
 }
@@ -69,6 +72,7 @@ function fromParams(p: URLSearchParams, fallback: ShareState): ShareState {
     expression: p.get('e') ?? '',
     context: p.get('c') ?? '{}',
     input: p.get('i') ?? fallback.input,
+    outline: p.get('o') ?? '',
     showTyped: p.get('typed') === '1',
   };
 }

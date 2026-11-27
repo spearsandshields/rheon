@@ -1,6 +1,6 @@
 <script lang="ts">
   import CodeEditor, { type SyntaxInfo } from './CodeEditor.svelte';
-  import type { Dialect, PlaygroundEngine } from '../engine';
+  import type { Dialect, Outline, PlaygroundEngine } from '../engine';
 
   interface Props {
     dialect: Dialect;
@@ -8,8 +8,8 @@
     expression: string;
     onchange: (value: string) => void;
     engine: PlaygroundEngine | null;
-    /** The names in scope of the FEEL editor. */
-    scope: Record<string, unknown>;
+    /** The names in scope of the FEEL editor: the context, or the outline of the Types tab. */
+    scope: { context: Record<string, unknown> } | { outline: Outline };
     onsubmit: () => void;
     onsyntax: (info: SyntaxInfo) => void;
   }

@@ -104,6 +104,11 @@
   });
 </script>
 
+{#snippet message(text: string)}
+  <!-- the engine quotes code in backticks: `,` or `]` -->
+  {#each text.split(/`([^`]*)`/) as part, i (i)}{#if i % 2}<code class="mono">{part}</code>{:else}{part}{/if}{/each}
+{/snippet}
+
 <section class="pane result" aria-busy={busy} aria-labelledby="result-title" data-testid="result">
   <p class="sr-only" aria-live="polite" aria-atomic="true">{status}</p>
   <header class="phead">
@@ -141,7 +146,7 @@
                 {@const place = placeOf(detail)}
                 <li>
                   <button class="link" onclick={() => onselect(place.from, place.to)} title="Select this place in the editor" data-testid="syntax-detail">{place.label}</button>
-                  <span data-testid="syntax-detail-message">{detail.message}</span>
+                  <span data-testid="syntax-detail-message">{@render message(detail.message)}</span>
                 </li>
               {/each}
               {#if response.error.diagnostics.length > 5}<li>and {response.error.diagnostics.length - 5} more</li>{/if}
@@ -299,6 +304,10 @@
   }
   .reasons li {
     overflow-wrap: anywhere;
+  }
+  code {
+    font-size: 0.95em;
+    color: var(--tx);
   }
   .reasons .link {
     margin-right: 6px;
