@@ -10,9 +10,52 @@ export interface Example {
   context: string;
   /** JSON text for the unary-tests input value `?`. */
   input?: string;
+  /** JSON text for the Types tab: the outline that the editor's completion, hover and checks read. */
+  outline?: string;
 }
 
 export const EXAMPLES: Example[] = [
+  {
+    id: 'null-trail',
+    title: 'Where a null comes from',
+    blurb: 'A loan without a rate: follow the null to its origin',
+    dialect: 'expression',
+    expression: `{
+  affordable: every l in loans satisfies l.amount * l.rate < 200,
+  ok: applicant.age >= 18 and affordable
+}.ok`,
+    context: `{
+  "applicant": { "age": 34, "income": 5200 },
+  "loans": [
+    { "amount": 1000, "rate": 0.05 },
+    { "amount": 2500 }
+  ]
+}`,
+  },
+  {
+    id: 'typed',
+    title: 'Typed names',
+    blurb: 'Types describe the names: completion, hover and checks use them',
+    dialect: 'expression',
+    expression: `if applicant.segment = "gold" then applicant.income * 0.3
+else applicant.income * 0.1`,
+    context: `{
+  "applicant": { "age": 34, "income": 5200, "status": "gold", "segment": "gold" }
+}`,
+    outline: `{
+  "types": {
+    "Applicant": {
+      "names": {
+        "age": { "type": "number", "description": "Age in full years" },
+        "income": { "type": "number", "description": "Monthly net income, EUR" },
+        "status": { "type": "string", "values": ["gold", "silver", "standard"] },
+        "segment": { "type": "string", "deprecated": "use status" }
+      }
+    }
+  },
+  "names": { "applicant": { "type": "Applicant" } }
+}`,
+  },
   {
     id: 'decimals',
     title: 'Exact decimals',
@@ -155,7 +198,7 @@ export const EXAMPLES: Example[] = [
   {
     id: 'null',
     title: 'Null with a reason',
-    blurb: 'FEEL yields null instead of failing; dsntk says why',
+    blurb: 'FEEL yields null instead of failing, and says why',
     dialect: 'expression',
     expression: `"total: " + 42`,
     context: '{}',

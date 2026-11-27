@@ -6,8 +6,11 @@ export interface ShareState {
   expression: string;
   context: string;
   input: string;
-  showTree: boolean;
+  /** The Types text: an outline of the names for the editor, as JSON. */
+  outline: string;
   showTyped: boolean;
+  /** The inspector's tab. */
+  inspector: 'why' | 'tree';
 }
 
 /** Plain hashes longer than this are deflate-compressed (`#z=...`). */
@@ -15,15 +18,18 @@ const COMPRESS_ABOVE = 1500;
 /** Hashes longer than this (after compression) are not kept in the URL: too long to share. */
 export const MAX_HASH_LENGTH = 32 * 1024;
 
-// Readable, stable keys: #d=expression&e=...&c=...&i=...&tree=1&typed=0
+// Readable, stable keys: #d=expression&e=...&c=...&i=...&o=...&typed=0&tab=tree. Links of earlier
+// pages may also have `tree`, which said whether the syntax tree was open: it is not read, the
+// inspector opens on Why.
 function plainHash(s: ShareState): string {
   const p = new URLSearchParams();
   p.set('d', s.dialect);
   p.set('e', s.expression);
   if (s.context.trim() && s.context.trim() !== '{}') p.set('c', s.context);
   if (s.dialect === 'unaryTests') p.set('i', s.input);
-  p.set('tree', s.showTree ? '1' : '0');
+  if (s.outline.trim()) p.set('o', s.outline);
   p.set('typed', s.showTyped ? '1' : '0');
+  if (s.inspector === 'tree') p.set('tab', 'tree');
   return '#' + p.toString();
 }
 
@@ -70,8 +76,9 @@ function fromParams(p: URLSearchParams, fallback: ShareState): ShareState {
     expression: p.get('e') ?? '',
     context: p.get('c') ?? '{}',
     input: p.get('i') ?? fallback.input,
-    showTree: p.has('tree') ? p.get('tree') === '1' : fallback.showTree,
+    outline: p.get('o') ?? '',
     showTyped: p.get('typed') === '1',
+    inspector: p.get('tab') === 'tree' ? 'tree' : 'why',
   };
 }
 
@@ -102,7 +109,8 @@ export function checkJson(text: string, mustBeObject: boolean): string | null {
   try {
     const v: unknown = JSON.parse(text);
     if (mustBeObject && (typeof v !== 'object' || v === null || Array.isArray(v))) {
-      return 'The context must be a JSON object, e.g. { "x": 1 }';
+      const found = Array.isArray(v) ? 'a list' : v === null ? 'null' : typeof v === 'string' ? 'a string' : `a ${typeof v}`;
+      return `Expected a JSON object, such as { "x": 1 }, found ${found}.`;
     }
     return null;
   } catch (e) {
@@ -119,11 +127,4 @@ export function contextObject(text: string): Record<string, unknown> {
   } catch {
     return {};
   }
-}
-
-/** Formats an engine time in microseconds. */
-export function fmtMicros(us: number): string {
-  if (us < 1000) return `${us} µs`;
-  if (us < 1_000_000) return `${(us / 1000).toFixed(us < 10_000 ? 2 : 1)} ms`;
-  return `${(us / 1_000_000).toFixed(2)} s`;
 }

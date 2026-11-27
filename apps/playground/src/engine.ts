@@ -1,5 +1,5 @@
 /**
- * Engine adapter for the playground: the real dsntk FEEL engine (`dist/feel.wasm`,
+ * Engine adapter for the playground: the rheon FEEL engine (`dist/feel.wasm`,
  * Rust → wasm32-wasip1, pure-Rust decimal128 numbers) running in a Web Worker via
  * `@rheon/feel-runtime` (docs/CONTRACT.md §4).
  *
@@ -18,6 +18,11 @@ export type {
   ParseResponse,
   FeelResult,
   ErrorKind,
+  Outline,
+  ExplainResponse,
+  ExpandEntry,
+  TraceRecord,
+  ReadPath,
 } from '@rheon/feel-runtime';
 export { rawJson };
 
@@ -35,11 +40,18 @@ export interface EngineInfo {
 /** What the playground needs from an engine (a subset of `FeelEngine`). */
 export interface PlaygroundEngine {
   evaluate: FeelEngine['evaluate'];
+  /** Evaluates an expression and records how its value came about. */
+  explain: FeelEngine['explain'];
   parse(dialect: Dialect, expression: string, opts?: ParseOptions & RequestOptions): Promise<ParseResponse>;
-  /** The editor operations: the tokens and errors of a text, and what can stand at a cursor. */
+  /** The editor operations: the tokens and errors of a text, what can stand at a cursor, what a name is. */
   syntax: FeelEngine['syntax'];
   complete: FeelEngine['complete'];
+  hover: FeelEngine['hover'];
   format: FeelEngine['format'];
+  /** The names of a context without its values. */
+  outline: FeelEngine['outline'];
+  /** What an expression reads of the names in scope, without evaluating it. */
+  paths: FeelEngine['paths'];
   info(): Promise<EngineInfo>;
   dispose(): void;
   readonly timeoutMs: number;
@@ -57,9 +69,13 @@ export async function createEngine(): Promise<PlaygroundEngine> {
       return engine.unavailableReason;
     },
     evaluate: (req, opts) => engine.evaluate(req, opts),
+    explain: (req, opts) => engine.explain(req, opts),
     parse: (dialect, expression, opts) => engine.parse(dialect, expression, opts),
     syntax: (expression, opts) => engine.syntax(expression, opts),
     complete: (expression, cursor, opts) => engine.complete(expression, cursor, opts),
+    hover: (expression, at, opts) => engine.hover(expression, at, opts),
+    outline: (opts) => engine.outline(opts),
+    paths: (expression, opts) => engine.paths(expression, opts),
     format: (expression, opts) => engine.format(expression, opts),
     async info() {
       const r = await engine.info();

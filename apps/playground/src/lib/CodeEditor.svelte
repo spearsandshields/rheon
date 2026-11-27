@@ -17,6 +17,8 @@
     /** selection head (the cursor) and anchor */
     cursor: number;
     anchor: number;
+    /** Whether the editor has the focus: the cursor is the reader's. */
+    focused: boolean;
   }
 
   const MAX_NODES = 3000;
@@ -24,17 +26,17 @@
 
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection, placeholder as cmPlaceholder } from '@codemirror/view';
+  import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection, placeholder as cmPlaceholder } from '@codemirror/view';
   import { EditorState, Compartment, type Extension } from '@codemirror/state';
   import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
   import { bracketMatching, indentOnInput, syntaxHighlighting, HighlightStyle } from '@codemirror/language';
-  import { lintGutter } from '@codemirror/lint';
   import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from '@codemirror/autocomplete';
   import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
   import { json } from '@codemirror/lang-json';
   import { tags as t } from '@lezer/highlight';
   import { feelEditor, formatDocument, setFeelScope, syntaxOf, type FeelSource } from '@rheon/feel-codemirror';
-  import type { Dialect } from '../engine';
+  import type { Dialect, Outline } from '../engine';
+  import { marksField, marksEffect, type EditorMark } from './marks';
 
   interface Props {
     value: string;
@@ -42,8 +44,8 @@
     dialect?: Dialect;
     /** FEEL mode: the engine that colours the text, marks its errors and completes it. */
     engine?: FeelSource | null;
-    /** FEEL mode: the context whose names are in scope. */
-    scope?: Record<string, unknown>;
+    /** FEEL mode: the names in scope, as the context or as an outline of it. */
+    scope?: { context: Record<string, unknown> } | { outline: Outline };
     label: string;
     placeholder?: string;
     onchange: (value: string) => void;
@@ -52,59 +54,88 @@
     onsyntax?: (info: SyntaxInfo) => void;
     /** id of an element describing the editor (keyboard help). */
     describedby?: string;
+    /** The editor's keyboard shortcuts, shown when the pointer rests on it. */
+    title?: string;
+    /** Spans the page marks in the text. */
+    marks?: EditorMark[];
   }
 
-  let { value, language, dialect = 'expression', engine = null, scope = {}, label, placeholder = '', onchange, onsubmit, onsyntax, describedby }: Props = $props();
+  let { value, language, dialect = 'expression', engine = null, scope = { context: {} }, label, placeholder = '', onchange, onsubmit, onsyntax, describedby, title, marks = [] }: Props = $props();
 
   let host: HTMLDivElement;
   let view: EditorView | undefined;
   const lang = new Compartment();
 
-  // Colors come from CSS custom properties, so the editor follows the page theme. The JSON
-  // editor is coloured by its grammar; the FEEL editor by the engine (the --feel-* properties).
+  // Colours come from the page's tokens, so the editor follows the theme. The JSON editor is
+  // coloured by its grammar; the FEEL editor by the engine (the --feel-* properties).
   const highlight = HighlightStyle.define([
-    { tag: [t.number, t.integer, t.float], color: 'var(--syn-number)' },
-    { tag: [t.string, t.special(t.string)], color: 'var(--syn-string)' },
-    { tag: [t.bool, t.null, t.atom], color: 'var(--syn-atom)' },
-    { tag: [t.propertyName, t.attributeName], color: 'var(--syn-prop)' },
-    { tag: [t.bracket, t.paren, t.squareBracket, t.brace, t.punctuation, t.separator], color: 'var(--syn-punct)' },
-    { tag: t.invalid, color: 'var(--danger)' },
+    { tag: [t.number, t.integer, t.float], color: 'var(--num)' },
+    { tag: [t.string, t.special(t.string)], color: 'var(--str)' },
+    { tag: [t.bool, t.null, t.atom], color: 'var(--kw)' },
+    { tag: [t.propertyName, t.attributeName], color: 'var(--key)' },
+    { tag: [t.bracket, t.paren, t.squareBracket, t.brace, t.punctuation, t.separator], color: 'var(--op)' },
+    { tag: t.invalid, color: 'var(--err)' },
   ]);
 
   const theme = EditorView.theme({
     '&': {
       backgroundColor: 'transparent',
-      color: 'var(--text)',
-      fontSize: '14px',
+      color: 'var(--tx)',
       height: '100%',
-      '--feel-keyword': 'var(--syn-keyword)',
-      '--feel-number': 'var(--syn-number)',
-      '--feel-string': 'var(--syn-string)',
-      '--feel-constant': 'var(--syn-atom)',
-      '--feel-function': 'var(--syn-fn)',
-      '--feel-property': 'var(--syn-prop)',
-      '--feel-name': 'var(--syn-var)',
-      '--feel-comment': 'var(--syn-comment)',
-      '--feel-operator': 'var(--syn-op)',
-      '--feel-punctuation': 'var(--syn-punct)',
-      '--feel-error': 'var(--danger)',
+      '--feel-keyword': 'var(--kw)',
+      '--feel-number': 'var(--num)',
+      '--feel-string': 'var(--str)',
+      '--feel-constant': 'var(--kw)',
+      '--feel-function': 'var(--fn)',
+      '--feel-property': 'var(--key)',
+      '--feel-name': 'var(--tx)',
+      '--feel-comment': 'var(--tx3)',
+      '--feel-operator': 'var(--op)',
+      '--feel-punctuation': 'var(--op)',
+      '--feel-error': 'var(--err)',
     },
     '&.cm-focused': { outline: 'none' },
-    '.cm-scroller': { fontFamily: 'var(--font-mono)', lineHeight: '1.6' },
-    '.cm-content': { caretColor: 'var(--accent)', padding: '10px 0' },
-    '.cm-cursor': { borderLeftColor: 'var(--accent)', borderLeftWidth: '2px' },
-    '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--muted-2)', border: 'none', paddingLeft: '4px' },
-    '.cm-activeLine': { backgroundColor: 'var(--active-line)' },
-    '.cm-activeLineGutter': { backgroundColor: 'transparent', color: 'var(--muted)' },
-    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': { backgroundColor: 'var(--selection) !important' },
-    '.cm-matchingBracket': { backgroundColor: 'var(--match)', outline: 'none' },
-    '.cm-placeholder': { color: 'var(--muted-2)' },
-    '.cm-tooltip': { backgroundColor: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' },
-    '.cm-tooltip-autocomplete > ul > li[aria-selected]': { backgroundColor: 'var(--accent)', color: 'var(--on-accent)' },
-    '.cm-selectionMatch': { backgroundColor: 'var(--match)' },
-    '.cm-lintRange-error': { backgroundImage: 'none', textDecoration: 'underline wavy var(--danger)', textUnderlineOffset: '3px' },
-    '.cm-diagnostic-error': { borderLeftColor: 'var(--danger)' },
-    '.cm-gutter-lint': { width: '1.1em' },
+    '.cm-scroller': { fontFamily: 'var(--mono)', fontWeight: '500' },
+    '.cm-content': { caretColor: 'var(--tx)', padding: '12px 0 24px' },
+    '.cm-cursor': { borderLeftColor: 'var(--tx)', borderLeftWidth: '2px' },
+    '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--tx3)', border: 'none', fontWeight: '400', fontSize: 'var(--fs-small)' },
+    '.cm-lineNumbers .cm-gutterElement': { minWidth: '40px', padding: '0 16px 0 6px' },
+    '.cm-activeLineGutter': { backgroundColor: 'transparent', color: 'var(--tx2)' },
+    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': { backgroundColor: 'var(--sel) !important' },
+    '.cm-matchingBracket, &.cm-focused .cm-matchingBracket': { backgroundColor: 'var(--hl)', outline: 'none' },
+    '.cm-selectionMatch': { backgroundColor: 'var(--hl)' },
+    '.cm-placeholder': { color: 'var(--tx3)' },
+    '.cm-feel-keyword': { fontStyle: 'italic', fontWeight: '500' },
+    '.cm-lintRange-error': { backgroundImage: 'none', textDecoration: 'underline wavy var(--err) 1.2px', textUnderlineOffset: '4px' },
+    '.cm-lintRange-warning, .cm-lintRange-hint, .cm-lintRange-info': { backgroundImage: 'none', textDecoration: 'underline wavy var(--mk-line) 1.2px', textUnderlineOffset: '4px' },
+    // tooltips: what shows over a name, the hint of a call, the messages of a mark, the completion
+    '.cm-tooltip': { backgroundColor: 'var(--chrome)', color: 'var(--tx)', border: '1px solid var(--raised)', borderRadius: '6px', boxShadow: 'var(--shadow)', fontFamily: 'var(--sans)', fontWeight: '400', fontSize: 'var(--fs)' },
+    '.cm-tooltip .cm-tooltip-arrow:before, .cm-tooltip .cm-tooltip-arrow:after': { borderTopColor: 'transparent', borderBottomColor: 'transparent' },
+    '.cm-diagnostic': { padding: '6px 10px', borderLeft: '2px solid var(--err)', marginLeft: '0' },
+    '.cm-diagnostic-warning, .cm-diagnostic-hint, .cm-diagnostic-info': { borderLeftColor: 'var(--mk-line)' },
+    '.cm-diagnosticSource': { display: 'none' },
+    '.cm-tooltip.cm-tooltip-autocomplete > ul': { fontFamily: 'var(--mono)', fontWeight: '500', fontSize: 'var(--fs-code-small)', padding: '3px', maxHeight: '16em', minWidth: '16em' },
+    '.cm-tooltip.cm-tooltip-autocomplete > ul > li': { display: 'flex', alignItems: 'baseline', gap: '16px', padding: '2px 10px', lineHeight: '24px', borderRadius: '4px', color: 'var(--tx)' },
+    '.cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected]': { backgroundColor: 'var(--raised)', color: 'var(--tx)' },
+    '.cm-completionLabel': { flex: '1 1 auto' },
+    '.cm-completionMatchedText': { textDecoration: 'none', color: 'var(--fn)' },
+    '.cm-completionDetail': { marginLeft: 'auto', fontStyle: 'normal', fontWeight: '400', color: 'var(--tx3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '22em' },
+    '.cm-tooltip.cm-completionInfo': { padding: '8px 12px', maxWidth: '22em', color: 'var(--tx2)', lineHeight: '1.45' },
+    '.cm-feel-hover, .cm-feel-signature': { padding: '7px 11px', fontFamily: 'var(--mono)', fontWeight: '500', fontSize: 'var(--fs-code-small)', lineHeight: '1.6', maxWidth: '36em' },
+    '.cm-feel-hover-documentation, .cm-feel-signature-summary': { fontFamily: 'var(--sans)', fontWeight: '400', fontSize: 'var(--fs)', color: 'var(--tx2)', opacity: '1', marginTop: '2px' },
+    '.cm-feel-hover-deprecated': { fontFamily: 'var(--sans)', fontWeight: '400', fontSize: 'var(--fs)', fontStyle: 'normal', color: 'var(--mk)', opacity: '1', marginTop: '2px' },
+    '.cm-feel-signature-active': { color: 'var(--fn)', textDecoration: 'underline', textUnderlineOffset: '3px' },
+    '.cm-feel-signature-given': { opacity: '1', color: 'var(--tx3)' },
+    // a mark's message already says that a name is deprecated
+    '.cm-tooltip-hover:has(.cm-tooltip-lint) .cm-feel-hover-deprecated': { display: 'none' },
+    '.cm-tooltip-section:not(:first-child)': { borderTop: '1px solid var(--raised)' },
+    // where the result's null is from, a part lit from the Why tree, a key the expression reads
+    '.cm-origin, .cm-origin *': { color: 'var(--mk) !important' },
+    '.cm-origin': { backgroundColor: 'var(--mk-bg)', borderRadius: '3px', boxShadow: 'inset 0 -1.5px 0 var(--mk-line)' },
+    '.cm-lit': { backgroundColor: 'var(--hl)', borderRadius: '3px', boxShadow: '0 0 0 1px var(--raised)' },
+    '.cm-read': { backgroundColor: 'var(--read)', borderRadius: '3px' },
+    '.cm-mark-tip': { padding: '7px 11px', maxWidth: '36em', color: 'var(--tx2)' },
+    '.cm-mark-tip-title': { color: 'var(--mk)', fontWeight: '500' },
   });
 
   /** The engine's parse of the document: its nodes with their depth, and its errors. */
@@ -132,7 +163,8 @@
       }
       return { from, to, message: d.message };
     });
-    return { nodes, truncated: (syntax?.nodes?.length ?? 0) > MAX_NODES, errors, cursor: state.selection.main.head, anchor: state.selection.main.anchor };
+    const { head, anchor } = state.selection.main;
+    return { nodes, truncated: (syntax?.nodes?.length ?? 0) > MAX_NODES, errors, cursor: head, anchor, focused: !!view?.hasFocus };
   }
 
   /** Selects a source range in the editor and scrolls it into view. */
@@ -153,8 +185,9 @@
     // the engine reads the text: without it (still loading) the text is plain
     if (!engine) return [];
     return [
-      feelEditor({ engine, dialect, context: scope, tree: true, onSyntax: () => view && onsyntax?.(analyse(view.state)) }),
-      lintGutter(),
+      feelEditor({ engine, dialect, ...scope, tree: true, check: true, onSyntax: () => view && onsyntax?.(analyse(view.state)) }),
+      // beside the engine's completion: no icons, the type and the documentation say what an item is
+      autocompletion({ icons: false }),
     ];
   }
 
@@ -166,7 +199,6 @@
         extensions: [
           lineNumbers(),
           highlightActiveLineGutter(),
-          highlightActiveLine(),
           history(),
           drawSelection(),
           indentOnInput(),
@@ -188,9 +220,10 @@
             indentWithTab,
           ]),
           lang.of(languageExt()),
+          marksField,
           EditorView.updateListener.of((u) => {
             if (u.docChanged) onchange(u.state.doc.toString());
-            if (onsyntax && language === 'feel' && (u.docChanged || u.selectionSet)) onsyntax(analyse(u.state));
+            if (onsyntax && language === 'feel' && (u.docChanged || u.selectionSet || u.focusChanged)) onsyntax(analyse(u.state));
           }),
         ],
       }),
@@ -216,19 +249,33 @@
     }
   });
 
-  // Dialect / context changed → the editor asks the engine again.
   $effect(() => {
-    const next = { dialect, context: scope };
+    const next = marks;
+    view?.dispatch({ effects: marksEffect(next) });
+  });
+
+  // Dialect / names in scope changed → the editor asks the engine again.
+  $effect(() => {
+    const next = { dialect, ...scope };
     if (view && language === 'feel' && withEngine) view.dispatch({ effects: setFeelScope(next) });
   });
 </script>
 
-<div class="editor" bind:this={host}></div>
+<div class="editor" class:small={language === 'json'} bind:this={host} {title}></div>
 
 <style>
   .editor {
     height: 100%;
     min-height: 0;
+    font-size: var(--fs-code);
+    line-height: var(--lh-code);
+  }
+  .editor.small {
+    font-size: var(--fs-code-small);
+    line-height: var(--lh-code-small);
+  }
+  .editor :global(.cm-scroller) {
+    line-height: inherit;
   }
   .editor :global(.cm-editor) {
     height: 100%;
