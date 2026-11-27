@@ -12,6 +12,7 @@
   import { decodeState, encodeState, checkJson, contextObject, MAX_HASH_LENGTH, type ShareState } from './lib/share';
   import { TypesCheck } from './lib/outline.svelte';
   import { nullOrigin, rows } from './lib/why';
+  import { EXACT_ENOUGH_MICROS, meanTime, type Timing } from './lib/timing';
   import { WhyState } from './lib/whyState.svelte';
   import type { EditorMark } from './lib/marks';
   import { createEngine, rawJson, type Dialect, type EngineInfo, type EvaluateResponse, type ExplainResponse, type PlaygroundEngine, type ReadPath } from './engine';
@@ -44,6 +45,7 @@
   /** What the expression reads of the context (`paths`); null when the context or the expression is not valid. */
   let reads = $state<ReadPath[] | null>(null);
   let roundTripMs = $state<number | null>(null);
+  let timing = $state<Timing | null>(null);
   let pending = $state(0);
   let syntax = $state<SyntaxInfo | null>(null);
   let expressionPane = $state<ExpressionPane>();
@@ -168,6 +170,8 @@
         response = res;
         answered = text;
         roundTripMs = performance.now() - t0;
+        if (res.ok) void time(res.elapsedMicros, text, abort.signal);
+        else timing = null;
       }
     } catch (err) {
       if (!abort.signal.aborted) response = { ok: false, error: { kind: 'internal', code: 'internal', message: String(err) } };
@@ -175,6 +179,25 @@
       pending--;
       checkUnavailable();
     }
+  }
+
+  /**
+   * The time of the evaluation for the status strip. A reading of a fast one is the step of the
+   * browser's clock, so a fast evaluation is repeated (plain `evaluate`, one at a time, until the
+   * next request cancels it) and the mean is shown; until then the strip keeps what it showed.
+   */
+  async function time(reading: number, text: string, signal: AbortSignal) {
+    if (reading >= EXACT_ENOUGH_MICROS) {
+      timing = { micros: reading, runs: 1 };
+      return;
+    }
+    const request = { dialect, expression: text, context: rawJson(context), contextFormat: 'json' as const, ...(dialect === 'unaryTests' ? { input: rawJson(input) } : {}) };
+    const mean = await meanTime(async () => {
+      if (signal.aborted || !engine) return null;
+      const res = await engine.evaluate(request, { signal }).catch(() => null);
+      return res?.ok && !signal.aborted ? res.elapsedMicros : null;
+    });
+    if (!signal.aborted) timing = mean ?? { micros: reading, runs: 1 };
   }
 
   $effect(() => {
@@ -338,5 +361,5 @@
     </div>
   </main>
 
-  <StatusStrip {info} {engineError} elapsedMicros={response?.ok ? response.elapsedMicros : null} {roundTripMs} />
+  <StatusStrip {info} {engineError} {timing} {roundTripMs} />
 </div>

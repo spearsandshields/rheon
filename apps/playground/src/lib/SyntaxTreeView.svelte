@@ -1,6 +1,6 @@
 <script lang="ts">
   import { rawJson, type Dialect, type ParseResponse, type PlaygroundEngine } from '../engine';
-  import { fmtMicros } from './share';
+  import { fmtTime } from './timing';
   import type { SyntaxInfo } from './CodeEditor.svelte';
 
   interface Props {
@@ -130,7 +130,7 @@
   </div>
   <span class="spacer"></span>
   {#if view === 'tree' && busy}<span class="quiet">Parsing</span>{/if}
-  {#if view === 'tree' && !busy && tree?.ok}<span class="quiet">{fmtMicros(tree.elapsedMicros)}</span>{/if}
+  {#if view === 'tree' && !busy && tree?.ok}<span class="quiet">{fmtTime(tree.elapsedMicros)}</span>{/if}
   {#if canCopy}<button class="act" onclick={copy} title="Copy the tree as text" data-testid="copy-tree">{copied ? 'Copied' : 'Copy'}</button>{/if}
 </div>
 <div class="body">

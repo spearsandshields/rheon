@@ -1,16 +1,25 @@
 <script lang="ts">
   import type { EngineInfo } from '../engine';
-  import { fmtMicros } from './share';
+  import { fmtTime, type Timing } from './timing';
 
   interface Props {
     info: EngineInfo | null;
     engineError: string | null;
     /** The engine's time of the last evaluation, and the time with the round trip to its worker. */
-    elapsedMicros: number | null;
+    timing: Timing | null;
     roundTripMs: number | null;
   }
 
-  let { info, engineError, elapsedMicros, roundTripMs }: Props = $props();
+  let { info, engineError, timing, roundTripMs }: Props = $props();
+
+  const about = $derived(
+    [
+      timing && timing.runs > 1 ? `The mean of ${timing.runs.toLocaleString('en')} evaluations: the browser's clock is too coarse to time one.` : null,
+      roundTripMs === null ? null : `${roundTripMs.toFixed(0)} ms with the round trip to the engine's worker.`,
+    ]
+      .filter(Boolean)
+      .join(' ') || undefined,
+  );
 
   /** The exact build: the repository commit, the upstream base and the number backend. */
   function buildTitle(i: EngineInfo): string {
@@ -32,8 +41,8 @@
     {/if}
   </span>
   <span class="spacer"></span>
-  {#if elapsedMicros !== null}
-    <span class="time" title={roundTripMs === null ? undefined : `${roundTripMs.toFixed(0)} ms with the round trip to the engine's worker`} data-testid="elapsed">Evaluated in {fmtMicros(elapsedMicros)}</span>
+  {#if timing}
+    <span class="time" title={about} data-testid="elapsed">Evaluated in {fmtTime(timing.micros)}</span>
   {/if}
   <span class="credits">
     <span>rheon is a fork of <a href="https://github.com/DecisionToolkit/dsntk" target="_blank" rel="noopener">dsntk</a></span>
