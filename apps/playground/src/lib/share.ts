@@ -131,7 +131,10 @@ export function contextObject(text: string): Record<string, unknown> {
 
 /** Formats an engine time in microseconds. */
 export function fmtMicros(us: number): string {
-  if (us < 1000) return `${us} µs`;
-  if (us < 1_000_000) return `${(us / 1000).toFixed(us < 10_000 ? 2 : 1)} ms`;
+  // The engine reads the browser's clock, which moves in steps of 0.1 ms to 1 ms: below 1 ms a
+  // figure would be the step, not the time.
+  if (us < 1000) return 'under 1 ms';
+  if (us < 10_000) return `${(us / 1000).toFixed(1)} ms`;
+  if (us < 1_000_000) return `${Math.round(us / 1000)} ms`;
   return `${(us / 1_000_000).toFixed(2)} s`;
 }
