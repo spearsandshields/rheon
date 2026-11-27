@@ -1,5 +1,5 @@
 /**
- * Engine adapter for the playground: the real dsntk FEEL engine (`dist/feel.wasm`,
+ * Engine adapter for the playground: the rheon FEEL engine (`dist/feel.wasm`,
  * Rust → wasm32-wasip1, pure-Rust decimal128 numbers) running in a Web Worker via
  * `@rheon/feel-runtime` (docs/CONTRACT.md §4).
  *

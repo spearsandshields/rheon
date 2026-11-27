@@ -24,12 +24,11 @@
 
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection, placeholder as cmPlaceholder } from '@codemirror/view';
+  import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, drawSelection, placeholder as cmPlaceholder } from '@codemirror/view';
   import { EditorState, Compartment, type Extension } from '@codemirror/state';
   import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
   import { bracketMatching, indentOnInput, syntaxHighlighting, HighlightStyle } from '@codemirror/language';
-  import { lintGutter } from '@codemirror/lint';
-  import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from '@codemirror/autocomplete';
+    import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from '@codemirror/autocomplete';
   import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
   import { json } from '@codemirror/lang-json';
   import { tags as t } from '@lezer/highlight';
@@ -52,59 +51,64 @@
     onsyntax?: (info: SyntaxInfo) => void;
     /** id of an element describing the editor (keyboard help). */
     describedby?: string;
+    /** The editor's keyboard shortcuts, shown when the pointer rests on it. */
+    title?: string;
   }
 
-  let { value, language, dialect = 'expression', engine = null, scope = {}, label, placeholder = '', onchange, onsubmit, onsyntax, describedby }: Props = $props();
+  let { value, language, dialect = 'expression', engine = null, scope = {}, label, placeholder = '', onchange, onsubmit, onsyntax, describedby, title }: Props = $props();
 
   let host: HTMLDivElement;
   let view: EditorView | undefined;
   const lang = new Compartment();
 
-  // Colors come from CSS custom properties, so the editor follows the page theme. The JSON
-  // editor is coloured by its grammar; the FEEL editor by the engine (the --feel-* properties).
+  // Colours come from the page's tokens, so the editor follows the theme. The JSON editor is
+  // coloured by its grammar; the FEEL editor by the engine (the --feel-* properties).
   const highlight = HighlightStyle.define([
-    { tag: [t.number, t.integer, t.float], color: 'var(--syn-number)' },
-    { tag: [t.string, t.special(t.string)], color: 'var(--syn-string)' },
-    { tag: [t.bool, t.null, t.atom], color: 'var(--syn-atom)' },
-    { tag: [t.propertyName, t.attributeName], color: 'var(--syn-prop)' },
-    { tag: [t.bracket, t.paren, t.squareBracket, t.brace, t.punctuation, t.separator], color: 'var(--syn-punct)' },
-    { tag: t.invalid, color: 'var(--danger)' },
+    { tag: [t.number, t.integer, t.float], color: 'var(--num)' },
+    { tag: [t.string, t.special(t.string)], color: 'var(--str)' },
+    { tag: [t.bool, t.null, t.atom], color: 'var(--kw)' },
+    { tag: [t.propertyName, t.attributeName], color: 'var(--key)' },
+    { tag: [t.bracket, t.paren, t.squareBracket, t.brace, t.punctuation, t.separator], color: 'var(--op)' },
+    { tag: t.invalid, color: 'var(--err)' },
   ]);
 
   const theme = EditorView.theme({
     '&': {
       backgroundColor: 'transparent',
-      color: 'var(--text)',
-      fontSize: '14px',
+      color: 'var(--tx)',
       height: '100%',
-      '--feel-keyword': 'var(--syn-keyword)',
-      '--feel-number': 'var(--syn-number)',
-      '--feel-string': 'var(--syn-string)',
-      '--feel-constant': 'var(--syn-atom)',
-      '--feel-function': 'var(--syn-fn)',
-      '--feel-property': 'var(--syn-prop)',
-      '--feel-name': 'var(--syn-var)',
-      '--feel-comment': 'var(--syn-comment)',
-      '--feel-operator': 'var(--syn-op)',
-      '--feel-punctuation': 'var(--syn-punct)',
-      '--feel-error': 'var(--danger)',
+      '--feel-keyword': 'var(--kw)',
+      '--feel-number': 'var(--num)',
+      '--feel-string': 'var(--str)',
+      '--feel-constant': 'var(--kw)',
+      '--feel-function': 'var(--fn)',
+      '--feel-property': 'var(--key)',
+      '--feel-name': 'var(--tx)',
+      '--feel-comment': 'var(--tx3)',
+      '--feel-operator': 'var(--op)',
+      '--feel-punctuation': 'var(--op)',
+      '--feel-error': 'var(--err)',
     },
     '&.cm-focused': { outline: 'none' },
-    '.cm-scroller': { fontFamily: 'var(--font-mono)', lineHeight: '1.6' },
-    '.cm-content': { caretColor: 'var(--accent)', padding: '10px 0' },
-    '.cm-cursor': { borderLeftColor: 'var(--accent)', borderLeftWidth: '2px' },
-    '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--muted-2)', border: 'none', paddingLeft: '4px' },
-    '.cm-activeLine': { backgroundColor: 'var(--active-line)' },
-    '.cm-activeLineGutter': { backgroundColor: 'transparent', color: 'var(--muted)' },
-    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': { backgroundColor: 'var(--selection) !important' },
-    '.cm-matchingBracket': { backgroundColor: 'var(--match)', outline: 'none' },
-    '.cm-placeholder': { color: 'var(--muted-2)' },
-    '.cm-tooltip': { backgroundColor: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' },
-    '.cm-tooltip-autocomplete > ul > li[aria-selected]': { backgroundColor: 'var(--accent)', color: 'var(--on-accent)' },
-    '.cm-selectionMatch': { backgroundColor: 'var(--match)' },
-    '.cm-lintRange-error': { backgroundImage: 'none', textDecoration: 'underline wavy var(--danger)', textUnderlineOffset: '3px' },
-    '.cm-diagnostic-error': { borderLeftColor: 'var(--danger)' },
-    '.cm-gutter-lint': { width: '1.1em' },
+    '.cm-scroller': { fontFamily: 'var(--mono)', fontWeight: '500' },
+    '.cm-content': { caretColor: 'var(--tx)', padding: '12px 0 24px' },
+    '.cm-cursor': { borderLeftColor: 'var(--tx)', borderLeftWidth: '2px' },
+    '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--tx3)', border: 'none', fontWeight: '400', fontSize: 'var(--fs-small)' },
+    '.cm-lineNumbers .cm-gutterElement': { minWidth: '40px', padding: '0 16px 0 6px' },
+    '.cm-activeLineGutter': { backgroundColor: 'transparent', color: 'var(--tx2)' },
+    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': { backgroundColor: 'var(--sel) !important' },
+    '.cm-matchingBracket, &.cm-focused .cm-matchingBracket': { backgroundColor: 'var(--hl)', outline: 'none' },
+    '.cm-selectionMatch': { backgroundColor: 'var(--hl)' },
+    '.cm-placeholder': { color: 'var(--tx3)' },
+    '.cm-feel-keyword': { fontStyle: 'italic', fontWeight: '500' },
+    '.cm-lintRange-error': { backgroundImage: 'none', textDecoration: 'underline wavy var(--err) 1.2px', textUnderlineOffset: '4px' },
+    '.cm-lintRange-warning, .cm-lintRange-hint, .cm-lintRange-info': { backgroundImage: 'none', textDecoration: 'underline wavy var(--mk-line) 1.2px', textUnderlineOffset: '4px' },
+    // tooltips: what shows over a name, the hint of a call, the messages of a mark, the completion
+    '.cm-tooltip': { backgroundColor: 'var(--chrome)', color: 'var(--tx)', border: '1px solid var(--raised)', borderRadius: '6px', boxShadow: 'var(--shadow)', fontFamily: 'var(--sans)', fontWeight: '400', fontSize: 'var(--fs)', overflow: 'hidden' },
+    '.cm-tooltip .cm-tooltip-arrow:before, .cm-tooltip .cm-tooltip-arrow:after': { borderTopColor: 'transparent', borderBottomColor: 'transparent' },
+    '.cm-diagnostic': { padding: '6px 10px', borderLeft: '2px solid var(--err)', marginLeft: '0' },
+    '.cm-diagnostic-warning, .cm-diagnostic-hint, .cm-diagnostic-info': { borderLeftColor: 'var(--mk-line)' },
+    '.cm-diagnosticSource': { display: 'none' },
   });
 
   /** The engine's parse of the document: its nodes with their depth, and its errors. */
@@ -152,10 +156,7 @@
     if (language === 'json') return [json(), autocompletion()];
     // the engine reads the text: without it (still loading) the text is plain
     if (!engine) return [];
-    return [
-      feelEditor({ engine, dialect, context: scope, tree: true, onSyntax: () => view && onsyntax?.(analyse(view.state)) }),
-      lintGutter(),
-    ];
+    return feelEditor({ engine, dialect, context: scope, tree: true, onSyntax: () => view && onsyntax?.(analyse(view.state)) });
   }
 
   onMount(() => {
@@ -166,7 +167,6 @@
         extensions: [
           lineNumbers(),
           highlightActiveLineGutter(),
-          highlightActiveLine(),
           history(),
           drawSelection(),
           indentOnInput(),
@@ -223,12 +223,21 @@
   });
 </script>
 
-<div class="editor" bind:this={host}></div>
+<div class="editor" class:small={language === 'json'} bind:this={host} {title}></div>
 
 <style>
   .editor {
     height: 100%;
     min-height: 0;
+    font-size: var(--fs-code);
+    line-height: var(--lh-code);
+  }
+  .editor.small {
+    font-size: var(--fs-code-small);
+    line-height: var(--lh-code-small);
+  }
+  .editor :global(.cm-scroller) {
+    line-height: inherit;
   }
   .editor :global(.cm-editor) {
     height: 100%;

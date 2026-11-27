@@ -1,0 +1,108 @@
+/*
+ * The colours and type of the playground. Components use these tokens only.
+ *
+ * Dark is the first theme: petrol slate surfaces, one warm marker for the null trail and the
+ * checks. Light keeps hue 205 and turns the lightness ladder around. Every text colour has at
+ * least 4.5:1 against the surfaces and highlights it stands on, in both themes.
+ */
+:root {
+  --sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'Victor Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --fs: 13px;
+  --fs-small: 12px;
+  --fs-code: 15px;
+  --lh-code: 26px;
+  --fs-code-small: 13px;
+  --lh-code-small: 22px;
+  --fs-value: 28px;
+  --radius: 5px;
+
+  color-scheme: light;
+  /* surfaces, from where text is typed to the chrome around it */
+  --well: #f9fafb;
+  --pane: #f3f5f7;
+  --chrome: #eaeef0;
+  --raised: #dee4e8;
+  --seam: #d3dade;
+  --shadow: 0 8px 24px rgba(40, 53, 62, 0.14);
+  /* text: primary, secondary, quiet */
+  --tx: #28353e;
+  --tx2: #55626b;
+  --tx3: #59656d;
+  /* the marker: the null trail, its origin, the checks' warnings */
+  --mk: #94520c;
+  --mk-line: #c27a2e;
+  --mk-bg: rgba(236, 166, 92, 0.2);
+  --mk-row: rgba(236, 166, 92, 0.09);
+  --err: #b8302a;
+  /* syntax */
+  --kw: #7352b8;
+  --fn: #2269a7;
+  --num: #1c7266;
+  --str: #4e7020;
+  --key: #44687f;
+  --op: #59666e;
+  /* marks that are not colour: light, selection, the context keys an expression reads */
+  --hl: rgba(40, 53, 62, 0.07);
+  --sel: rgba(37, 110, 175, 0.16);
+  --read: rgba(37, 110, 175, 0.12);
+  --focus: #256eaf;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --well: #1a2126;
+    --pane: #1f272d;
+    --chrome: #262f36;
+    --raised: #2e3941;
+    --seam: #12171b;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --tx: #cdd5d8;
+    --tx2: #9aa5aa;
+    --tx3: #939fa5;
+    --mk: #eca65c;
+    --mk-line: #eca65c;
+    --mk-bg: rgba(236, 166, 92, 0.16);
+    --mk-row: rgba(236, 166, 92, 0.08);
+    --err: #ed857e;
+    --kw: #b6a4dd;
+    --fn: #8bbbe6;
+    --num: #7ecfc3;
+    --str: #b3ce8e;
+    --key: #a3b9c8;
+    --op: #8e9ca3;
+    --hl: rgba(205, 213, 216, 0.07);
+    --sel: rgba(139, 187, 230, 0.24);
+    --read: rgba(139, 187, 230, 0.14);
+    --focus: #8bbbe6;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --well: #1a2126;
+  --pane: #1f272d;
+  --chrome: #262f36;
+  --raised: #2e3941;
+  --seam: #12171b;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --tx: #cdd5d8;
+  --tx2: #9aa5aa;
+  --tx3: #939fa5;
+  --mk: #eca65c;
+  --mk-line: #eca65c;
+  --mk-bg: rgba(236, 166, 92, 0.16);
+  --mk-row: rgba(236, 166, 92, 0.08);
+  --err: #ed857e;
+  --kw: #b6a4dd;
+  --fn: #8bbbe6;
+  --num: #7ecfc3;
+  --str: #b3ce8e;
+  --key: #a3b9c8;
+  --op: #8e9ca3;
+  --hl: rgba(205, 213, 216, 0.07);
+  --sel: rgba(139, 187, 230, 0.24);
+  --read: rgba(139, 187, 230, 0.14);
+  --focus: #8bbbe6;
+}

@@ -155,7 +155,7 @@ export const EXAMPLES: Example[] = [
   {
     id: 'null',
     title: 'Null with a reason',
-    blurb: 'FEEL yields null instead of failing; dsntk says why',
+    blurb: 'FEEL yields null instead of failing, and says why',
     dialect: 'expression',
     expression: `"total: " + 42`,
     context: '{}',
