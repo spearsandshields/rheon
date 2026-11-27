@@ -19,6 +19,9 @@ export type {
   FeelResult,
   ErrorKind,
   Outline,
+  ExplainResponse,
+  ExpandEntry,
+  TraceRecord,
 } from '@rheon/feel-runtime';
 export { rawJson };
 
@@ -36,6 +39,8 @@ export interface EngineInfo {
 /** What the playground needs from an engine (a subset of `FeelEngine`). */
 export interface PlaygroundEngine {
   evaluate: FeelEngine['evaluate'];
+  /** Evaluates an expression and records how its value came about. */
+  explain: FeelEngine['explain'];
   parse(dialect: Dialect, expression: string, opts?: ParseOptions & RequestOptions): Promise<ParseResponse>;
   /** The editor operations: the tokens and errors of a text, what can stand at a cursor, what a name is. */
   syntax: FeelEngine['syntax'];
@@ -61,6 +66,7 @@ export async function createEngine(): Promise<PlaygroundEngine> {
       return engine.unavailableReason;
     },
     evaluate: (req, opts) => engine.evaluate(req, opts),
+    explain: (req, opts) => engine.explain(req, opts),
     parse: (dialect, expression, opts) => engine.parse(dialect, expression, opts),
     syntax: (expression, opts) => engine.syntax(expression, opts),
     complete: (expression, cursor, opts) => engine.complete(expression, cursor, opts),

@@ -1,20 +1,46 @@
-<script lang="ts" module>
-  export type Theme = 'auto' | 'light' | 'dark';
-</script>
-
 <script lang="ts">
+  import { onMount } from 'svelte';
   import ExamplesMenu from './ExamplesMenu.svelte';
   import type { Example } from './examples';
+
+  type Theme = 'auto' | 'light' | 'dark';
 
   interface Props {
     onpick: (ex: Example) => void;
     oncopylink: () => void;
     linkCopied: 'idle' | 'copied' | 'manual' | 'too-long';
-    theme: Theme;
-    oncycletheme: () => void;
   }
 
-  let { onpick, oncopylink, linkCopied, theme, oncycletheme }: Props = $props();
+  let { onpick, oncopylink, linkCopied }: Props = $props();
+
+  // The reader's theme, kept in this browser; "auto" follows the system.
+  const THEME_KEY = 'dsntk-playground-theme';
+  let theme = $state<Theme>('auto');
+
+  onMount(() => {
+    try {
+      const t = localStorage.getItem(THEME_KEY);
+      if (t === 'light' || t === 'dark') theme = t;
+    } catch {
+      /* storage unavailable */
+    }
+  });
+
+  $effect(() => {
+    const root = document.documentElement;
+    if (theme === 'auto') delete root.dataset.theme;
+    else root.dataset.theme = theme;
+  });
+
+  function cycleTheme() {
+    theme = NEXT[theme];
+    try {
+      if (theme === 'auto') localStorage.removeItem(THEME_KEY);
+      else localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      /* storage unavailable */
+    }
+  }
 
   const NEXT: Record<Theme, Theme> = { auto: 'light', light: 'dark', dark: 'auto' };
   const NAMES: Record<Theme, string> = { auto: 'the system theme', light: 'the light theme', dark: 'the dark theme' };
@@ -27,7 +53,7 @@
   <nav class="actions" aria-label="Page">
     <ExamplesMenu {onpick} />
     <button class="act" onclick={oncopylink} data-testid="copy-link" aria-live="polite">{LINK_TEXT[linkCopied]}</button>
-    <button class="act icon" onclick={oncycletheme} title="Showing {NAMES[theme]}; switch to {NAMES[NEXT[theme]]}" aria-label="Showing {NAMES[theme]}. Switch to {NAMES[NEXT[theme]]}." data-testid="theme">
+    <button class="act icon" onclick={cycleTheme} title="Showing {NAMES[theme]}; switch to {NAMES[NEXT[theme]]}" aria-label="Showing {NAMES[theme]}. Switch to {NAMES[NEXT[theme]]}." data-testid="theme">
       {#if theme === 'dark'}
         <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M13 9.5A5.5 5.5 0 016.5 3a5.5 5.5 0 106.5 6.5z" fill="currentColor" /></svg>
       {:else if theme === 'light'}

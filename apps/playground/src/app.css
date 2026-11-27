@@ -120,6 +120,102 @@ p {
   background: var(--well);
 }
 
+/* the workbench: the text on the left, the answers on the right, on 1px seams */
+.app {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.banner {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 6px 16px;
+  background: var(--chrome);
+  color: var(--tx);
+}
+.banner.bad span {
+  color: var(--err);
+}
+.panes {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1px;
+}
+.col {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.slot {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+.slot > .pane {
+  flex: 1;
+}
+.o-expr {
+  flex: 46 1 0;
+}
+.o-input {
+  flex: none;
+}
+.o-context {
+  flex: 54 1 0;
+}
+.o-result {
+  flex: 0 1 auto;
+  max-height: 55%;
+}
+.o-inspector {
+  flex: 1 1 0;
+}
+
+/* phones and narrow windows: one column, the result right below what it is computed from */
+@media (max-width: 900px) {
+  .app {
+    height: auto;
+    min-height: 100vh;
+  }
+  .panes {
+    display: flex;
+    flex-direction: column;
+  }
+  .col {
+    display: contents;
+  }
+  .o-expr {
+    order: 1;
+    flex: none;
+    height: 220px;
+  }
+  .o-input {
+    order: 2;
+  }
+  .o-result {
+    order: 3;
+    max-height: none;
+  }
+  .o-context {
+    order: 4;
+    flex: none;
+    height: 200px;
+  }
+  .o-inspector {
+    order: 5;
+    flex: none;
+    min-height: 360px;
+  }
+}
+
 /* what an empty or blocked pane says */
 .empty {
   padding: 18px 16px;

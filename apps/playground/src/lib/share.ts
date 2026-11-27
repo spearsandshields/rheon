@@ -9,6 +9,8 @@ export interface ShareState {
   /** The Types text: an outline of the names for the editor, as JSON. */
   outline: string;
   showTyped: boolean;
+  /** The inspector's tab. */
+  inspector: 'why' | 'tree';
 }
 
 /** Plain hashes longer than this are deflate-compressed (`#z=...`). */
@@ -16,8 +18,9 @@ const COMPRESS_ABOVE = 1500;
 /** Hashes longer than this (after compression) are not kept in the URL: too long to share. */
 export const MAX_HASH_LENGTH = 32 * 1024;
 
-// Readable, stable keys: #d=expression&e=...&c=...&i=...&o=...&typed=0. Links of earlier pages may
-// also have `tree`, which said whether the syntax tree was open; the inspector is always shown now.
+// Readable, stable keys: #d=expression&e=...&c=...&i=...&o=...&typed=0&tab=tree. Links of earlier
+// pages may also have `tree`, which said whether the syntax tree was open: it is not read, the
+// inspector opens on Why.
 function plainHash(s: ShareState): string {
   const p = new URLSearchParams();
   p.set('d', s.dialect);
@@ -26,6 +29,7 @@ function plainHash(s: ShareState): string {
   if (s.dialect === 'unaryTests') p.set('i', s.input);
   if (s.outline.trim()) p.set('o', s.outline);
   p.set('typed', s.showTyped ? '1' : '0');
+  if (s.inspector === 'tree') p.set('tab', 'tree');
   return '#' + p.toString();
 }
 
@@ -74,6 +78,7 @@ function fromParams(p: URLSearchParams, fallback: ShareState): ShareState {
     input: p.get('i') ?? fallback.input,
     outline: p.get('o') ?? '',
     showTyped: p.get('typed') === '1',
+    inspector: p.get('tab') === 'tree' ? 'tree' : 'why',
   };
 }
 

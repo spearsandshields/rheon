@@ -17,6 +17,8 @@
     /** selection head (the cursor) and anchor */
     cursor: number;
     anchor: number;
+    /** Whether the editor has the focus: the cursor is the reader's. */
+    focused: boolean;
   }
 
   const MAX_NODES = 3000;
@@ -34,6 +36,7 @@
   import { tags as t } from '@lezer/highlight';
   import { feelEditor, formatDocument, setFeelScope, syntaxOf, type FeelSource } from '@rheon/feel-codemirror';
   import type { Dialect, Outline } from '../engine';
+  import { marksField, marksEffect, type EditorMark } from './marks';
 
   interface Props {
     value: string;
@@ -53,9 +56,11 @@
     describedby?: string;
     /** The editor's keyboard shortcuts, shown when the pointer rests on it. */
     title?: string;
+    /** Spans the page marks in the text. */
+    marks?: EditorMark[];
   }
 
-  let { value, language, dialect = 'expression', engine = null, scope = { context: {} }, label, placeholder = '', onchange, onsubmit, onsyntax, describedby, title }: Props = $props();
+  let { value, language, dialect = 'expression', engine = null, scope = { context: {} }, label, placeholder = '', onchange, onsubmit, onsyntax, describedby, title, marks = [] }: Props = $props();
 
   let host: HTMLDivElement;
   let view: EditorView | undefined;
@@ -124,6 +129,13 @@
     // a mark's message already says that a name is deprecated
     '.cm-tooltip-hover:has(.cm-tooltip-lint) .cm-feel-hover-deprecated': { display: 'none' },
     '.cm-tooltip-section:not(:first-child)': { borderTop: '1px solid var(--raised)' },
+    // where the result's null is from, a part lit from the Why tree, a key the expression reads
+    '.cm-origin, .cm-origin *': { color: 'var(--mk) !important' },
+    '.cm-origin': { backgroundColor: 'var(--mk-bg)', borderRadius: '3px', boxShadow: 'inset 0 -1.5px 0 var(--mk-line)' },
+    '.cm-lit': { backgroundColor: 'var(--hl)', borderRadius: '3px', boxShadow: '0 0 0 1px var(--raised)' },
+    '.cm-read': { backgroundColor: 'var(--read)', borderRadius: '3px' },
+    '.cm-mark-tip': { padding: '7px 11px', maxWidth: '36em', color: 'var(--tx2)' },
+    '.cm-mark-tip-title': { color: 'var(--mk)', fontWeight: '500' },
   });
 
   /** The engine's parse of the document: its nodes with their depth, and its errors. */
@@ -151,7 +163,8 @@
       }
       return { from, to, message: d.message };
     });
-    return { nodes, truncated: (syntax?.nodes?.length ?? 0) > MAX_NODES, errors, cursor: state.selection.main.head, anchor: state.selection.main.anchor };
+    const { head, anchor } = state.selection.main;
+    return { nodes, truncated: (syntax?.nodes?.length ?? 0) > MAX_NODES, errors, cursor: head, anchor, focused: !!view?.hasFocus };
   }
 
   /** Selects a source range in the editor and scrolls it into view. */
@@ -207,9 +220,10 @@
             indentWithTab,
           ]),
           lang.of(languageExt()),
+          marksField,
           EditorView.updateListener.of((u) => {
             if (u.docChanged) onchange(u.state.doc.toString());
-            if (onsyntax && language === 'feel' && (u.docChanged || u.selectionSet)) onsyntax(analyse(u.state));
+            if (onsyntax && language === 'feel' && (u.docChanged || u.selectionSet || u.focusChanged)) onsyntax(analyse(u.state));
           }),
         ],
       }),
@@ -233,6 +247,11 @@
       withEngine = engine;
       view.dispatch({ effects: lang.reconfigure(languageExt()) });
     }
+  });
+
+  $effect(() => {
+    const next = marks;
+    view?.dispatch({ effects: marksEffect(next) });
   });
 
   // Dialect / names in scope changed → the editor asks the engine again.

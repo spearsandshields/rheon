@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { EvaluateResponse } from '../engine';
+  import ResultFailure, { failureTitle } from './ResultFailure.svelte';
+  import { isTemporal, type NullOrigin } from './why';
 
   interface Props {
     response: EvaluateResponse | null;
@@ -13,29 +15,11 @@
     source: string;
     /** Selects a range of the expression in its editor: each reason of a syntax error is a link to its place. */
     onselect: (from: number, to: number) => void;
+    /** Where the result's null is from, when the explanation followed it to another part. */
+    origin: NullOrigin | null;
   }
 
-  let { response, busy, blocked, timeoutMs, showTyped, ontoggletyped, source, onselect }: Props = $props();
-
-  /**
-   * Where a reason of a syntax error points, as a range to select and the text there: a reason
-   * about a missing part has an empty place, and points at the token before it.
-   */
-  function placeOf(detail: { from: number; to: number }): { from: number; to: number; label: string } {
-    let { from, to } = detail;
-    if (from === to) {
-      const before = source.slice(0, from).match(/(\S+)\s*$/);
-      if (before) {
-        to = from - (before[0].length - before[1].length);
-        from = to - before[1].length;
-      }
-    }
-    // the place as a person reads it: line and column of where the error is, both from 1
-    const before = source.slice(0, detail.from);
-    const line = before.split('\n').length;
-    const column = detail.from - (before.lastIndexOf('\n') + 1) + 1;
-    return { from, to, label: `Line ${line}, column ${column}` };
-  }
+  let { response, busy, blocked, timeoutMs, showTyped, ontoggletyped, source, onselect, origin }: Props = $props();
 
   let copied = $state(false);
   let showAll = $state(false);
@@ -44,8 +28,8 @@
   /** Results longer than this are cut in the page (copy still copies everything). */
   const DISPLAY_LIMIT = 20_000;
   const TYPED_LIMIT = 50_000;
-  /** A value this short and on one line is shown large. */
-  const LARGE_UP_TO = 32;
+  /** A value this short and on one line is shown large, as large as its pane has room for. */
+  const LARGE_UP_TO = 48;
 
   // a new result starts collapsed again
   $effect(() => {
@@ -53,20 +37,6 @@
     showAll = false;
     showAllTyped = false;
   });
-
-  /** A crash whose message the runtime marked as a failed allocation at the 512 MiB memory cap. */
-  const isOutOfMemory = (error: { kind: string; message: string }) => error.kind === 'crash' && error.message.startsWith('out of memory');
-
-  const ERROR_TITLES: Record<string, string> = {
-    syntax: 'Syntax error',
-    context: 'The context is not valid',
-    evaluation: 'Evaluation stopped',
-    request: 'Bad request',
-    internal: 'Internal engine error',
-    crash: 'The engine crashed and was restarted',
-  };
-
-  const isTemporal = (type: string) => /date|time|duration/.test(type) && !type.startsWith('list') && !type.startsWith('context');
 
   /** Text shown for the result: temporal scalars unquoted (their FEEL text), so they don't look like strings. */
   function shownText(r: { display: string; feel: string; type: string }): string {
@@ -93,21 +63,12 @@
   // Short text for screen readers: announced once per finished evaluation, not the whole pane.
   const status = $derived.by(() => {
     if (busy || blocked || !response) return '';
-    if (!response.ok) {
-      if (response.error.kind === 'timeout') return 'Evaluation timed out';
-      if (isOutOfMemory(response.error)) return 'Out of memory';
-      return ERROR_TITLES[response.error.kind] ?? 'Error';
-    }
+    if (!response.ok) return failureTitle(response.error, timeoutMs);
     const r = response.result;
     const text = shownText(r);
     return `Result, ${r.type}: ${text.length > 100 ? text.slice(0, 100) + '…' : text}`;
   });
 </script>
-
-{#snippet message(text: string)}
-  <!-- the engine quotes code in backticks: `,` or `]` -->
-  {#each text.split(/`([^`]*)`/) as part, i (i)}{#if i % 2}<code class="mono">{part}</code>{:else}{part}{/if}{/each}
-{/snippet}
 
 <section class="pane result" aria-busy={busy} aria-labelledby="result-title" data-testid="result">
   <p class="sr-only" aria-live="polite" aria-atomic="true">{status}</p>
@@ -126,41 +87,12 @@
     {:else if !response}
       <p class="quiet">Type a FEEL expression to evaluate it.</p>
     {:else if !response.ok}
-      {#if response.error.kind === 'timeout'}
-        <div class="failure" data-testid="error-timeout">
-          <h3>Stopped after {timeoutMs / 1000} s</h3>
-          <p>The evaluation ran past its time budget, so the engine was restarted. Try a smaller list or range.</p>
-        </div>
-      {:else if isOutOfMemory(response.error)}
-        <div class="failure" data-testid="error-oom">
-          <h3>Out of memory</h3>
-          <p>The result, or a value on the way to it, did not fit in the engine's 512 MiB, so the engine was restarted. Try a smaller list or range.</p>
-          <pre class="mono">{response.error.message}</pre>
-        </div>
-      {:else}
-        <div class="failure error" data-testid="error-{response.error.kind}">
-          <h3>{ERROR_TITLES[response.error.kind] ?? response.error.kind}</h3>
-          {#if response.error.kind === 'syntax' && response.error.diagnostics?.length}
-            <ul class="reasons" data-testid="syntax-details">
-              {#each response.error.diagnostics.slice(0, 5) as detail (detail.from + detail.code)}
-                {@const place = placeOf(detail)}
-                <li>
-                  <button class="link" onclick={() => onselect(place.from, place.to)} title="Select this place in the editor" data-testid="syntax-detail">{place.label}</button>
-                  <span data-testid="syntax-detail-message">{@render message(detail.message)}</span>
-                </li>
-              {/each}
-              {#if response.error.diagnostics.length > 5}<li>and {response.error.diagnostics.length - 5} more</li>{/if}
-            </ul>
-          {:else}
-            <pre class="mono">{response.error.message}</pre>
-          {/if}
-        </div>
-      {/if}
+      <ResultFailure error={response.error} {timeoutMs} {source} {onselect} />
     {:else}
       {@const r = response.result}
       {@const text = shownText(r)}
       {@const large = text.length <= LARGE_UP_TO && !text.includes('\n')}
-      <div class="value" class:large>
+      <div class="value" class:large style="--chars: {text.length}">
         <pre class="mono" class:null={r.isNull} data-testid="result-display">{showAll || text.length <= DISPLAY_LIMIT ? text : text.slice(0, DISPLAY_LIMIT) + '\n…'}</pre>
         {#if large}<span class="type mono" title="FEEL type" data-testid="type-badge">{r.type}</span>{/if}
       </div>
@@ -175,6 +107,11 @@
         {@const hint = nameHint(r.nullReason)}
         <p class="reason" data-testid="null-reason">null because {r.nullReason}</p>
         {#if hint}<p class="quiet" data-testid="name-hint">{hint}</p>{/if}
+      {/if}
+      {#if r.isNull && origin}
+        <p class="reason" data-testid="null-origin">
+          from <button class="origin mono" onclick={() => onselect(origin.from, origin.to)} title="Select it in the editor">{origin.label}</button>{origin.where ? `, ${origin.where}` : ''}: {origin.reason}
+        </p>
       {/if}
       {#each response.warnings as w, i (i)}
         <p class="warning">{w.message}</p>
@@ -202,6 +139,7 @@
     overflow: auto;
   }
   .body {
+    container-type: inline-size;
     padding: 4px 22px 18px 14px;
     display: flex;
     flex-direction: column;
@@ -232,10 +170,9 @@
     font-variant-numeric: tabular-nums;
   }
   .value.large pre {
-    font-size: var(--fs-value);
+    /* a monospace character is about 0.6em wide; the type beside it takes the rest */
+    font-size: clamp(15px, calc((100cqw - 110px) / (var(--chars) * 0.6)), var(--fs-value));
     line-height: 1.35;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   .null {
     color: var(--mk);
@@ -253,6 +190,16 @@
     color: var(--tx2);
     overflow-wrap: anywhere;
   }
+  .origin {
+    padding: 0 2px;
+    border-radius: 3px;
+    color: var(--mk);
+    background: var(--mk-bg);
+    box-shadow: inset 0 -1.5px 0 var(--mk-line);
+  }
+  .origin:hover {
+    background: color-mix(in srgb, var(--mk-bg), var(--mk-line) 18%);
+  }
   .warning {
     display: flex;
     align-items: baseline;
@@ -268,50 +215,6 @@
     border-radius: 50%;
     background: var(--mk-line);
     transform: translateY(-1px);
-  }
-  .failure {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding-top: 6px;
-    min-width: 0;
-    max-width: 100%;
-  }
-  .failure h3 {
-    margin: 0;
-    font-size: var(--fs);
-    font-weight: 600;
-  }
-  .failure.error h3 {
-    color: var(--err);
-  }
-  .failure p {
-    color: var(--tx2);
-  }
-  .failure pre {
-    margin: 0;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    color: var(--tx2);
-  }
-  .reasons {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .reasons li {
-    overflow-wrap: anywhere;
-  }
-  code {
-    font-size: 0.95em;
-    color: var(--tx);
-  }
-  .reasons .link {
-    margin-right: 6px;
-    white-space: nowrap;
   }
   .disclosure {
     display: inline-flex;

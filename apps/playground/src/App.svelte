@@ -1,22 +1,26 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { SyntaxInfo } from './lib/CodeEditor.svelte';
-  import TopBar, { type Theme } from './lib/TopBar.svelte';
+  import TopBar from './lib/TopBar.svelte';
   import ExpressionPane from './lib/ExpressionPane.svelte';
   import InputPane from './lib/InputPane.svelte';
   import ContextPane from './lib/ContextPane.svelte';
   import ResultPane from './lib/ResultPane.svelte';
-  import InspectorPane from './lib/InspectorPane.svelte';
+  import InspectorPane, { type InspectorTab } from './lib/InspectorPane.svelte';
   import StatusStrip from './lib/StatusStrip.svelte';
   import { EXAMPLES, type Example } from './lib/examples';
   import { decodeState, encodeState, checkJson, contextObject, MAX_HASH_LENGTH, type ShareState } from './lib/share';
-  import { mergeOutline } from './lib/outline';
-  import { createEngine, rawJson, type Dialect, type EngineInfo, type EvaluateResponse, type Outline, type PlaygroundEngine } from './engine';
+  import { TypesCheck } from './lib/outline.svelte';
+  import { nullOrigin, rows } from './lib/why';
+  import { WhyState } from './lib/whyState.svelte';
+  import type { EditorMark } from './lib/marks';
+  import { createEngine, rawJson, type Dialect, type EngineInfo, type EvaluateResponse, type ExplainResponse, type PlaygroundEngine } from './engine';
 
   const DEBOUNCE_MS = 250;
-  const THEME_KEY = 'dsntk-playground-theme';
+  /** The most records an explanation holds: enough for a few loops opened at once. */
+  const MAX_RECORDS = 500;
   const first = EXAMPLES[0];
-  const DEFAULTS: ShareState = { dialect: first.dialect, expression: first.expression, context: first.context, input: '42', outline: first.outline ?? '', showTyped: false };
+  const DEFAULTS: ShareState = { dialect: first.dialect, expression: first.expression, context: first.context, input: '42', outline: first.outline ?? '', showTyped: false, inspector: 'why' };
 
   let dialect = $state<Dialect>(DEFAULTS.dialect);
   let expression = $state(DEFAULTS.expression);
@@ -24,6 +28,7 @@
   let input = $state(DEFAULTS.input);
   let outline = $state(DEFAULTS.outline);
   let showTyped = $state(DEFAULTS.showTyped);
+  let inspector = $state<InspectorTab>(DEFAULTS.inspector);
   /** false until the URL has been read (it may hold a compressed state) */
   let loaded = $state(false);
   let linkNotice = $state<string | null>(null);
@@ -32,14 +37,16 @@
   let info = $state<EngineInfo | null>(null);
   let engineError = $state<string | null>(null);
   let unavailable = $state<string | null>(null);
-  let response = $state<EvaluateResponse | null>(null);
+  let response = $state<EvaluateResponse | ExplainResponse | null>(null);
+  /** The text that `response` is the answer for. */
+  let answered = $state('');
+  const why = new WhyState();
   let roundTripMs = $state<number | null>(null);
   let pending = $state(0);
   let syntax = $state<SyntaxInfo | null>(null);
   let expressionPane = $state<ExpressionPane>();
   let linkCopied = $state<'idle' | 'copied' | 'manual' | 'too-long'>('idle');
   let hashTooLong = $state(false);
-  let theme = $state<Theme>('auto');
 
   const contextError = $derived(checkJson(context, true));
   const inputError = $derived(dialect === 'unaryTests' ? (input.trim() ? checkJson(input, false) : 'Expected a JSON value for ?, such as 42 or "gold".') : null);
@@ -58,38 +65,13 @@
                 : 'Type a FEEL expression to evaluate it.'
               : null,
   );
-  // The names the FEEL editor knows: those of the context, or with a Types text the outline that
-  // the engine last accepted for it, laid over the context's (lib/outline.ts). While the Types text
-  // is being edited the last accepted outline stays, so the marks do not flicker.
-  const outlineJsonError = $derived(outline.trim() ? checkJson(outline, true) : null);
-  let editorOutline = $state<Outline | null>(null);
-  let outlineCheck = $state<{ text: string; message: string } | null>(null);
-  const outlineError = $derived(outlineJsonError ?? (outlineCheck?.text === outline ? outlineCheck.message : null));
-  const scope = $derived(outline.trim() && editorOutline ? { outline: editorOutline } : { context: contextObject(context) });
-
-  let outlineTimer: ReturnType<typeof setTimeout> | undefined;
-  $effect(() => {
-    const [text, ctx, e, d, ctxValid] = [outline, context, engine, dialect, !contextError];
-    clearTimeout(outlineTimer);
-    if (!text.trim()) editorOutline = outlineCheck = null;
-    if (!e || !text.trim() || outlineJsonError) return;
-    outlineTimer = setTimeout(async () => {
-      const fromContext = ctxValid ? await e.outline({ context: rawJson(ctx), contextFormat: 'json', types: true }) : null;
-      const merged = mergeOutline(fromContext?.ok ? fromContext.outline : null, JSON.parse(text) as Outline);
-      const res = await e.syntax('', { dialect: d, outline: merged });
-      if (text !== outline || ctx !== context) return;
-      if (res.ok) [editorOutline, outlineCheck] = [merged, null];
-      else if (res.error.kind === 'context') [editorOutline, outlineCheck] = [null, { text, message: res.error.message }];
-    }, DEBOUNCE_MS);
-  });
+  // The names the FEEL editor knows: the context's, or with a Types text the outline that the
+  // engine accepted for it, laid over the context's names.
+  const types = new TypesCheck(() => ({ text: outline, context: contextError ? null : context, dialect, engine }));
+  const outlineError = $derived(types.errorOf(outline));
+  const scope = $derived(outline.trim() && types.outline ? { outline: types.outline } : { context: contextObject(context) });
 
   onMount(() => {
-    try {
-      const t = localStorage.getItem(THEME_KEY);
-      if (t === 'light' || t === 'dark') theme = t;
-    } catch {
-      /* storage unavailable */
-    }
     let disposed = false;
     void decodeState(location.hash, DEFAULTS).then(({ state, notice }) => {
       apply(state);
@@ -119,24 +101,8 @@
     };
   });
 
-  $effect(() => {
-    const root = document.documentElement;
-    if (theme === 'auto') delete root.dataset.theme;
-    else root.dataset.theme = theme;
-  });
-
-  function cycleTheme() {
-    theme = ({ auto: 'light', light: 'dark', dark: 'auto' } as const)[theme];
-    try {
-      if (theme === 'auto') localStorage.removeItem(THEME_KEY);
-      else localStorage.setItem(THEME_KEY, theme);
-    } catch {
-      /* storage unavailable */
-    }
-  }
-
   function snapshot(): ShareState {
-    return { dialect, expression, context, input, outline, showTyped };
+    return { dialect, expression, context, input, outline, showTyped, inspector };
   }
 
   function apply(s: ShareState) {
@@ -146,6 +112,7 @@
     input = s.input;
     outline = s.outline;
     showTyped = s.showTyped;
+    inspector = s.inspector;
   }
 
   async function pickExample(ex: Example) {
@@ -177,19 +144,22 @@
     const abort = (evalAbort = new AbortController());
     pending++;
     const t0 = performance.now();
+    const text = expression;
     try {
-      const res = await engine.evaluate(
-        {
-          dialect,
-          expression,
-          context: rawJson(context),
-          contextFormat: 'json',
-          ...(dialect === 'unaryTests' ? { input: rawJson(input) } : {}),
-        },
-        { signal: abort.signal },
-      );
+      // An expression is explained: the answer of evaluate, with how its value came about.
+      const ask = () =>
+        dialect === 'unaryTests'
+          ? engine!.evaluate({ dialect, expression: text, context: rawJson(context), contextFormat: 'json', input: rawJson(input) }, { signal: abort.signal })
+          : engine!.explain({ expression: text, context: rawJson(context), contextFormat: 'json', expand: why.expand, maxRecords: MAX_RECORDS }, { signal: abort.signal });
+      let res = await ask();
+      // a new context can leave an opened iteration without its item: ask again with nothing opened
+      if (!res.ok && res.error.code === 'invalid-field' && why.expand.length && !abort.signal.aborted) {
+        why.reset();
+        res = await ask();
+      }
       if (!abort.signal.aborted && !(!res.ok && res.error.kind === 'cancelled')) {
         response = res;
+        answered = text;
         roundTripMs = performance.now() - t0;
       }
     } catch (err) {
@@ -205,6 +175,25 @@
     void [dialect, expression, context, input, engine, blocked];
     clearTimeout(evalTimer);
     evalTimer = setTimeout(evaluateNow, DEBOUNCE_MS);
+  });
+
+  // Another text has other places: what was opened in the Why tree does not apply to it.
+  $effect(() => {
+    void [dialect, expression];
+    why.reset();
+  });
+
+  // ── the Why tree, and its marks in the editor ─────────────────────
+  const trace = $derived(response?.ok && 'trace' in response ? response : null);
+  const whyRows = $derived(trace ? rows(trace.trace, answered, why.open) : []);
+  const origin = $derived(trace ? nullOrigin(trace.trace, answered) : null);
+  // Places are those of the answered text; while the text is newer, nothing is marked.
+  const marks = $derived.by((): EditorMark[] => {
+    if (answered !== expression) return [];
+    const out: EditorMark[] = [];
+    if (origin) out.push({ from: origin.from, to: origin.to, class: 'cm-origin', tip: { title: 'The null of the result is from here', text: origin.reason } });
+    if (why.lit) out.push({ from: why.lit.from, to: why.lit.to, class: 'cm-lit' });
+    return out;
   });
 
   // ── URL hash (shareable state) ─────────────────────────────────────
@@ -243,10 +232,11 @@
   }
 
   const select = (from: number, to: number) => expressionPane?.select(from, to);
+  const selectAnswered = (from: number, to: number) => answered === expression && select(from, to);
 </script>
 
 <div class="app">
-  <TopBar onpick={pickExample} oncopylink={copyLink} {linkCopied} {theme} oncycletheme={cycleTheme} />
+  <TopBar onpick={pickExample} oncopylink={copyLink} {linkCopied} />
 
   {#if unavailable}
     <div class="banner bad" role="alert" data-testid="engine-unavailable">
@@ -279,6 +269,7 @@
           {scope}
           onsubmit={evaluateNow}
           onsyntax={(s) => (syntax = s)}
+          {marks}
         />
       </div>
       {#if dialect === 'unaryTests'}
@@ -305,112 +296,39 @@
           timeoutMs={engine?.timeoutMs ?? 2000}
           {showTyped}
           ontoggletyped={() => (showTyped = !showTyped)}
-          source={expression}
-          onselect={select}
+          source={answered}
+          onselect={selectAnswered}
+          {origin}
         />
       </div>
       <div class="slot o-inspector">
-        <InspectorPane {engine} {dialect} {expression} context={contextError ? null : context} {syntax} onselect={select} ondone={checkUnavailable} />
+        <InspectorPane
+          tab={inspector}
+          ontab={(t) => (inspector = t)}
+          {engine}
+          {dialect}
+          {expression}
+          context={contextError ? null : context}
+          {syntax}
+          {blocked}
+          {response}
+          rows={whyRows}
+          truncated={!!trace?.traceTruncated}
+          maxRecords={MAX_RECORDS}
+          ontoggle={(row) => why.toggle(row) && evaluateNow()}
+          onmore={(row) => {
+            why.more(row);
+            evaluateNow();
+          }}
+          onlight={(row) => {
+            why.lit = row;
+          }}
+          onselect={selectAnswered}
+          ondone={checkUnavailable}
+        />
       </div>
     </div>
   </main>
 
   <StatusStrip {info} {engineError} elapsedMicros={response?.ok ? response.elapsedMicros : null} {roundTripMs} />
 </div>
-
-<style>
-  .app {
-    height: 100vh;
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-  }
-  .banner {
-    flex: none;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    padding: 6px 16px;
-    background: var(--chrome);
-    color: var(--tx);
-  }
-  .banner.bad span {
-    color: var(--err);
-  }
-  .panes {
-    flex: 1;
-    min-height: 0;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 1px;
-  }
-  .col {
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-  }
-  .slot {
-    display: flex;
-    min-height: 0;
-    min-width: 0;
-  }
-  .slot > :global(.pane) {
-    flex: 1;
-  }
-  .o-expr {
-    flex: 46 1 0;
-  }
-  .o-input {
-    flex: none;
-  }
-  .o-context {
-    flex: 54 1 0;
-  }
-  .o-result {
-    flex: 0 1 auto;
-    max-height: 55%;
-  }
-  .o-inspector {
-    flex: 1 1 0;
-  }
-
-  /* phones and narrow windows: one column, the result right below what it is computed from */
-  @media (max-width: 900px) {
-    .app {
-      height: auto;
-      min-height: 100vh;
-    }
-    .panes {
-      display: flex;
-      flex-direction: column;
-    }
-    .col {
-      display: contents;
-    }
-    .o-expr {
-      order: 1;
-      flex: none;
-      height: 220px;
-    }
-    .o-input {
-      order: 2;
-    }
-    .o-result {
-      order: 3;
-      max-height: none;
-    }
-    .o-context {
-      order: 4;
-      flex: none;
-      height: 200px;
-    }
-    .o-inspector {
-      order: 5;
-      flex: none;
-      min-height: 360px;
-    }
-  }
-</style>

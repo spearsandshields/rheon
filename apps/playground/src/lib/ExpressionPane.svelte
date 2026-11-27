@@ -1,6 +1,7 @@
 <script lang="ts">
   import CodeEditor, { type SyntaxInfo } from './CodeEditor.svelte';
   import type { Dialect, Outline, PlaygroundEngine } from '../engine';
+  import type { EditorMark } from './marks';
 
   interface Props {
     dialect: Dialect;
@@ -12,9 +13,11 @@
     scope: { context: Record<string, unknown> } | { outline: Outline };
     onsubmit: () => void;
     onsyntax: (info: SyntaxInfo) => void;
+    /** Spans marked in the text: where the result's null is from, the part lit in the Why tree. */
+    marks: EditorMark[];
   }
 
-  let { dialect, ondialect, expression, onchange, engine, scope, onsubmit, onsyntax }: Props = $props();
+  let { dialect, ondialect, expression, onchange, engine, scope, onsubmit, onsyntax, marks }: Props = $props();
   let editor = $state<CodeEditor>();
 
   /** Selects a range of the text and scrolls it into view. */
@@ -53,6 +56,7 @@
       {onchange}
       {onsubmit}
       {onsyntax}
+      {marks}
     />
   </div>
   <p class="sr-only" id="feel-help">
